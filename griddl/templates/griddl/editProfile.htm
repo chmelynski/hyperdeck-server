@@ -1,0 +1,76 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<html>
+<head>
+<title>Edit Profile</title>
+<link rel='stylesheet' type='text/css' href="{% static 'griddl/css/bootstrap.css' %}" />
+
+<style>
+
+//div.row.even { background-color:white; }
+//div.row.odd { background-color:rgb(240,240,240); }
+//div.row:hover { background-color:rgb(220,220,220); }
+
+.planbtn {
+margin:1em;
+display:inline-block;
+width:15em;
+border:0;
+border-color:black;
+}
+
+td {
+border:1px solid black;
+text-align:center;
+padding:1em;
+}
+
+</style>
+
+</head>
+<body>
+
+<div style="display:inline; margin:2em;">
+
+<div style="display:inline-block; border:0px solid black; float:right; margin-top:1em;">
+	<a href="/{{ user.pk }}" style="margin-right:2em;">Profile</a>
+	<a href="/logout" style="text-decoration:none; color:rgb(70,150,230); margin-right:2em;">Sign out</a>
+</div>
+
+</div>
+
+<div class="row" style="margin:1em;">
+Account: {{ plan }} ({{ appsUsed }} of {{ appsAllowed }} apps used)
+</div>
+
+<table style="margin:1em; border-collapse:collapse;">
+	<tr>
+		<td> 2 apps for      free<br /><a href="/payment?plan=Free"   class="btn btn-lg btn-success planbtn" style="background-color:rgb(000,200,000)" role="button">Free  </a></td>
+		<td>10 apps for $10/month<br /><a href="/payment?plan=Bronze" class="btn btn-lg btn-success planbtn" style="background-color:rgb(200,090,000)" role="button">Bronze</a></td>
+		<td>20 apps for $20/month<br /><a href="/payment?plan=Silver" class="btn btn-lg btn-success planbtn" style="background-color:rgb(160,160,160)" role="button">Silver</a></td>
+		<td>50 apps for $50/month<br /><a href="/payment?plan=Gold"   class="btn btn-lg btn-success planbtn" style="background-color:rgb(255,190,010)" role="button">Gold  </a></td>
+	</tr>
+</table>
+
+<!--
+<div class="row" style="margin:1em;"><a href="/payment?plan=b" class="btn btn-lg btn-success planbtn" style="background-color:rgb(200,090,000)" role="button">Upgrade to Bronze</a></div>
+<div class="row" style="margin:1em;"><a href="/payment?plan=s" class="btn btn-lg btn-success planbtn" style="background-color:rgb(160,160,160)" role="button">Upgrade to Silver</a></div>
+<div class="row" style="margin:1em;"><a href="/payment?plan=g" class="btn btn-lg btn-success planbtn" style="background-color:rgb(255,190,010)" role="button">Upgrade to Gold  </a></div>
+-->
+
+<!--
+<div class="row" style="margin:1em;">
+Email: {{ user.email }}
+</div>
+-->
+
+<!--
+<div class="row" style="margin:1em;">
+<a href="/password_change">Change Password</button>
+</div>
+-->
+
+<script type='text/javascript' href="{% static 'griddl/js/lib/bootstrap.js' %}" />
+</body>
+</html>
+

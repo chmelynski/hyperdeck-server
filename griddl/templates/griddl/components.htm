@@ -1,0 +1,41 @@
+
+{% extends "griddl/workbook-base.htm" %}
+
+{% block style %}
+#cells { position:absolute; top:3em; left:2em; width:40em; height:40em; overflow:auto; }
+{% endblock %}
+
+{% block menuitems %}
+	<button onclick="Griddl.NewText();">NewText</button>
+	<button onclick="Griddl.NewGrid();">NewGrid</button>
+	<button onclick="Griddl.NewMatrix();">NewMatrix</button>
+	<button onclick="Griddl.NewTable();">NewTable</button>
+	<button onclick="Griddl.NewTree();">NewTree</button>
+	<button onclick="Griddl.NewHtml();">NewHtml</button>
+	<button onclick="Griddl.NewCss();">NewCss</button>
+	<button onclick="Griddl.NewJs();">NewJs</button>
+	<button onclick="Griddl.NewJson();">NewJson</button>
+	<button onclick="Griddl.NewDatgui();">NewDatgui</button>
+	<button onclick="Griddl.NewImage();">NewImage</button>
+	
+	<button onclick="Griddl.NewBinary();">NewBinary</button>
+	<button onclick="Frce.ReorderComponents();">Reorder</button>
+{% endblock %}
+
+{% block html %}
+	<script type="text/javascript" src="/static/griddl/js/griddl.js"></script>
+	<script type="text/javascript" src="/static/griddl/js/lib/typeset.js"></script>
+	<script type="text/javascript" src="/static/griddl/js/lib/dat.gui.min.js"></script>
+	<script type="text/javascript" src="/static/griddl/js/lib/babylon.math.js"></script>
+	<script type="text/javascript" src="/static/griddl/js/SoftEngine.js"></script>
+	<script type="text/javascript" src="/static/griddl/js/graphviz.js"></script>
+	<!--
+	<script type="text/javascript" src="/static/griddl/js/layout.js"></script>
+	<script type="text/javascript" src="/static/griddl/js/ocr.js"></script>
+	<script type="text/x-mathjax-config" src="/static/griddl/js/mathjax-config.js"></script>
+	<script type="text/javascript" src="/static/MathJax-2.4/MathJax.js?config=TeX-AMS-MML_SVG"></script>
+	<script type="text/javascript" src="/static/griddl/js/kronecker.js"></script>
+	-->
+	<div id="cells"></div>
+{% endblock %}
+

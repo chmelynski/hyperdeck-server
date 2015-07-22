@@ -1,0 +1,11 @@
+sqlite superuser:
+chmelynski
+supremo
+
+postgres superuser:
+adam
+supremo
+
+
+
+

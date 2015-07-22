@@ -1,0 +1,311 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<html>
+<head>
+<title>Profile</title>
+<link rel='stylesheet' type='text/css' href="{% static 'griddl/css/bootstrap.css' %}" />
+<style>
+
+/*
+//div.row.even { background-color:white; }
+//div.row.odd { background-color:rgb(240,240,240); }
+//div.row:hover { background-color:rgb(220,220,220); }
+
+div.workbook:hover { background-color:rgb(240,240,240); }
+
+div.selected { background-color:rgb(220,220,255); }
+div.selected:hover { background-color:rgb(220,220,255); }
+
+div.buttons { visibility:hidden; }
+div.selected div.buttons { visibility:visible; }
+*/
+
+tr.workbook:hover { background-color:rgb(240,240,240); }
+
+tr.selected { background-color:rgb(220,220,255); }
+tr.selected:hover { background-color:rgb(220,220,255); }
+
+.workbookActionButton { color:rgb(200,200,200); }
+
+</style>
+
+</head>
+<body onload="Main()">
+<script type='text/javascript' src="{% static 'griddl/js/lib/jquery-1.10.2.js' %}"></script>
+<!-- <script type='text/javascript' src="{% static 'griddl/js/lib/bootstrap.js' %}"></script> -->
+
+<script type="text/javascript">
+
+function Main() {
+	$('.workbook').on('click', function(e) {
+		$('.selected').removeClass('selected');
+		$(this).addClass('selected');
+		$('.workbookActionButton').attr('disabled',false);
+		$('.workbookActionButton').css('color','black');
+		e.stopPropagation();
+	});
+	
+	$('body').on('click', function(e) {
+		$('.selected').removeClass('selected');
+		$('.workbookActionButton').attr('disabled',true);
+		$('.workbookActionButton').css('color','rgb(200,200,200)');
+	});
+}
+function NewWorkbook() {
+	$('#newWorkbookScreen').css('display', 'block');
+	$('#newWorkbookModal').css('display', 'block');
+}
+function HideNewWorkbook() {
+	$('#newWorkbookScreen').css('display', 'none');
+	$('#newWorkbookModal').css('display', 'none');
+}
+function NewDirectory() {
+	$('#newDirectoryScreen').css('display', 'block');
+	$('#newDirectoryModal').css('display', 'block');
+}
+function HideNewDirectory() {
+	$('#newDirectoryScreen').css('display', 'none');
+	$('#newDirectoryModal').css('display', 'none');
+}
+function ShowRename() {
+	$('.selected .renameForm').css('display', 'inline');
+	$('.selected .namelink').css('display', 'none');
+	
+	$('.selected .renameForm').addClass('activeRenameForm'); // clicking on the Rename button turns off the selection, so we add these hooks for HideRename to use
+	$('.selected .namelink').addClass('activeNamelink');
+	//$('#renameScreen').css('display', 'block');
+}
+function HideRename() {
+	$('.activeRenameForm').css('display', 'none');
+	$('.activeNamelink').css('display', 'inline');
+	$('.activeRenameForm').removeClass('activeRenameForm');
+	$('.activeNamelink').removeClass('activeNamelink');
+	//$('#renameScreen').css('display', 'block');
+}
+function ShowDelete() {
+	$('#deleteIdInput').attr('value', $('.selected').attr('id').substr(2)); // backbone could help with this nonsense
+	$('#deleteScreen').css('display', 'block');
+	$('#deleteModal').css('display', 'block');
+}
+function HideDelete() {
+	$('#deleteIdInput').attr('value', '');
+	$('#deleteScreen').css('display', 'none');
+	$('#deleteModal').css('display', 'none');
+}
+function ShowMove() {
+	$('#moveIdInput').attr('value', $('.selected').attr('id').substr(2)); // backbone could help with this nonsense
+	$('#moveScreen').css('display', 'block');
+	$('#moveModal').css('display', 'block');
+}
+function HideMove() {
+	$('#moveIdInput').attr('value', '');
+	$('#moveScreen').css('display', 'none');
+	$('#moveModal').css('display', 'none');
+}
+function TogglePublic(pk) {
+	$.ajax({
+		type: 'GET',
+		url: '/togglepublic',
+		data: { pk : pk },
+		success: function (data) {
+			
+		},
+		error: function(data) {
+			
+		}
+	});
+}
+
+</script>
+
+<div id="newWorkbookScreen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:997; opacity:0.6; background-color:#444444;"></div>
+<div id="newWorkbookModal" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; margin:auto; width:30%; height:40%; z-index:998; opacity:1.0; background-color:#ffffff;">
+	<form action="/create" method="POST">
+		<div style="position:absolute; left:0; top:0; right:0; bottom:0; margin:auto; width:60%; height:40%; z-index:999; background-color:#ffffff;">
+			{% csrf_token %}
+			<input type="hidden" name="path" value="{{ path }}"></input>
+			<div style="display:block;">
+				<div style="display:block; margin:1em;">
+					<label>Name:</label>
+					<input type="text" title="name" name="name"></input>
+				</div>
+				<div style="display:block; margin:1em;">
+					<label>Type:</label>
+					<select name="type"> <!-- you should be able to enter the name of a template via textbox -->
+						{% for defaultWorkbook in defaultWorkbooks %}
+							<option>{{ defaultWorkbook.name }}</option>
+						{% endfor %}
+					</select>
+				</div>
+				<div style="display:block; margin:1em;">
+					<input type="submit" value="Create"></input>
+					<input type="button" value="Cancel" onclick="HideNewWorkbook();"></input>
+				</div>
+			</div>
+		</div>
+	</form>
+</div>
+
+<div id="newDirectoryScreen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:997; opacity:0.6; background-color:#444444;"></div>
+<div id="newDirectoryModal" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; margin:auto; width:30%; height:40%; z-index:998; opacity:1.0; background-color:#ffffff;">
+	<form action="/createDir" method="POST">
+		<div style="position:absolute; left:0; top:0; right:0; bottom:0; margin:auto; width:60%; height:40%; z-index:999; background-color:#ffffff;">
+			{% csrf_token %}
+			<input type="hidden" name="path" value="{{ path }}"></input>
+			<div style="display:block;">
+				<div style="display:block; margin:1em;">
+					<label>Name:</label>
+					<input type="text" title="name" name="name"></input>
+				</div>
+				<div style="display:block; margin:1em;">
+					<input type="submit" value="Create"></input>
+					<input type="button" value="Cancel" onclick="HideNewDirectory();"></input>
+				</div>
+			</div>
+		</div>
+	</form>
+</div>
+
+<div id="moveScreen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:997; opacity:0.6; background-color:#444444;"></div>
+<div id="moveModal" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; margin:auto; width:30%; height:40%; z-index:998; opacity:1.0; background-color:#ffffff;">
+	<form action="/move" method="POST">
+		<div style="position:absolute; left:0; top:0; right:0; bottom:0; margin:auto; width:60%; height:40%; z-index:999; background-color:#ffffff;">
+			{% csrf_token %}
+			<input id="moveIdInput" type="hidden" name="id" value=""></input>
+			<input type="hidden" name="path" value="{{ path }}"></input>
+			<div style="display:block;">
+				<div style="display:block; margin:1em;">
+					<label>New path:</label>
+					<input type="text" title="newpath" name="newpath" value="{{ path }}"></input>
+				</div>
+				<div style="display:block; margin:1em;">
+					<input type="submit" value="Move"></input>
+					<input type="button" value="Cancel" onclick="HideMove();"></input>
+				</div>
+			</div>
+		</div>
+	</form>
+</div>
+
+<!-- when I put the deleteModal as a child element of deleteScreen, deleteModal would be semitransparent.  as a sibling, it's opaque, as desired -->
+<div id="deleteScreen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:997; opacity:0.6; background-color:#444444;"></div>
+<div id="deleteModal" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; margin:auto; width:20%; height:40%; z-index:998; opacity:1.0; background-color:#ffffff;">
+	<form action="/delete" method="POST">
+	{% csrf_token %}
+	<input type="hidden" name="path" value="{{ path }}"></input>
+		<div style="position:absolute; left:0; top:0; right:0; bottom:0; margin:auto; width:60%; height:40%; z-index:999; background-color:#ffffff;">
+			<label>Delete workbook?</label>
+			<div style="display:inline-block;">
+				<input id="deleteIdInput" type="hidden" name="id" value=""></input>
+				<input type="submit" value="Delete"></input>
+				<input type="button" value="Cancel" onclick="HideDelete();"></input>
+			</div>
+		</div>
+	</form>
+</div>
+
+<!--
+<div id="renameScreen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:997; opacity:0.6; background-color:#444444;">
+</div>
+	<div id="modal" style="position:absolute; left:0; top:0; right:0; bottom:0; margin:auto; width:20%; height:40%; z-index:998; opacity:0; background-color:#ffffff;">
+		<form action="/rename" method="POST">
+			<div style="position:absolute; left:0; top:0; right:0; bottom:0; margin:auto; width:60%; height:40%; z-index:999; background-color:#ffffff;">
+				<label>New name</label>
+				<input type="text"></input>
+				<div style="display:inline-block;">
+					<input type="submit">Rename</input>
+					<input type="button">Cancel</input>
+				</div>
+			</div>
+		</form>
+	</div>
+-->
+
+<!-- to disable a button: {% if user.is_authenticated %}{% else %}disabled{% endif %} -->
+
+<div style="display:inline; margin:2em; height:10em">
+	<div style="display:inline-block; border:0px solid black; float:left; margin:1em;">
+		<a style="margin-right:1em;" href="/d/{{ user.pk }}{{ parentdir|yesno:'/,,' }}{{ parentdir }}">Up</a>
+		<button id="newWorkbookButton" onclick="NewWorkbook();">New workbook</button>
+		<button id="newDirectoryButton" onclick="NewDirectory();" style="margin-right:1em;">New directory</button>
+		<button id="renameButton" class="workbookActionButton" disabled onclick="ShowRename();">Rename</button>
+		<button id="deleteButton" class="workbookActionButton" disabled onclick="ShowDelete();">Delete</button>
+		<button id="moveButton" class="workbookActionButton" disabled onclick="ShowMove();">Move</button>
+	</div>
+	<div style="display:inline-block; border:0px solid black; float:right; margin-top:1em;">
+		<!-- <a href="/editProfile" style="margin-right:2em;">Edit profile</a> -->
+		<a href="/logout" style="text-decoration:none; color:rgb(70,150,230); margin-right:2em;">Logout</a>
+	</div>
+</div>
+
+
+<table style="margin:5em auto;">
+	<tr style="height:3em;">
+		<td style="width:3em;"></td>
+		<td style="width:20em;">Name</td>
+		<td style="width:20em;">Type</td>
+		<td style="width:3em;">Public?</td>
+	</tr>
+	{% for workbook in workbooks %}
+	<tr class="workbook" id="wb{{ workbook.pk }}">
+		<td>{{ workbook.filetype }}</td>
+		<td>
+			<form class="renameForm" action="/rename" method="POST" style="display:none;">
+				{% csrf_token %}
+				<input type="hidden" name="path" value="{{ path }}"></input>
+				<input type="hidden" name="id" value="{{ workbook.pk }}">
+				<input type="text" name="newname"></input>
+				<input type="submit" value="Rename"></input> <!-- you could also use button, but be sure to keep the type -->
+				<input type="button" value="Cancel" onclick="HideRename();"></input>
+			</form>
+			<a class="namelink" href="/{{ workbook.filetype|lower }}/{{ user.pk }}/{{ workbook.path }}{{ workbook.path|yesno:'/,,' }}{{ workbook.name }}">{{ workbook.name }}</a>
+		</td>
+		<td>
+			{{ workbook.type }}
+		</td>
+		<td>
+			<input type="checkbox" {% if workbook.public %}checked {% endif %}style="margin-left:1em;" onchange="TogglePublic({{ workbook.pk }})"></input>
+		</td>
+	</tr>
+	{% endfor %}
+</table>
+
+<!--
+<div class="row" style="margin-top:5em; margin-bottom:1em; margin-right:1em; margin-left:1em;">
+	<div class="col-md-4"><u>Name</u></div>
+	<div class="col-md-2"><u>Type</u></div>
+	<div class="col-md-1"><u>Public?</u></div>
+	<div class="col-md-3"></div>
+	<div class="col-md-2"></div>
+</div>
+{% for workbook in workbooks %}
+	<div class="workbook row {% cycle 'even' 'odd' %}" style="margin:1em;">
+		<div class="col-md-4">
+			<form id="rename{{ forloop.counter }}" action="/rename" method="POST" style="display:none;">
+				{% csrf_token %}
+				<input type="hidden" name="id" value="{{ workbook.pk }}">
+				<input type="text" name="newname"></input>
+				<input type="submit" value="Rename"></input>
+				<input type="button" value="Cancel" onclick="HideRename({{ forloop.counter }});"></input>
+			</form>
+			<a id="namelink{{ forloop.counter }}" href="/{{ workbook.filetype|lower }}/{{ user.pk }}/{{ workbook.path }}{{ workbook.path|yesno:'/,,' }}{{ workbook.name }}">{{ workbook.name }}</a>
+		</div>
+		<div class="col-md-2">
+			{{ workbook.type }}
+		</div>
+		<div class="col-md-1">
+			<input type="checkbox" {% if workbook.public %}checked {% endif %}style="margin-left:1em;" onchange="TogglePublic({{ workbook.pk }})"></input>
+		</div>
+		<div class="col-md-3">
+			<div class="buttons">
+				<button onclick="ShowRename({{ forloop.counter }})">Rename</button>
+				<button onclick="ShowDelete({{ workbook.pk }})">Delete</button>
+			</div>
+		</div>
+		<div class="col-md-2"></div>
+	</div>
+{% endfor %}
+-->
+
+</body>
+</html>

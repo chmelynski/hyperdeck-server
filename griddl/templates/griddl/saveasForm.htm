@@ -1,0 +1,17 @@
+
+
+<form id="saveasForm" action="/saveas" method="POST">
+	{% csrf_token %}
+	<div style="position:absolute; left:0; top:0; right:0; bottom:0; margin:auto; width:60%; height:40%; z-index:999; background-color:#ffffff;">
+		<label>New name:</label>
+		<div style="display:inline-block;">
+			<input type="hidden" name="id" value="{{ workbook.pk }}"></input>
+			<input id="saveasFormTextInput" type="hidden" name="text" value=""></input>
+			<input type="text" name="newname"></input>
+			<input type="submit" value="Save"></input>
+			<input type="button" value="Cancel" onclick="Frce.HideSaveAsModal();"></input>
+		</div>
+	</div>
+</form>
+
+

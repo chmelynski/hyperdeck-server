@@ -1,0 +1,3 @@
+[
+{"model":"griddl.workbook","fields":{"owner":1,"text":"@html iframe\n<div id='iframes'>\n<iframe id='UNP' src='/static/10ks/2014-02-07-UNP.htm'></iframe>\n</div>\n@end\n\n@css css1\n#iframes {\nposition:absolute;\nleft:43em;\ntop:5em;\nwidth:55em;\nheight:60em;\noverflow:auto;\n}\n\n#iframes iframe {\nmargin:1em;\nwidth:50em;\nheight:40em;\n}\n\n@end\\n@js annotate\n\nScrubber.Annotate();\n\n@end","type":"scrubber","name":"Union Pacific","public":false,"parent":71,"filetype":"F","path":"mosaic/scrubs/individual"}}
+]

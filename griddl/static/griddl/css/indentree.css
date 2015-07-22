@@ -1,0 +1,47 @@
+
+/* images converted to base64 by: http://webcodertools.com/imagetobase64converter/Create */
+
+ul.indentree li {
+	list-style-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAALCAIAAAAmzuBxAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAABlJREFUKFNjYCAG/McNoNpHVUBDgJjgZAAA20XyDoUlWTMAAAAASUVORK5CYII=);
+	/* list-style-image:none; */
+	cursor:auto;
+	margin: 1px;
+}
+
+ul.indentree li.indentreeOpen {
+	list-style-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAALCAIAAAAmzuBxAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAACFJREFUKFNjYCAG/McNoNrpqQLNxRCrB8AdWP1MTHAyAADwleMdWERfaAAAAABJRU5ErkJggg==);
+	cursor:pointer;
+}
+
+ul.indentree li.indentreeClosed {
+	list-style-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAALCAIAAAAmzuBxAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAC9JREFUKFNjYCAG/McNoNpJUwHUhKwBixn4VKC5GGISiWbANRFwB5q/iPYt/lAFADTh1ynx9n7gAAAAAElFTkSuQmCC);
+	cursor:pointer;
+}
+
+/*
+ul.indentree span{
+	border: 1px dotted white;
+}
+
+ul.indentree li.cursor > span{
+	border: 1px dotted gray;
+}
+*/
+
+
+ul.indentree li{
+	border: 1px dotted white;
+}
+
+
+/*
+ul.indentree li.cursor {
+	border: 1px dotted gray;
+}
+*/
+
+/*
+ul.indentree li:hover {
+	border: 1px dotted gray;
+}
+*/
