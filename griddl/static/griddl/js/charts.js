@@ -1,7 +1,6 @@
 
-// to make this stuff CanvasRenderingContext2D-compatible, we need to replace this with ctx - everywhere
+// to make this stuff CanvasRenderingContext2D-compatible, we need to replace 'this' with 'ctx' - everywhere
 
-// also SetStyle must be here
 Griddl.Canvas.prototype.SetStyle = function(styleName) {
 		
 		var style = this.styles[styleName];

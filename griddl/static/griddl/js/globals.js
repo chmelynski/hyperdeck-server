@@ -276,30 +276,6 @@ function ShowClipboard() {
 	globals.clipboard = window.prompt("Clipboard:", globals.clipboard);
 	globals.ctrl = false;
 }
-function SaveAsPng() {
-	var canvas = globals.canvasElement;
-	//document.getElementById("theimage").src = canvas.toDataURL();
-	Canvas2Image.saveAsPNG(canvas);
-}
-function DownloadWav() {
-	document.location.pathname = "octets.txt";
-	document.location.href = "data:audio/octet-stream,Hello%2C%20World!"; // somehow encode the .wav into a file (base64 encoding?)
-	// date URI syntax: data:[<mediatype>][;base64],<data>
-	
-	// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Base64_encoding_and_decoding
-	// https://developer.mozilla.org/en-US/docs/data_URIs
-	
-	// In JavaScript there are two functions respectively for decoding and encoding base64 strings:
-	// btoa() // encode from binary string to base64
-	// atob() // decode from base64
-	
-	// Functions which natively return Base64-encoded strings in JavaScript:
-	// The readAsDataURL() method of the FileReader API
-	// The toDataURL() and toDataURLHD() methods of the HTMLCanvasElement interface
-}
-function DownloadFile() {
-	document.location.href = "data:image/octet-stream,Hello%2C%20World!"; // the image/octet-stream ensures that the file will be downloaded rather than just opened in a new tab
-}
 function Execute() {
 	var cell = globals.selected;
 	
@@ -1157,9 +1133,6 @@ function ReactBox() {
 			throw new Error();
 		}
 	}
-}
-function Nop() {
-
 }
 function InsertAt(obj, list, index) {
 

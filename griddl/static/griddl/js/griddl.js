@@ -2424,8 +2424,21 @@ function HandleLocalLoad(files) {
 		$('#cells').children().remove();
 		
 		var text = event.target.result;
-		$('#frce').text(text);
-		Griddl.Main();
+		
+		//$('#frce').text(text);
+		//Griddl.Main();
+		
+		// dummy version that just diplays the workbook in a textarea
+		$('#cells').remove();
+		var textarea = $(document.createElement('textarea'));
+		textarea.text(text);
+		$('#frce').append(textarea);
+		$('#frce').css('display', 'block');
+		$('#frce').css('position', 'absolute');
+		$('#frce').css('left', '3em');
+		$('#frce').css('top', '5em');
+		textarea.css('width', '40em');
+		textarea.css('height', '50em');
 	};
 	
 	if (files.length > 0)
@@ -2564,6 +2577,20 @@ function SaveRemoteLines(url, lines) {
 	var blob = lines.join("\r\n") + "\r\n";
 	SaveRemote(url, blob);
 }
+
+
+// data URI syntax: data:[<mediatype>][;base64],<data>
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Base64_encoding_and_decoding
+// https://developer.mozilla.org/en-US/docs/data_URIs
+
+// In JavaScript there are two functions respectively for decoding and encoding base64 strings:
+// btoa() // encode from binary string to base64
+// atob() // decode from base64
+
+// Functions which natively return Base64-encoded strings in JavaScript:
+// The readAsDataURL() method of the FileReader API
+// The toDataURL() and toDataURLHD() methods of the HTMLCanvasElement interface
 
 // base64 encoding in a nutshell:
 // A-Z = 0-25 ('A' is ASCII 65, 'Z' is ASCII 90)

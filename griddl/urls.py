@@ -2,7 +2,7 @@
 from django.conf.urls import patterns, include, url
 
 from griddl import views
-from griddl import stripeapi
+#from griddl import stripeapi
 
 urlpatterns = patterns('',
 	url(r'^$', views.index, name='index'),                         # ex: /
@@ -28,9 +28,9 @@ urlpatterns = patterns('',
 	url(r'^join$', views.join),
 	url(r'^ajaxjoin$', views.ajaxjoin),
 	
-	url(r'^payment$', stripeapi.payment),
-	url(r'^charge$', stripeapi.charge),
-	url(r'^enroll$', stripeapi.enroll),
+	#url(r'^payment$', stripeapi.payment),
+	#url(r'^charge$', stripeapi.charge),
+	#url(r'^enroll$', stripeapi.enroll),
 	
 	#url(r'^f/(?P<userid>[0-9]+)/(?P<bookid>[A-Za-z0-9-]+)$', views.workbook, name='workbook'),
 	url(r'^f/(?P<userid>[0-9]+)/(?P<path>[A-Za-z0-9-/ ]*)$', views.workbook2),

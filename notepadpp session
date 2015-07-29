@@ -1,0 +1,16 @@
+<NotepadPlus>
+    <Session activeView="0">
+        <mainView activeIndex="8">
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="1" startPos="395" endPos="395" selMode="0" lang="Python" encoding="-1" filename="C:\cygwin64\home\adam\frce\mysite\mysite\settings.py" backupFilePath="" originalFileLastModifTimestamp="1438035240" />
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="2248" startPos="1894" endPos="1894" selMode="0" lang="Python" encoding="-1" filename="C:\cygwin64\home\adam\frce\mysite\griddl\urls.py" backupFilePath="" originalFileLastModifTimestamp="1437863889" />
+            <File firstVisibleLine="49" xOffset="0" scrollWidth="1096" startPos="2634" endPos="2634" selMode="0" lang="Normal Text" encoding="-1" filename="C:\cygwin64\home\adam\frce\commands to setup website from scratch.txt" backupFilePath="" originalFileLastModifTimestamp="1438036087" />
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="2248" startPos="46" endPos="0" selMode="0" lang="Normal Text" encoding="-1" filename="C:\Users\adam\python-getting-started\Procfile.windows" backupFilePath="" originalFileLastModifTimestamp="1437948025" />
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="2248" startPos="0" endPos="0" selMode="0" lang="Normal Text" encoding="-1" filename="C:\Users\adam\python-getting-started\requirements.txt" backupFilePath="" originalFileLastModifTimestamp="1437948025" />
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="2248" startPos="0" endPos="0" selMode="0" lang="Python" encoding="-1" filename="C:\Users\adam\python-getting-started\gettingstarted\wsgi.py" backupFilePath="" originalFileLastModifTimestamp="1437948025" />
+            <File firstVisibleLine="84" xOffset="0" scrollWidth="2248" startPos="228" endPos="228" selMode="0" lang="Python" encoding="-1" filename="C:\Users\adam\python-getting-started\gettingstarted\settings.py" backupFilePath="" originalFileLastModifTimestamp="1437948025" />
+            <File firstVisibleLine="19" xOffset="0" scrollWidth="2248" startPos="2189" endPos="2230" selMode="0" lang="Normal Text" encoding="-1" filename="C:\Users\adam\Desktop\heroku notes.txt" backupFilePath="" originalFileLastModifTimestamp="1438034643" />
+            <File firstVisibleLine="0" xOffset="0" scrollWidth="1800" startPos="655" endPos="655" selMode="0" lang="Python" encoding="-1" filename="C:\cygwin64\home\adam\frce\mysite\mysite\wsgi.py" backupFilePath="" originalFileLastModifTimestamp="1382826621" />
+        </mainView>
+        <subView activeIndex="0" />
+    </Session>
+</NotepadPlus>

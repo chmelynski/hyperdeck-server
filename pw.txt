@@ -1,5 +1,5 @@
 sqlite superuser:
-chmelynski
+chmelynski - i think this is adam now
 supremo
 
 postgres superuser:
