@@ -109,7 +109,7 @@ if developmentServer:
 	STATIC_URL = '/static/'
 	STATICFILES_DIRS = ()
 else:
-	STATIC_ROOT = ''
+	STATIC_ROOT = '/app/griddl/static'
 	STATIC_URL = '/static/'
 	STATICFILES_DIRS = ()
 
