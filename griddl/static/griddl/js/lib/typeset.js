@@ -825,89 +825,92 @@ Hypher.prototype.hyphenate = function (word) {
 
     return result;
 };
-jQuery(function ($) {
-	function browserTypeset() {
-		var original = $('#browser'),
-			width = original.width(),
-			copy = original.clone(),
-			text = copy.text(),
-			lines = [],
-			ratios = [],
-			words = text.split(/\s/),
-			position = 0,
-			stretchWidth = 0,
-			spaceStretch = 0,
-			html = [];
 
-		$('body').append(copy);
+exports.Typeset = Typeset;
 
-		// This piece of code calculates the positions of the line breaks added
-		// by the browser by adding an invisible wrapper element to each word
-		// and checking when its y-position changes.
-		words.forEach(function (word, index) {
-            var html = words.slice(0, index),
-				currentPosition = 0;
-
-            html.push('<span>' + word + '</span>');
-            Array.prototype.push.apply(html, words.slice(index + 1, words.length));
-
-			copy.html(html.join(' '));
-
-			currentPosition = copy.find('span').position().top;
-
-			if (currentPosition != position) {
-				lines.push([]);
-				position = currentPosition;
-			}
-
-			lines[lines.length - 1].push(word);
-		});
-
-		lines = lines.map(function (line) {
-			return line.join(' ');
-		});
-
-	
-		// We measure the width if the text is not justified and only a 
-		// single line (i.e. the optimal line length.)
-		copy.empty();
-		copy.css({width: 'auto', display: 'inline', textAlign: 'left'});
-
-		// This works under the assumption that a space is 1/3 of an em, and 
-		// the stretch value is 1/6. Although the actual browser value may be
-		// different, the assumption is valid as it is only used to compare
-		// to the ratios calculated earlier.
-		stretchWidth = copy.html('&nbsp;').width() / 2;
-
-		lines.forEach(function (line, index) {
-			// This conditional is to ensure we don't calculate the ratio
-			// for the last line as it is not justified.
-			if (index !== lines.length - 1) {
-				copy.text(line);
-				ratios.push((width - copy.width()) / ((line.split(/\s/).length - 1) * stretchWidth));
-			} else {
-				ratios.push(0);
-			}
-		});
-
-		copy.remove();
-
-
-		html.push('<ul>');
-		ratios.forEach(function (ratio) {
-			html.push('<li>');
-			html.push(ratio.toFixed(3));
-			html.push('</li>');
-		});
-		html.push('</ul>');
-
-		$('#browser').parent().append(html.join(''));
-	}
-
-	//$('#browser').text(text);
-	//browserTypeset();
-});
-jQuery(function ($) {
+//jQuery(function ($) {
+//	function browserTypeset() {
+//		var original = $('#browser'),
+//			width = original.width(),
+//			copy = original.clone(),
+//			text = copy.text(),
+//			lines = [],
+//			ratios = [],
+//			words = text.split(/\s/),
+//			position = 0,
+//			stretchWidth = 0,
+//			spaceStretch = 0,
+//			html = [];
+//
+//		$('body').append(copy);
+//
+//		// This piece of code calculates the positions of the line breaks added
+//		// by the browser by adding an invisible wrapper element to each word
+//		// and checking when its y-position changes.
+//		words.forEach(function (word, index) {
+//            var html = words.slice(0, index),
+//				currentPosition = 0;
+//
+//            html.push('<span>' + word + '</span>');
+//            Array.prototype.push.apply(html, words.slice(index + 1, words.length));
+//
+//			copy.html(html.join(' '));
+//
+//			currentPosition = copy.find('span').position().top;
+//
+//			if (currentPosition != position) {
+//				lines.push([]);
+//				position = currentPosition;
+//			}
+//
+//			lines[lines.length - 1].push(word);
+//		});
+//
+//		lines = lines.map(function (line) {
+//			return line.join(' ');
+//		});
+//
+//	
+//		// We measure the width if the text is not justified and only a 
+//		// single line (i.e. the optimal line length.)
+//		copy.empty();
+//		copy.css({width: 'auto', display: 'inline', textAlign: 'left'});
+//
+//		// This works under the assumption that a space is 1/3 of an em, and 
+//		// the stretch value is 1/6. Although the actual browser value may be
+//		// different, the assumption is valid as it is only used to compare
+//		// to the ratios calculated earlier.
+//		stretchWidth = copy.html('&nbsp;').width() / 2;
+//
+//		lines.forEach(function (line, index) {
+//			// This conditional is to ensure we don't calculate the ratio
+//			// for the last line as it is not justified.
+//			if (index !== lines.length - 1) {
+//				copy.text(line);
+//				ratios.push((width - copy.width()) / ((line.split(/\s/).length - 1) * stretchWidth));
+//			} else {
+//				ratios.push(0);
+//			}
+//		});
+//
+//		copy.remove();
+//
+//
+//		html.push('<ul>');
+//		ratios.forEach(function (ratio) {
+//			html.push('<li>');
+//			html.push(ratio.toFixed(3));
+//			html.push('</li>');
+//		});
+//		html.push('</ul>');
+//
+//		$('#browser').parent().append(html.join(''));
+//	}
+//
+//	//$('#browser').text(text);
+//	//browserTypeset();
+//});
+//jQuery(function ($) {
 	//var ruler = $('<div class="example"></div>').css({
 	//		visibility: 'hidden',
 	//		position: 'absolute',
@@ -928,45 +931,45 @@ jQuery(function ($) {
 	//	}
 	//});
 
-	function browserAssistTypeset(identifier, text, type, lineLengths, tolerance) {
-		var nodes = format[type](text),
-			breaks = Typeset.linebreak(nodes, lineLengths, {tolerance: tolerance}),
-			lines = [],
-			i, point, r, lineStart,
-			browserAssist = $(identifier).after('<ul></ul>'),
-			browserAssistRatio = $(identifier + ' + ul');
-
-		// Iterate through the line breaks, and split the nodes at the
-		// correct point.
-		for (i = 1; i < breaks.length; i += 1) {
-			point = breaks[i].position,
-			r = breaks[i].ratio;
-
-			for (var j = lineStart; j < nodes.length; j += 1) {
-				// After a line break, we skip any nodes unless they are boxes or forced breaks.
-				if (nodes[j].type === 'box' || (nodes[j].type === 'penalty' && nodes[j].penalty === -Typeset.linebreak.infinity)) {
-					lineStart = j;
-					break;
-				}
-			}
-			lines.push({ratio: r, nodes: nodes.slice(lineStart, point + 1), position: point});
-			lineStart = point;
-		}
-
-		lines = lines.map(function (line) {
-			var spaceShrink = 1 / 9 * 12,
-				spaceStretch = 1 / 6 * 12,
-				ratio = line.ratio * (line.ratio < 0 ? spaceShrink : spaceStretch);
-
-			var output = '<span style="word-spacing: ' + ratio.toFixed(3) + 'px; display: inline-block; white-space: nowrap;">' + line.nodes.filter(function (n) {
-				return n.type === 'box';
-			}).map(function (n) {
-				return n.value;
-			}).join(' ') + '</span>';
-			browserAssist.append(output);
-			browserAssistRatio.append('<li>' + line.ratio.toFixed(3) + '</li>');
-		});
-	}
-	//browserAssistTypeset('#browser-assist', text, 'justify', [350], 3);
-});
+//	function browserAssistTypeset(identifier, text, type, lineLengths, tolerance) {
+//		var nodes = format[type](text),
+//			breaks = Typeset.linebreak(nodes, lineLengths, {tolerance: tolerance}),
+//			lines = [],
+//			i, point, r, lineStart,
+//			browserAssist = $(identifier).after('<ul></ul>'),
+//			browserAssistRatio = $(identifier + ' + ul');
+//
+//		// Iterate through the line breaks, and split the nodes at the
+//		// correct point.
+//		for (i = 1; i < breaks.length; i += 1) {
+//			point = breaks[i].position,
+//			r = breaks[i].ratio;
+//
+//			for (var j = lineStart; j < nodes.length; j += 1) {
+//				// After a line break, we skip any nodes unless they are boxes or forced breaks.
+//				if (nodes[j].type === 'box' || (nodes[j].type === 'penalty' && nodes[j].penalty === -Typeset.linebreak.infinity)) {
+//					lineStart = j;
+//					break;
+//				}
+//			}
+//			lines.push({ratio: r, nodes: nodes.slice(lineStart, point + 1), position: point});
+//			lineStart = point;
+//		}
+//
+//		lines = lines.map(function (line) {
+//			var spaceShrink = 1 / 9 * 12,
+//				spaceStretch = 1 / 6 * 12,
+//				ratio = line.ratio * (line.ratio < 0 ? spaceShrink : spaceStretch);
+//
+//			var output = '<span style="word-spacing: ' + ratio.toFixed(3) + 'px; display: inline-block; white-space: nowrap;">' + line.nodes.filter(function (n) {
+//				return n.type === 'box';
+//			}).map(function (n) {
+//				return n.value;
+//			}).join(' ') + '</span>';
+//			browserAssist.append(output);
+//			browserAssistRatio.append('<li>' + line.ratio.toFixed(3) + '</li>');
+//		});
+//	}
+//	//browserAssistTypeset('#browser-assist', text, 'justify', [350], 3);
+//});
 

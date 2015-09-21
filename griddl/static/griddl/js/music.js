@@ -4,8 +4,34 @@
 function thisModule() {
 
 var mAudioContext = null;
-if (window.AudioContext) { mAudioContext = new AudioContext(); }
-if (mAudioContext == null) { if (window.webkitAudioContext) { mAudioContext = new webkitAudioContext(); } }
+
+var window = window;
+if (window && window.AudioContext) { mAudioContext = new AudioContext(); }
+if (mAudioContext == null) { if (window && window.webkitAudioContext) { mAudioContext = new webkitAudioContext(); } }
+
+
+var chords = {};
+chords.diminished = [ 0, 3, 6 ];
+chords.sus2 = [ 0, 2, 7 ];
+chords.minor = [ 0, 3, 7 ];
+chords.major = [ 0, 4, 7 ];
+chords.sus4 = [ 0, 5, 7 ];
+chords.augmented = [ 0, 4, 8 ];
+chords.dominantSeventh = [ 0, 4, 7, 10 ];
+chords.majorSeventh = [ 0, 4, 7, 11 ];
+chords.minorSeventh = [ 0, 3, 7, 10 ];
+chords.halfDiminishedSeventh = [ 0, 3, 6, 10 ];
+chords.diminishedSeventh = [ 0, 3, 6, 9 ];
+chords.majorMinorSeventh = [ 0, 3, 7, 11 ];
+chords.augmentedMajorSeventh = [ 0, 4, 8, 11 ];
+chords.augmentedSeventh = [ 0, 4, 8, 10 ];
+
+var scales = {};
+scales.majorScale = [ 0, 2, 4, 5, 7, 9, 11 ];
+scales.minorScale = [ 0, 2, 3, 5, 7, 8, 10 ];
+scales.harmonicMinorScale = [ 0, 2, 3, 5, 7, 8, 11 ];
+scales.melodicMinorScale = [ 0, 2, 3, 5, 7, 9, 11 ];
+
 
 function HighPassFilter(pcms, dt, rc) {
 	
@@ -81,7 +107,7 @@ function DrawSheetMusic() {
 	
 	for (var iStaff = 0; iStaff < staffs; iStaff++)
 	{
-		g.strokeStyle = 'black';
+		g.strokeStyle = 'rgb(0,0,0)';
 		
 		g.translate(0, params.rowHeight * params.staffExtension / 2);
 		
@@ -101,7 +127,7 @@ function DrawSheetMusic() {
 		var beatCount = params.measuresPerStaff * params.beatsPerMeasure;
 		var sixtCount = beatCount * 4;
 		
-		g.strokeStyle = 'black';
+		g.strokeStyle = 'rgb(0,0,0)';
 		g.DrawLine(0.5+params.gridsLeft, 0, 0.5+params.gridsLeft, g.canvas.height);
 		
 		for (var i = 0; i < sixtCount; i++)
@@ -112,7 +138,7 @@ function DrawSheetMusic() {
 			
 			if ((i+1) % (params.beatsPerMeasure * 4) == 0)
 			{
-				g.strokeStyle = 'black';
+				g.strokeStyle = 'rgb(0,0,0)';
 			}
 			else if ((i+1) % 4 == 0)
 			{
@@ -172,8 +198,8 @@ function DrawSheetMusic() {
 		
 		var dotted = false;
 		
-		g.strokeStyle = 'black';
-		g.fillStyle = 'black';
+		g.strokeStyle = 'rgb(0,0,0)';
+		g.fillStyle = 'rgb(0,0,0)';
 		
 		if (type.substr(0, 6) == 'Dotted')
 		{
@@ -466,7 +492,7 @@ function CompileGuitarTabs(tabName, audioName, padding) {
 }
 
 
-// Note = { sample : 'snare' , instrument : 'Piano' , amp : 3000 , freq : 440 , start : 13000 , duration : 2000 , etc. }
+// Note = { sample : 'snare' or <pcms> , instrument : 'Piano' , amp : 3000 , freq : 440 , start : 13000 , duration : 2000 , etc. }
 // Sample = { duration : 10000 , pcms : Array , instrument : Piano , freq : 220 }
 
 function GetNotes(matrix) {
@@ -635,9 +661,10 @@ function GetNotes(matrix) {
 	return finalObjs;
 }
 
-function CompileInstrument(notes, padding) {
+function CompileInstrument(notes, padding, globalSampleDict) {
 	
-	// we generate a dictionary like this, noting the max duration for each instrument/freq pair - keep the pcms field null for now (for instruments), we'll fill it in later
+	// we generate a dictionary like this, noting the max duration for each instrument/freq pair
+	// keep the pcms field null for now (for instruments), we'll fill it in later
 	// {
 	//   Piano220 : { duration : 10000 , pcms : null , instrument : Piano , freq : 220 } ,
 	//   Piano440 : { duration : 10000 , pcms : null , instrument : Piano , freq : 440 } ,
@@ -656,7 +683,7 @@ function CompileInstrument(notes, padding) {
 		{
 			var sample = null;
 			
-			var key = note.instrument + note.freq.toString();
+			var key = (typeof(note.instrument) == 'string') ? note.instrument + note.freq.toString() : note.instrument.name + note.freq.toString();
 			note.key = key;
 			note.sampleStart = 0;
 			
@@ -683,7 +710,9 @@ function CompileInstrument(notes, padding) {
 			
 			if (!wavSampleDict[key])
 			{
-				var pcms = Griddl.GetData(note.sample);
+				//var pcms = Griddl.GetData(note.sample); // we need to do something else
+				var pcms = globalSampleDict[note.sample].xs[0]; // assumes mono
+				
 				var normalizedPcms = new Array(pcms.length);
 				
 				for (var k = 0; k < pcms.length; k++)
@@ -725,15 +754,22 @@ function CompileInstrument(notes, padding) {
 		{
 			var fn = null;
 			
-			if (instrumentFunctionDict[sample.instrument])
+			if (typeof(sample.instrument) == 'string')
 			{
-				fn = instrumentFunctionDict[sample.instrument];
+				if (instrumentFunctionDict[sample.instrument])
+				{
+					fn = instrumentFunctionDict[sample.instrument];
+				}
+				else
+				{
+					var text = Griddl.GetData(sample.instrument); // yeah we have this set up so that it returns the text of a js component, not the compiled function
+					fn = new Function('args', text);
+					instrumentFunctionDict[sample.instrument] = fn;
+				}
 			}
 			else
 			{
-				var text = Griddl.GetData(sample.instrument); // yeah we have this set up so that it returns the text of a js component, not the compiled function
-				fn = new Function('args', text);
-				instrumentFunctionDict[sample.instrument] = fn;
+				fn = sample.instrument;
 			}
 			
 			// note that this model fails if you have an instrument with a sustain, then decay
@@ -1035,9 +1071,54 @@ function Noise(x) {
     var b = grad( i+1, f-1.0 );
     return a + (b-a)*w;
 }
+function Violin(freq, amp, duration) {
+	
+	var basefreq = freq * Math.PI * 2;
+	
+	var echoDelays = [ 460 , 2000 ];
+	var echoAmps = [ 0.50 , 0.30 ];
+	
+	var x = new Array(duration);
+	
+	for (var i = 0; i < duration; i++)
+	{
+		var t = i / 44100;
+		var y = 0;
+		
+		var frq = basefreq * (1.0 + 0.00005*Math.cos(30.0*t)); // FM
+		y += 1.0*Math.sin(1.0*frq*t);//*Math.exp(-0.0010*freq*t);
+		y += 1.0*Math.sin(2.0*frq*t);//*Math.exp(-0.0010*freq*t);
+		y += 0.4*Math.sin(3.0*frq*t);//*Math.exp(-0.0010*freq*t);
+		y += 0.5*Math.sin(4.0*frq*t);//*Math.exp(-0.0010*freq*t);
+		y += 1.0*Math.sin(5.0*frq*t);//*Math.exp(-0.0010*freq*t);
+		y += 0.1*Math.sin(6.0*frq*t);//*Math.exp(-0.0010*freq*t);
+		y += 0.1*Math.sin(7.0*frq*t);//*Math.exp(-0.0010*freq*t);
+		y += 0.1*Math.sin(8.0*frq*t);//*Math.exp(-0.0010*freq*t);
+		//y += 0.2*y*y*y;
+		//y *= 0.9 + 0.1*Math.cos(10.0*t); // amplitude modulation
+		//y = 2.0*y*Math.exp(-22.0*t) + y; // attack
+		
+		for (var k = 0; k < echoDelays.length; k++)
+		{
+			if (i > echoDelays[k])
+			{
+				y += x[i - echoDelays[k]] * echoAmps[k];
+			}
+		}
+		
+		x[i] = y;
+	}
+	
+	for (var i = 0; i < duration; i++)
+	{
+		x[i] *= amp;
+	}
+	
+	return x;
+}
 
-function Guitar2(duration, freq) {
-	return Pluck(duration, PluckBang(freq));
+function Guitar2(params) {
+	return Pluck(params.duration, PluckBang(params.freq));
 }
 function PluckBang(freq) {
 	
@@ -1076,6 +1157,20 @@ function Pluck(length, onecycle) {
 	return xs;
 }
 
+function DrawWaveDriver(g, pcms) {
+	
+	var color = 'rgb(0,0,0)';
+	var left = 10;
+	var cy = 300;
+	
+	var pcmStart = 0;
+	var pcmLength = 44100;
+	var xPixelsPerStep = 1;
+	var samplesPerStep = 10;
+	var pcmsPerYPixel = 100;
+	
+	DrawWave(g, color, pcms, pcmStart, pcmLength, left, cy, xPixelsPerStep, samplesPerStep, pcmsPerYPixel);
+}
 function DrawWave(g, color, pcms, pcmStart, pcmLength, left, cy, xPixelsPerStep, samplesPerStep, pcmsPerYPixel) {
 	g.lineWidth = 1;
 	g.strokeStyle = color;
@@ -1098,6 +1193,98 @@ function DrawWave(g, color, pcms, pcmStart, pcmLength, left, cy, xPixelsPerStep,
 	}
 	
 	g.stroke();
+}
+
+
+function SampleSlicer(pcms) {
+	
+	var startSeconds = 1;
+	var endSeconds = 2;
+	var lengthSeconds = 1;
+	//var lengthSeconds = endSeconds - startSeconds;
+	
+	var startSamples = Math.floor(startSeconds * 44100, 1);
+	var lengthSamples = Math.floor(lengthSeconds * 44100, 1);
+	
+	var part = new Int16Array(lengthSamples);
+	
+	for (var i = 0; i < lengthSamples; i++)
+	{
+		part[i] = pcms[startSamples + i];
+	}
+	
+	return part;
+}
+
+function PlayHarmonic() {
+	
+	var harmonicGrid = GetData('harmonics');
+	var column = 'A';
+	var harmonics = [];
+	
+	for (var i = 0; i < harmonicGrid.length; i++)
+	{
+		harmonics.push(parseFloat(harmonicGrid[i][column]));
+	}
+	
+	var duration = Math.floor(44100 * 1.0, 1);
+	var pcms = new Array(duration);
+	var freq = 220 * Math.PI * 2;
+	var amp = 2000;
+	var envelope = {a:1000,d:1000,r:3000,peak:1.5};
+	
+	for (var i = 0; i < duration; i++)
+	{
+		var t = i / 44100;
+		var pcm = globals.Harmonics(freq * t, harmonics);
+		pcms[i] = pcm * amp * Asdr(i, duration, envelope);
+	}
+	
+	Music.PlaySound(pcms);
+}
+function Asdr(t, totalLength, envelope) {
+	
+	// envelope = {a:100,d:100,r:100,peak:2.0}
+	
+	if (t < envelope.a)
+	{
+		return envelope.peak * (t / envelope.a);
+	}
+	
+	if (t < (envelope.a + envelope.d))
+	{
+		return 1.0+(envelope.peak-1.0)*(1.0-((t-envelope.a)/envelope.d));
+	}
+	
+	if (t < (totalLength - envelope.r))
+	{
+		return 1.0;
+	}
+	
+	if (t < totalLength)
+	{
+		return 1.0-((t-(totalLength-envelope.r))/envelope.r);
+	}
+	
+	return 0.0;
+}
+function Harmonics(freqt, harmonics) {
+	
+	var y = 0;
+	
+	var totalStrength = 0;
+	
+	for (var i = 0; i < harmonics.length; i++)
+	{
+		var overtone = i + 1;
+		var strength = harmonics[i];
+		totalStrength += strength;
+		y += strength*Math.sin(overtone*freqt);
+	}
+	
+	y /= totalStrength;
+	
+	return y;
 }
 
 function ReadWav(x) {
@@ -1826,13 +2013,851 @@ function StaffToC4(n, keySignature) {
 	return pitch;
 }
 
+var Conversion = {};
+Conversion.ReadUi = function(b, k, n, little) {
+	
+	var x = 0;
+	
+	if (little)
+	{
+		var x = b.readUIntLE(k.k, n);
+	}
+	else
+	{
+		var x = b.readUIntBE(k.k, n);
+	}
+	
+	k.k += n;
+	
+	return x;
+	
+	//var x = 0;
+	//var mult = 1;
+	//
+	//if (little)
+	//{
+	//	for (var i = 0; i < n; i++)
+	//	{
+	//		x += mult * b[k.k++];
+	//		mult *= 256;
+	//	}
+	//}
+	//else
+	//{
+	//	for (var i = 0; i < n - 1; i++)
+	//	{
+	//		mult *= 256;
+	//	}
+	//
+	//	for (var i = 0; i < n; i++)
+	//	{
+	//		x += mult * b[k.k++];
+	//		mult /= 256;
+	//	}
+	//}
+	//
+	//return x;
+};
+Conversion.ReadSi = function(b, k, n, little) {
+	
+	var x = 0;
+	
+	if (little)
+	{
+		var x = b.readIntLE(k.k, n);
+	}
+	else
+	{
+		var x = b.readIntBE(k.k, n);
+	}
+	
+	k.k += n;
+	
+	return x;
+	
+	//var x = ReadUi(b, k, n, little);
+	//var y = CastUintToInt(x, n);
+	//return y;
+};
+Conversion.ReadB = function(b, k, n) {
+	
+	var x = [];
+	
+	for (var i = 0; i < n; i++)
+	{
+		x.push(b.readUInt8(k.k++));
+		//x.push(b[k.k++]);
+	}
+	
+	return x;
+};
+Conversion.ReadS = function(b, k, n) {
+	
+	var s = b.toString('utf8', k.k, k.k + n);
+	k.k += n;
+	return s;
+	
+	//var x = '';
+	//
+	//for (var i = 0; i < n; i++)
+	//{
+	//	x += String.fromCharCode(b[k.k++]);
+	//}
+	//
+	//return x;
+};
+function CastUintToInt(x, n) {
+	
+	if (n == 4 && x >= 0x80000000)
+	{
+		//return ((~x) + 1) * -1;
+		return -1 * (0x100000000 - x); // does this work in javascript?
+	}
+	else if (n == 3 && x >= 0x800000)
+	{
+		return -1 * (0x1000000 - x);
+	}
+	else if (n == 2 && x >= 0x8000)
+	{
+		return -1 * (0x10000 - x);
+	}
+	else if (n == 1 && x >= 0x80)
+	{
+		return -1 * (0x100 - x);
+	}
+	else
+	{
+		return x;
+	}
+}
+
+function ReadMidi(b) {
+	
+	var x = { header : null , tracks : [] };
+	
+	var k = {k:0};
+	
+	while (k.k < b.length)
+	{
+		//console.log('k.k : ' + k.k);
+		var type = Conversion.ReadS(b, k, 4);
+		var length = Conversion.ReadUi(b, k, 4, false);
+		//console.log(type + ', length = ' + length);
+		
+		// var raw = []; for (var i = 0; i < length + 8; i++) { raw.push(b[k.k - 8 + i]); }
+		if (type == "MThd")
+		{
+			x.header = ReadMidiHeaderChunk(b, k);
+			// x.header.raw = raw;
+		}
+		else if (type == "MTrk")
+		{
+			x.tracks.push(ReadMidiTrackChunk(b, k, length));
+			//track.raw = raw;
+		}
+		else
+		{
+			var unknown = Conversion.ReadB(b, k, length);
+		}
+	}
+	
+	ConvertToNotes(x);
+	
+	return x;
+}
+function ReadMidiHeaderChunk(b, k) {
+	var x = {};
+	x.format = Conversion.ReadUi(b, k, 2, false);
+	x.tracks = Conversion.ReadUi(b, k, 2, false);
+	x.division = Conversion.ReadUi(b, k, 2, false);
+	return x;
+}
+function ReadMidiTrackChunk(b, k, length) {
+	
+	var x = { events : [] };
+	var end = k.k + length;
+	
+	while (k.k < end)
+	{
+		x.events.push(ReadEvent(b, k));
+	}
+	
+	return x;
+}
+var lastEventType = null;
+function ReadEvent(b, k) {
+	
+	var x = {};
+	x.deltaTime = ReadDeltaTime(b, k);
+	
+	var type = Conversion.ReadUi(b, k, 1);
+	
+	if ((type & 0xf0) == 0xf0)
+	{
+		if (type == 0xf0)
+		{
+			x.type = "sysEx";
+			var length = ReadDeltaTime(b, k);
+			x.data = Conversion.ReadB(b, k, length);
+		}
+		else if (type == 0xf7)
+		{
+			x.type = "dividedSysEx";
+			var length = ReadDeltaTime(b, k);
+			x.data = Conversion.ReadB(b, k, length);
+		}
+		else if (type == 0xff)
+		{
+			x.type = "meta";
+			
+			var subtype = Conversion.ReadUi(b, k, 1);
+			var length = ReadDeltaTime(b, k);
+			
+			if (subtype == 0x00)
+			{
+				x.subtype = "sequenceNumber";
+				if (length != 2) { throw new Error("Expected length for sequenceNumber event is 2, got " + length); }
+				x.number = Conversion.ReadUi(b, k, 2); // big endian?
+			}
+			else if (subtype == 0x01)
+			{
+				x.subtype = "text";
+				x.text = Conversion.ReadS(b, k, length);
+			}
+			else if (subtype == 0x02)
+			{
+				x.subtype = "copyrightNotice";
+				x.text = Conversion.ReadS(b, k, length);
+			}
+			else if (subtype == 0x03)
+			{
+				x.subtype = "trackName";
+				x.text = Conversion.ReadS(b, k, length);
+			}
+			else if (subtype == 0x04)
+			{
+				x.subtype = "instrumentName";
+				x.text = Conversion.ReadS(b, k, length);
+			}
+			else if (subtype == 0x05)
+			{
+				x.subtype = "lyrics";
+				x.text = Conversion.ReadS(b, k, length);
+			}
+			else if (subtype == 0x06)
+			{
+				x.subtype = "marker";
+				x.text = Conversion.ReadS(b, k, length);
+			}
+			else if (subtype == 0x07)
+			{
+				x.subtype = "cuePoint";
+				x.text = Conversion.ReadS(b, k, length);
+			}
+			else if (subtype == 0x20)
+			{
+				x.subtype = "midiChannelPrefix";
+				if (length != 1) { throw new Error("Expected length for midiChannelPrefix event is 1, got " + length); }
+				x.channel = Conversion.ReadUi(b, k, 1);
+			}
+			else if (subtype == 0x2f)
+			{
+				x.subtype = "endOfTrack";
+				if (length != 0) { throw new Error("Expected length for endOfTrack event is 0, got " + length); }
+			}
+			else if (subtype == 0x51)
+			{
+				x.subtype = "setTempo";
+				if (length != 3) { throw new Error("Expected length for setTempo event is 3, got " + length); }
+				x.microSecondsPerBeat = Conversion.ReadUi(b, k, 3, false);
+			}
+			else if (subtype == 0x54)
+			{
+				x.subtype = "smpteOffset";
+				if (length != 5) { throw new Error("Expected length for smpteOffset event is 5, got " + length); }
+				var hourByte = Conversion.ReadUi(b, k, 1);
+				
+				var frameRateDict = {};
+				frameRateDict[0x00] = 24;
+				frameRateDict[0x20] = 25;
+				frameRateDict[0x40] = 29;
+				frameRateDict[0x60] = 30;
+				
+				x.frameRate = frameRateDict[(hourByte & 0x60)];
+				x.hour = hourByte & 0x1f;
+				x.min = Conversion.ReadUi(b, k, 1);
+				x.sec = Conversion.ReadUi(b, k, 1);
+				x.frame = Conversion.ReadUi(b, k, 1);
+				x.subframe = Conversion.ReadUi(b, k, 1);
+			}
+			else if (subtype == 0x58)
+			{
+				x.subtype = "timeSignature";
+				if (length != 4) { throw new Error("Expected length for timeSignature event is 4, got " + length); }
+				
+				x.numerator = Conversion.ReadUi(b, k, 1);
+				x.denominator = Math.pow(2, Conversion.ReadUi(b, k, 1));
+				x.metronome = Conversion.ReadUi(b, k, 1);
+				x.thirtyseconds = Conversion.ReadUi(b, k, 1);
+			}
+			else if (subtype == 0x59)
+			{
+				x.subtype = "keySignature";
+				if (length != 2) { throw new Error("Expected length for keySignature event is 2, got " + length); }
+				x.key = Conversion.ReadSi(b, k, 1);
+				x.scale = Conversion.ReadUi(b, k, 1);
+			}
+			else if (subtype == 0x7f)
+			{
+				x.subtype = "sequencerSpecific";
+				x.data = Conversion.ReadB(b, k, length);
+			}
+			else
+			{
+				x.subtype = "unknown";
+				x.data = Conversion.ReadB(b, k, length);
+			}
+		}
+		else
+		{
+			throw new Error();
+		}
+	}
+	else
+	{
+		x.type = "channel";
+		
+		var param1;
+		if ((type & 0x80) == 0)
+		{
+			//running status - reuse lastEventTypeByte as the event type.
+			//eventTypeByte is actually the first parameter
+			
+			param1 = type;
+			type = lastEventType;
+		}
+		else
+		{
+			param1 = Conversion.ReadUi(b, k, 1);
+			lastEventType = type;
+		}
+		
+		var eventType = type >> 4;
+		x.channel = type & 0x0f;
+		
+		if (eventType == 0x08)
+		{
+			x.subtype = "noteOff";
+			x.noteNumber = param1;
+			x.velocity = Conversion.ReadUi(b, k, 1);
+		}
+		else if (eventType == 0x09)
+		{
+			x.noteNumber = param1;
+			var velocity = Conversion.ReadUi(b, k, 1);
+			x.velocity = velocity;
+			x.subtype = (velocity == 0) ? "noteOff" : "noteOn";
+		}
+		else if (eventType == 0x0a)
+		{
+			x.subtype = "noteAftertouch";
+			x.noteNumber = param1;
+			x.amount = Conversion.ReadUi(b, k, 1);
+		}
+		else if (eventType == 0x0b)
+		{
+			x.subtype = "controller";
+			x.controllerType = param1;
+			x.value = Conversion.ReadUi(b, k, 1);
+		}
+		else if (eventType == 0x0c)
+		{
+			x.subtype = "programChange";
+			x.programNumber = param1;
+		}
+		else if (eventType == 0x0d)
+		{
+			x.subtype = "channelAftertouch";
+			x.amount = param1;
+		}
+		else if (eventType == 0x0e)
+		{
+			x.subtype = "pitchBend";
+			x.value = param1 + (Conversion.ReadUi(b, k, 1) << 7);
+		}
+		else
+		{
+			throw new Error("Unrecognised MIDI event type: " + eventType);
+		}
+	}
+	
+	return x;
+}
+function ReadDeltaTime(b, k) {
+	
+	var ns = [];
+	
+	while (true)
+	{
+		var n = Conversion.ReadUi(b, k, 1, false);
+		ns.push(n);
+	
+		if (n < 0x80)
+		{
+			break;
+		}
+	}
+	
+	var result = 0;
+	var mult = 1;
+	
+	for (var i = ns.length - 1; i >= 0; i--)
+	{
+		var value = (ns[i] % 0x80) * mult;
+		result += value;
+		mult *= 0x80;
+	}
+	
+	return result;
+}
+
+var sharpsToScaleName = {};
+sharpsToScaleName[0] = {};
+sharpsToScaleName[1] = {};
+sharpsToScaleName[0][-7] = "Cb Major";
+sharpsToScaleName[0][-6] = "Gb Major";
+sharpsToScaleName[0][-5] = "Db Major";
+sharpsToScaleName[0][-4] = "Ab Major";
+sharpsToScaleName[0][-3] = "Eb Major";
+sharpsToScaleName[0][-2] = "Bb Major";
+sharpsToScaleName[0][-1] = "F Major";
+sharpsToScaleName[0][0] = "C Major";
+sharpsToScaleName[0][1] = "G Major";
+sharpsToScaleName[0][2] = "D Major";
+sharpsToScaleName[0][3] = "A Major";
+sharpsToScaleName[0][4] = "E Major";
+sharpsToScaleName[0][5] = "B Major";
+sharpsToScaleName[0][6] = "F# Major";
+sharpsToScaleName[0][7] = "C# Major";
+sharpsToScaleName[1][-7] = "Ab minor";
+sharpsToScaleName[1][-6] = "Eb minor";
+sharpsToScaleName[1][-5] = "Bb minor";
+sharpsToScaleName[1][-4] = "F minor";
+sharpsToScaleName[1][-3] = "C minor";
+sharpsToScaleName[1][-2] = "G minor";
+sharpsToScaleName[1][-1] = "D minor";
+sharpsToScaleName[1][0] = "A minor";
+sharpsToScaleName[1][1] = "E minor";
+sharpsToScaleName[1][2] = "B minor";
+sharpsToScaleName[1][3] = "F# minor";
+sharpsToScaleName[1][4] = "C# minor";
+sharpsToScaleName[1][5] = "G# minor";
+sharpsToScaleName[1][6] = "D# minor";
+sharpsToScaleName[1][7] = "A# minor";
+
+var sharps = ["C8","B7","A#7","A7","G#7","G7","F#7","F7","E7","D#7","D7","C#7","C7","B6","A#6","A6","G#6","G6","F#6","F6","E6","D#6","D6","C#6","C6","B5","A#5","A5","G#5","G5","F#5","F5","E5","D#5","D5","C#5","C5","B4","A#4","A4","G#4","G4","F#4","F4","E4","D#4","D4","C#4","C4","B3","A#3","A3","G#3","G3","F#3","F3","E3","D#3","D3","C#3","C3","B2","A#2","A2","G#2","G2","F#2","F2","E2","D#2","D2","C#2","C2","B1","A#1","A1","G#1","G1","F#1","F1","E1","D#1","D1","C#1","C1","B0","A#0","A0"];
+
+var flats = ["C8","B7","Bb7","A7","Ab7","G7","Gb7","F7","E7","Eb7","D7","Db7","C7","B6","Bb6","A6","Ab6","G6","Gb6","F6","E6","Eb6","D6","Db6","C6","B5","Bb5","A5","Ab5","G5","Gb5","F5","E5","Eb5","D5","Db5","C5","B4","Bb4","A4","Ab4","G4","Gb4","F4","E4","Eb4","D4","Db4","C4","B3","Bb3","A3","Ab3","G3","Gb3","F3","E3","Eb3","D3","Db3","C3","B2","Bb2","A2","Ab2","G2","Gb2","F2","E2","Eb2","D2","Db2","C2","B1","Bb1","A1","Ab1","G1","Gb1","F1","E1","Eb1","D1","Db1","C1","B0","Bb0","A0"];
+
+function ConvertToNotes(midi) {
+	
+	var typecount = {};
+	var subtypecount = {};
+	
+	// Dictionary<string, Dictionary<int, Stack<Note>>>
+	var trackChannelDicts = {};
+	
+	var notes = [];
+	
+	midi.keySignatureEvents = [];
+	midi.timeSignatureEvents = [];
+	midi.tempoEvents = [];
+	
+	for (var i = 0; i < midi.tracks.length; i++)
+	{
+		var track = midi.tracks[i];
+		var time = 0;
+		
+		for (var k = 0; k < track.events.length; k++)
+		{
+			var x = track.events[k];
+			
+			time += x.deltaTime;
+			
+			//if (typecount.ContainsKey([x.type])) { typecount[x.type]++; }
+			//else { typecount[x.type] = 1; }
+			
+			if (x.type == "channel")
+			{
+				//if (subtypecount[x.subtype]) { subtypecount[x.subtype]++; }
+				//else { subtypecount[x.subtype] = 1; }
+				
+				if (x.subtype == "noteOn" || x.subtype == "noteOff")
+				{
+					var trackChannelId = i.toString() + "-" + x.channel.toString();
+					
+					if (!trackChannelDicts[trackChannelId])
+					{
+						trackChannelDicts[trackChannelId] = {};
+					}
+					
+					if (x.subtype == "noteOn")
+					{
+						var pitch = x.noteNumber;
+						
+						var note = {};
+						note.start = time;
+						note.amp = x.velocity;
+						note.pitch = pitch;
+						note.track = i;
+						note.channel = x.channel;
+						
+						if (!trackChannelDicts[trackChannelId][pitch])
+						{
+							trackChannelDicts[trackChannelId][pitch] = [];
+						}
+						
+						trackChannelDicts[trackChannelId][pitch].push(note);
+					}
+					
+					if (x.subtype == "noteOff")
+					{
+						var pitch = x.noteNumber;
+						
+						if (!trackChannelDicts[trackChannelId][pitch])
+						{
+							throw new Error();
+						}
+						
+						if (trackChannelDicts[trackChannelId][pitch].length == 0)
+						{
+							throw new Error();
+						}
+						
+						var note = trackChannelDicts[trackChannelId][pitch].pop();
+						note.end = time;
+						
+						notes.push(note);
+						
+						//if (note.track == 2)
+						//{
+						//    notes.push(note);
+						//}
+					}
+				}
+				else if (x.subtype == "controller")
+				{
+				
+				}
+				else if (x.subtype == "pitchBend")
+				{
+				
+				}
+				else if (x.subtype == "programChange")
+				{
+				
+				}
+				else if (x.subtype == "channelAftertouch")
+				{
+				
+				}
+				else
+				{
+					throw new Error('Unsupported subtype: ' + x.subtype);
+				}
+			}
+			else if (x.type == "meta")
+			{
+				//if (!subtypecount.ContainsKey(x.subtype)) { subtypecount[x.subtype]++; }
+				//else { subtypecount[x.subtype] = 1; }
+				
+				if (x.subtype == "midiChannelPrefix")
+				{
+				
+				}
+				else if (x.subtype == "setTempo")
+				{
+					midi.tempoEvents.push(x);
+				}
+				else if (x.subtype == "keySignature")
+				{
+					midi.keySignatureEvents.push(x);
+				}
+				else if (x.subtype == "timeSignature")
+				{
+					midi.timeSignatureEvents.push(x);
+				}
+				else if (x.subtype == "endOfTrack")
+				{
+				
+				}
+				else if (x.subtype == "unknown")
+				{
+				
+				}
+				else if (x.subtype == "copyrightNotice")
+				{
+				
+				}
+				else if (x.subtype == "trackName")
+				{
+					midi.name = x.text.toString().trim();
+				}
+				else if (x.subtype == "text")
+				{
+					var text = x.text.toString().trim();
+				}
+				else if (x.subtype == "sequencerSpecific")
+				{
+					var data = x.data;
+				}
+				else if (x.subtype == "marker")
+				{
+					var text = x.text.toString().trim();
+				}
+				else
+				{
+					throw new Error('Unsupported subtype: ' + x.subtype);
+				}
+			}
+			else if (x.type == "sysEx")
+			{
+			
+			}
+			else
+			{
+				throw new Error('Unsupported type: ' + x.type);
+			}
+		}
+	}
+	
+	midi.keySignature = "";
+	for (var i = 0; i < midi.keySignatureEvents.length; i++)
+	{
+		var x = midi.keySignatureEvents[i];
+		var key = x.key; // -7 = 7 flats, +7 = 7 sharps
+		var scale = x.scale; // 0 = major, 1 = minor
+		
+		var scaleName = sharpsToScaleName[scale][key];
+		
+		midi.keySignature += scaleName;
+	}
+	
+	midi.timeSignature = "";
+	for (var i = 0; i < midi.timeSignatureEvents.length; i++)
+	{
+		var x = midi.timeSignatureEvents[i];
+		var numerator = x.numerator;
+		var denominator = x.denominator;
+		var metronome = x.metronome;
+		var thirtyseconds = x.thirtyseconds;
+	}
+	
+	for (var i = 0; i < midi.tempoEvents.length; i++)
+	{
+		var x = midi.tempoEvents[i];
+		
+		// i think the bytes are being read wrong
+		var microsecondsPerBeat = x.microSecondsPerBeat;
+		var secondsPerBeat = microsecondsPerBeat / 1000000;
+		var beatsPerSecond = 1 / secondsPerBeat;
+		var beatsPerMinute = beatsPerSecond * 60;
+		midi.bpm = beatsPerMinute;
+	}
+	
+	midi.notes = notes;
+}
+
+function MakeTrackCharts(midi) {
+	
+	var notes = midi.notes;
+	
+	// Dictionary<string, List<Note>>
+	var tracks = {};
+	
+	for (var i = 0; i < notes.length; i++)
+	{
+		var note = notes[i];
+		var track = note.track;
+		var trackstr = track.toString();
+		
+		if (!tracks[trackstr])
+		{
+			tracks[trackstr] = [];
+		}
+		
+		tracks[trackstr].push(note);
+	}
+	
+	// 7-color dict, 0 = 1
+	//Dictionary<int, SolidBrush> notecolors = new Dictionary<int, SolidBrush>();
+	//notecolors.Add(0, new SolidBrush(Color.FromArgb(0, 0, 0)));
+	//notecolors.Add(1, new SolidBrush(Color.FromArgb(0, 0, 0)));
+	//notecolors.Add(2, new SolidBrush(Color.FromArgb(0, 0, 0)));
+	//notecolors.Add(3, new SolidBrush(Color.FromArgb(0, 0, 0)));
+	//notecolors.Add(4, new SolidBrush(Color.FromArgb(0, 0, 0)));
+	//notecolors.Add(5, new SolidBrush(Color.FromArgb(0, 0, 0)));
+	//notecolors.Add(6, new SolidBrush(Color.FromArgb(0, 0, 0)));
+	
+	var colors = {};
+	
+	for (var i = 0; i < 88; i++)
+	{
+		//var note = sharps[87 - i];
+		var note = flats[87 - i];
+		colors[i] = synesthesia[note.substr(0, note.length - 1)];
+	}
+	
+	// Dictionary<string, int[]>
+	var minmax = {};
+	for (var track in tracks)
+	{
+		var min = Number.MAX_VALUE;
+		var max = Number.MIN_VALUE;
+		
+		for (var i = 0; i < tracks[track].length; i++)
+		{
+			var note = tracks[track][i]
+			var pitch = 20 + note.pitch;
+			if (pitch < min) { min = pitch; }
+			if (pitch > max) { max = pitch; }
+		}
+
+		minmax[track] = [ min , max ];
+	}
+
+	var totalHeight = 0; // the sum of the ranges of notes over all tracks
+	var trackHeights = {};
+	for (var track in minmax)
+	{
+		var height = minmax[track][1] - minmax[track][0] + 1;
+		trackHeights[track] = height;
+		totalHeight += 1 + height;
+	}
+	totalHeight += 1;
+	
+	var barHeight = 20;
+	var wd = 15000;
+	var hg = barHeight * totalHeight;
+	
+	var baseHeight = barHeight;
+	
+	var svglines = [];
+	svglines.push('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+wd+'" height="'+hg+'">');
+	
+	for (var track in tracks)
+	{
+		//string outfile = outfrag + " " + int.Parse(track).ToString("00") + ".png";
+		//int wd = 15000;
+		//int hg = 2000;
+		var pxPerTick = 0.130;
+		
+		for (var i = 0; i < tracks[track].length; i++)
+		{
+			var note = tracks[track][i];
+			var duration = note.end - note.start;
+			
+			// for drum tracks that have nominal duration
+			//duration = 250;
+			
+			var top = hg - (baseHeight + (note.pitch - minmax[track][0]) * barHeight);
+			var left = 20 + Math.floor(note.start * pxPerTick, 1);
+			var width = Math.floor(duration * pxPerTick, 1);
+			
+			svglines.push(SvgHelper('rect', {fill:colors[note.pitch - 20],x:left,y:top,width:width,height:barHeight}));
+			svglines.push(SvgHelper('text', {x:left,y:top+2}, flats[87 - (note.pitch - 20)]));
+		}
+		
+		baseHeight += (trackHeights[track] + 1) * barHeight;
+	}
+	
+	svglines.push('</svg>');
+	
+	return svglines.join('\n') + '\n';
+}
+
+function SvgHelper(tag, params, data) {
+	
+	var s = '<' + tag;
+	
+	for (var key in params)
+	{
+		s += ' ' + key + '="' + params[key] + '"';
+	}
+	
+	if (!data) { data = ''; }
+	
+	s += '>' + data + '</' + tag + '>';
+	
+	return s;
+}
+
+
+function PlaceNoteOnStaff() {
+	
+	var params = {};
+	params.gridsLeft = 100;
+	params.gridsTop = 10;
+	params.leftStaffPadding = 90;
+	params.rightStaffPadding = 20;
+	params.colWidth = 10;
+	params.rowHeight = 6;
+	params.highExtension = 2;
+	params.lowExtension = 2;
+	params.staffGap = 50;
+	params.beatsPerMeasure = 4;
+	params.measuresPerStaff = 4;
+	params.measures = 10;
+	params.beatsPerMinute = 80;
+	params.keySignature = 1;
+	
+	$('canvas').on('click', function(e) {
+		var rows = 21 + params.highExtension + params.lowExtension;
+		var staffHeight = params.rowHeight * rows + params.staffGap;
+		
+		var x = e.offsetX;
+		var y = e.offsetY;
+		
+		x -= params.gridsLeft;
+		y -= params.gridsTop;
+		
+		var staff = Math.floor(y / staffHeight, 1);
+		x -= staff * staffHeight;
+		
+		var col = Math.floor(x / params.colWidth, 1);
+		var row = Math.floor(y / params.rowHeight, 1);
+		
+		var colsPerMeasure = params.beatsPerMeasure * 4;
+		var staf = 10 + params.highExtension - row;
+		var pitch = Music.StaffToC4(staf, params.keySignature);
+		
+		var measure = staff * params.measuresPerStaff + Math.floor(col / colsPerMeasure, 1);
+		
+		var sixt = col % colsPerMeasure;
+		
+		var note = {};
+		note.row = row;
+		note.pitch = pitch;
+		note.measure = measure;
+		note.sixt = sixt;
+		note.type = Griddl.GetParams('state').currentNote;
+		note.amp = 3000;
+		note.instrument = 'Piano';
+	});
+}
+
+
 var Music = {};
 Music.CompileMatrix = CompileMatrix;
 Music.CompileInstrument = CompileInstrument;
 Music.MakeWav = MakeWav;
 Music.ReadWav = ReadWav;
+Music.DrawWaveDriver = DrawWaveDriver;
 Music.DrawWave = DrawWave;
 Music.Guitar2 = Guitar2;
+
+Music.ReadMidi = ReadMidi;
+Music.MakeTrackCharts = MakeTrackCharts;
 
 Music.CompileNotes = CompileNotes;
 Music.CompileGuitarTabs = CompileGuitarTabs;

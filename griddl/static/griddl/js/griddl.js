@@ -1,14 +1,18 @@
 
+var Typeset = require('C:\\cygwin64\\home\\adam\\frce\\mysite\\griddl\\static\\griddl\\js\\lib\\typeset.js'); Typeset = Typeset.Typeset;
+var GriddlFonts = require('C:\\cygwin64\\home\\adam\\frce\\mysite\\griddl\\static\\griddl\\js\\fonts.js'); GriddlFonts = GriddlFonts.fonts;
+
 var Griddl = (function() {
 
 var Griddl = {};
 
 // all the export button knows is the name of the component containing user drawing code
 // when clicked, it sets globals.drawingMode to 'pdf', invokes the user code, and then reads griddlCanvas (which the user code must set)
-var drawPdf = false; // the function invoked by the export button sets this to true, runs the user code, and then sets it to false again
+Griddl.drawPdf = false; // the function invoked by the export button sets this to true, runs the user code, and then sets it to false again
 var griddlCanvas = null; // this is how user drawing code communicates with the PDF export button
 Griddl.objs = null; // set in Main() - not a great idea to make this a var, because there are lots of local vars named 'objs'
-Griddl.fonts = null; // set in fonts.js
+//Griddl.fonts = null; // set in fonts.js
+Griddl.fonts = GriddlFonts;
 
 function Main() {
 	
@@ -127,6 +131,120 @@ function Main() {
 	workbook.forEach(function(obj, index) { if (obj.type == 'html') { InvokeHtml(obj); } });
 	
 	//$(document).tooltip(); // this is one of the few parts of jqueryui that we used.  if we can include just the tooltip, fine, but not worth importing the whole lib
+}
+function LoadWorkbook(text) {
+	
+	// this is for running Griddl under Node
+	// not yet sure how to deal with image, audio, and binary
+	
+	var workbook = ReadScript(text);
+	var objs = [];
+	
+	// first attach all objects to Griddl.objs - if there's a problem with the init code below, these objects will still exist to be saved
+	workbook.forEach(function(obj, index) { objs[obj.name] = obj; objs.push(obj); });
+	
+	Griddl.objs = objs;
+	
+	for (var i = 0; i < workbook.length; i++)
+	{
+		var obj = workbook[i];
+		
+		if (obj.type == 'js')
+		{
+			try
+			{
+				obj.$ = new Function('args', obj.text);
+			}
+			catch (e)
+			{
+				// the parse has failed - display an error message - look at error handling code in MakeComponentsDiv to see how to display error message
+			}
+			
+			//AddText(obj, 'javascript');
+		}
+		else if (obj.type == 'txt')
+		{
+			obj.$ = obj.text;
+			//AddText(obj, null);
+		}
+		else if (obj.type == 'html')
+		{
+			obj.$ = obj.text;
+			//AddHtml(obj);
+		}
+		else if (obj.type == 'css')
+		{
+			obj.$ = obj.text;
+			//AddCss(obj);
+		}
+		else if (obj.type == 'json')
+		{
+			try
+			{
+				obj.$ = JSON.parse(obj.text);
+			}
+			catch (e)
+			{
+				// the parse has failed - display an error message - look at error handling code in MakeComponentsDiv to see how to display error message
+			}
+			
+			//AddJson(obj, 'javascript');
+		}
+		else if (obj.type == 'grid')
+		{
+			obj.$ = MatrixToObjs(obj.matrix);
+			//AddGrid(obj);
+		}
+		else if (obj.type == 'matrix')
+		{
+			obj.$ = obj.matrix; // just don't parse the matrix into objs
+			//AddGrid(obj);
+		}
+		else if (obj.type == 'table')
+		{
+			obj.$ = MatrixToObjs(obj.matrix); // we could have a matrix table too - search for 'matrixTable' in all opened documents to see where changes need to be made
+			//AddTable(obj);
+		}
+		else if (obj.type == 'tsv')
+		{
+			obj.$ = MatrixToObjs(obj.matrix);
+			//AddTsv(obj);
+		}
+		else if (obj.type == 'tree')
+		{
+			obj.$ = Lang.ReadTreeSimple(obj.treelines)[0]; // ReadTreeSimple returns a list of twigs, we'll just assign the root to obj.$
+			//AddTree(obj);
+		}
+		else if (obj.type == 'image')
+		{
+			// obj.text = base64 encoding
+			//AddImage(obj);
+		}
+		else if (obj.type == 'audio')
+		{
+			// obj.text = base64 encoding
+			//RefreshAudioPcmsFromText(obj);
+			//AddAudio(obj);
+		}
+		else if (obj.type == 'binary')
+		{
+			//RefreshBinaryDollar(obj);
+			//AddBinary(obj);
+		}
+		else if (obj.type == 'datgui')
+		{
+			try
+			{
+				obj.$ = JSON.parse(obj.text);
+			}
+			catch (e)
+			{
+				// the parse has failed - display an error message - look at error handling code in MakeComponentsDiv to see how to display error message
+			}
+			
+			//AddDatgui(obj);
+		}
+	}
 }
 function SaveToText() {
 	var lines = [];
@@ -1421,6 +1539,8 @@ function AddDatGuiFieldsRec(folder, obj) {
 		var val = obj[key];
 		var type = typeof(val);
 		
+		if (val === null) { throw new Error(); }
+		
 		if (type == 'string')
 		{
 			folder.add(obj, key);
@@ -1534,7 +1654,7 @@ function GetData(name, defaultValue) {
 	// whereas codemirror does not - so you have to pull directly from the interface
 	if (obj.type == 'text' || obj.type == 'txt' || obj.type == 'js')
 	{
-		data = obj.codemirror.getDoc().getValue();
+		data = obj.codemirror ? obj.codemirror.getDoc().getValue() : obj.$;
 	}
 	else if (obj.type == 'image')
 	{
@@ -1706,8 +1826,10 @@ function RunCode(name) {
 		throw new Error("'" + name + "' is a " + obj.type + ", not an executable code object");
 	}
 	
+	var fnText = (obj.codemirror ? obj.codemirror.getValue() : obj.text);
+	
 	// this execution pathway should be merged into the existing pathway in CreateComponentDiv, so that it can have error checking
-	(new Function('args', obj.codemirror.getValue()))();
+	(new Function('args', fnText))();
 }
 function RunOnChange(gridName, codeName) {
 	
@@ -2028,12 +2150,12 @@ function ExportLocalSvg(svgId, filename) {
 }
 function ExportLocalPdf(drawfunction, filename) {
 	
-	drawPdf = true;
+	Griddl.drawPdf = true;
 	Griddl.RunCode(drawfunction);
 	
 	var RenderPdf = function() {
 		
-		drawPdf = false;
+		Griddl.drawPdf = false;
 		
 		var text = MakePdf(griddlCanvas); // right now the Canvas constructor sets griddlCanvas whenever it is invoked
 		
@@ -2375,6 +2497,15 @@ Griddl.SetImage = SetImage; // we should have just a general function that extra
 //Griddl.SetAudio = SetAudio;
 Griddl.Refresh = Refresh; // can be lightly documented - Refresh is rarely called except through SetData.  but if e.g. a UI event sets one slot and you want to see the diff, you can call Refresh().  so i anticipate calling this mostly if i'm developing UI code
 
+Griddl.MakePdf = MakePdf;
+
+Griddl.TsvToMatrix = TsvToMatrix;
+Griddl.MatrixToObjs = MatrixToObjs;
+Griddl.ObjsToJoinedLines = ObjsToJoinedLines;
+Griddl.MatrixToJoinedLines = MatrixToJoinedLines;
+
+Griddl.LoadWorkbook = LoadWorkbook;
+
 // these are all in the HTML templates, in buttons and such - no need to document them for the user
 Griddl.Main = Main;
 Griddl.NewText = NewText;
@@ -2425,20 +2556,20 @@ function HandleLocalLoad(files) {
 		
 		var text = event.target.result;
 		
-		//$('#frce').text(text);
-		//Griddl.Main();
+		$('#frce').text(text);
+		Griddl.Main();
 		
 		// dummy version that just diplays the workbook in a textarea
-		$('#cells').remove();
-		var textarea = $(document.createElement('textarea'));
-		textarea.text(text);
-		$('#frce').append(textarea);
-		$('#frce').css('display', 'block');
-		$('#frce').css('position', 'absolute');
-		$('#frce').css('left', '3em');
-		$('#frce').css('top', '5em');
-		textarea.css('width', '40em');
-		textarea.css('height', '50em');
+		//$('#cells').remove();
+		//var textarea = $(document.createElement('textarea'));
+		//textarea.text(text);
+		//$('#frce').append(textarea);
+		//$('#frce').css('display', 'block');
+		//$('#frce').css('position', 'absolute');
+		//$('#frce').css('left', '3em');
+		//$('#frce').css('top', '5em');
+		//textarea.css('width', '40em');
+		//textarea.css('height', '50em');
 	};
 	
 	if (files.length > 0)
@@ -2580,6 +2711,9 @@ function SaveRemoteLines(url, lines) {
 
 
 // data URI syntax: data:[<mediatype>][;base64],<data>
+// data:[<MIME-type>][;charset=<encoding>][;base64],<data>
+// <img src="data:image/gif;base64,
+// "></img>
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Base64_encoding_and_decoding
 // https://developer.mozilla.org/en-US/docs/data_URIs
@@ -3058,6 +3192,47 @@ function LoadTree(tree, lines, textOnly) {
 	tree.generateTwigs(tree);
 	tree.draw(tree);
 }
+
+function LinizeBinary(x) {
+	
+	var lines = [];
+	var k = 0;
+	var buffer = "";
+	
+	while (k < x.length)
+	{
+		var n = x[k];
+		
+		if (n == 13)
+		{
+			if (x[k + 1] == 10)
+			{
+				k++;
+			}
+			
+			lines.push(buffer);
+			buffer = "";
+		}
+		else if (n == 10)
+		{
+			lines.push(buffer);
+			buffer = "";
+		}
+		else
+		{
+			buffer += String.fromCharCode(n);
+		}
+		
+		k++;
+	}
+	
+	if (buffer.length > 0)
+	{
+		lines.push(buffer);
+	}
+	
+	return lines;
+}
 function Linize(str) {
 	var lines = [];
 	
@@ -3439,6 +3614,8 @@ function ReadParen(str) {
 	
 	while (c != ')')
 	{
+		if (c === undefined) { throw new Error('Unclosed paren at char ' + frcek.toString() + ' in string "' + str + '"'); }
+		
 		var sub = ReadExp(str);
 		x.children.push(sub);
 		ReadSpace(str);
@@ -3833,6 +4010,7 @@ function Eval(scope, twig, bCreateNewSlotsForUnboundNames) {
 
 var Lang = {};
 Lang.Linize = Linize;
+Lang.LinizeBinary = LinizeBinary;
 Lang.Tokenize = Tokenize;
 Lang.ReadFrce = ReadFrce; // this is used by Kronecker
 Lang.ReadNumber = ReadNumber;
@@ -3924,18 +4102,21 @@ Griddl.Canvas = (function() {
 		// this is here so that user code does not need to do it - the function invoked by the export button needs access to the canvas
 		griddlCanvas = this;
 		
-		Object.defineProperty(this, 'font', { set : function (str) { 
-			frcek = 0;
-			this.fontSize = parseFloat(Lang.ReadNumber(str));
-			this.fontSizeUnits = Lang.ReadName(str);
-			Lang.ReadSpace(str);
-			this.fontFamily = str.substr(frcek);
-			this.savedCanvasContext.font = this.fontSize.toString() + this.fontSizeUnits + ' ' + this.fontFamily;
-		} });
-		
-		// this is used for conversion of 'red' => 'rgb(255,0,0)' and text measurement and access of pixel data of image components
-		this.savedCanvas = document.createElement('canvas');
-		this.savedCanvasContext = this.savedCanvas.getContext('2d');
+		if (typeof window != 'undefined')
+		{
+			Object.defineProperty(this, 'font', { set : function (str) { 
+				frcek = 0;
+				this.fontSize = parseFloat(Lang.ReadNumber(str));
+				this.fontSizeUnits = Lang.ReadName(str);
+				Lang.ReadSpace(str);
+				this.fontFamily = str.substr(frcek);
+				this.savedCanvasContext.font = this.fontSize.toString() + this.fontSizeUnits + ' ' + this.fontFamily;
+			} });
+			
+			// this is used for conversion of 'red' => 'rgb(255,0,0)' and text measurement and access of pixel data of image components
+			this.savedCanvas = document.createElement('canvas');
+			this.savedCanvasContext = this.savedCanvas.getContext('2d');
+		}
 		
 		// FinalizeGraphics() sets this and ExportLocalToPdf() reads it
 		this.pdfContextArray = null;
@@ -3976,7 +4157,7 @@ Griddl.Canvas = (function() {
 		//this.commands = [];
 		
 		this.g = null; // this.pages[i].canvasContext, for some i
-		this.canvas = null;
+		this.canvas = null; // this is the bare <canvas> element for the current page
 		this.commands = null; // this.pages[i].pdfCommands, for some i
 		this.eltStrings = null; // this.pages[i].eltStrings, for some i
 		this.currentPage = null;
@@ -3991,7 +4172,7 @@ Griddl.Canvas = (function() {
 		this.unitsToPt = null;
 		
 		this.jax = [];
-		$('.mathjaxInput').remove();
+		if (typeof window != 'undefined') { $('.mathjaxInput').remove(); }
 		
 		// SVG fields
 		this.currentId = null;
@@ -4023,8 +4204,8 @@ Griddl.Canvas = (function() {
 		this.textAlign = 'left'; // start, end, left, right, center
 		this.textBaseline = 'alphabetic'; // top, hanging, middle, alphabetic, ideographic, bottom
 		
-		this.fillStyle = 'black';
-		this.strokeStyle = 'black';
+		this.fillStyle = 'rgb(0,0,0)';
+		this.strokeStyle = 'rgb(0,0,0)';
 		this.lineWidth = 1;
 	}
 	Canvas.NewDocument = function(params) {
@@ -4115,18 +4296,23 @@ Griddl.Canvas = (function() {
 			if (params.unitsToPt) { unitsToPt = params.unitsToPt; }
 		}
 		
-		//var parentDiv = CreateOutputDiv(div, Canvas.CreateButtonDivFour);
-		var parentDiv = CreateOutputDiv(div);
-		parentDiv.css('top', '5em');
-		
 		var g = new Canvas();
 		g.pages = [];
-		g.parentDiv = parentDiv;
 		g.drawCanvas = (type == 'canvas');
 		g.drawSvg = (type == 'svg');
 		g.type = type;
 		g.unitsToPx = unitsToPx;
 		g.unitsToPt = unitsToPt;
+		
+		if (typeof window != 'undefined')
+		{
+			//var parentDiv = CreateOutputDiv(div, Canvas.CreateButtonDivFour);
+			var parentDiv = CreateOutputDiv(div, null, params);
+			parentDiv.css('top', '5em');
+			g.parentDiv = parentDiv;
+		}
+		
+		Griddl.g = g; // this is a hook for node, used in RenderSvg
 		
 		return g;
 	};
@@ -4143,13 +4329,16 @@ Griddl.Canvas = (function() {
 		var ptWidth = width * this.unitsToPt;
 		var ptHeight = height * this.unitsToPt;
 		
-		var div = $(document.createElement('div'));
-		//div.attr('id', name);
-		div.css('border', '1px solid #c3c3c3');
-		div.css('margin', '1em');
-		div.css('width', pxWidth);
-		div.css('height', pxHeight);
-		this.parentDiv.append(div);
+		if (typeof window != 'undefined')
+		{
+			var div = $(document.createElement('div'));
+			//div.attr('id', name);
+			div.css('border', '1px solid #c3c3c3');
+			div.css('margin', '1em');
+			div.css('width', pxWidth);
+			div.css('height', pxHeight);
+			this.parentDiv.append(div);
+		}
 		
 		// possible use of a pageStyles object
 		//var style = obj.style;
@@ -4189,7 +4378,7 @@ Griddl.Canvas = (function() {
 		}
 		else if (this.type == 'svg')
 		{
-			page.div = div;
+			if (typeof window != 'undefined') { page.div = div; }
 			page.eltStrings = [];
 			
 			this.eltStrings = page.eltStrings;
@@ -4222,16 +4411,19 @@ Griddl.Canvas = (function() {
 		}
 		
 		this.g = page.canvasContext;
-		this.canvas = this.g.canvas;
+		if (this.type == 'canvas') { this.canvas = this.g.canvas; }
 		this.commands = page.pdfCommands;
 		this.eltStrings = page.eltStrings;
 		this.currentPage = page;
 	};
 	
 	// helpers for the constructor functions
-	function CreateOutputDiv(div, buttonDivFn) {
+	function CreateOutputDiv(div, buttonDivFn, params) {
 		
 		var thediv = null;
+		
+		var divWidth = (params ? (params.divWidth ? params.divWidth : '54em') : '54em');
+		var divHeight = (params ? (params.divHeight ? params.divHeight : '40em') : '40em');;
 		
 		if (div === null || div === undefined)
 		{
@@ -4244,8 +4436,8 @@ Griddl.Canvas = (function() {
 				outputDiv.css('position', 'absolute');
 				outputDiv.css('top', '5em');
 				outputDiv.css('left', '45em');
-				outputDiv.css('width', '54em');
-				outputDiv.css('height', '40em');
+				outputDiv.css('width', divWidth);
+				outputDiv.css('height', divHeight);
 				//outputDiv.css('border', '1px solid #c3c3c3');
 				outputDiv.css('overflow', 'auto');
 				$('body').append(outputDiv);
@@ -4279,7 +4471,10 @@ Griddl.Canvas = (function() {
 		// <button id="write" onclick="Griddl.RunCode('draw')">Generate Document</button>
 		// <button onclick="Griddl.ExportLocalPdf('draw', 'document')">Export to PDF</button>
 		
+		$('#buttons').remove();
+		
 		var buttonDiv = $(document.createElement('div'));
+		buttonDiv.attr('id', 'buttons');
 		buttonDiv.css('position', 'absolute');
 		buttonDiv.css('top', '3em');
 		buttonDiv.css('left', '46em');
@@ -4302,6 +4497,44 @@ Griddl.Canvas = (function() {
 		
 		$('body').append(buttonDiv);
 	}
+	Canvas.CreateButtonDivThree = function() {
+		
+		// #buttons {
+		// position:absolute;
+		// top:3em;
+		// left:45em;
+		// }
+		// 
+		// <button onclick="Griddl.ExportLocalCanvas('document')">Export to PNG</button>
+		// <button onclick="Griddl.ExportLocalSvg('svg', 'document')">Export to SVG</button>
+		// <button onclick="Griddl.ExportLocalPdf('draw', 'document')">Export to PDF</button>
+		
+		$('#buttons').remove();
+		
+		var buttonDiv = $(document.createElement('div'));
+		buttonDiv.attr('id', 'buttons');
+		buttonDiv.css('position', 'absolute');
+		buttonDiv.css('top', '3em');
+		buttonDiv.css('left', '45em');
+		
+		var button2 = $(document.createElement('button'));
+		var button3 = $(document.createElement('button'));
+		var button4 = $(document.createElement('button'));
+		
+		button2.on('click', function() { Griddl.ExportLocalCanvas('document'); });
+		button3.on('click', function() { Griddl.ExportLocalSvg('svg', 'document'); });
+		button4.on('click', function() { Griddl.ExportLocalPdf('draw', 'document'); });
+		
+		button2.text('Export to PNG');
+		button3.text('Export to SVG');
+		button4.text('Export to PDF');
+		
+		buttonDiv.append(button2);
+		buttonDiv.append(button3);
+		buttonDiv.append(button4);
+		
+		$('body').append(buttonDiv);
+	}
 	Canvas.CreateButtonDivFour = function() {
 		
 		// #buttons {
@@ -4315,7 +4548,10 @@ Griddl.Canvas = (function() {
 		// <button onclick="Griddl.ExportLocalSvg('svg', 'document')">Export to SVG</button>
 		// <button onclick="Griddl.ExportLocalPdf('draw', 'document')">Export to PDF</button>
 		
+		$('#buttons').remove();
+		
 		var buttonDiv = $(document.createElement('div'));
+		buttonDiv.attr('id', 'buttons');
 		buttonDiv.css('position', 'absolute');
 		buttonDiv.css('top', '3em');
 		buttonDiv.css('left', '45em');
@@ -4366,13 +4602,28 @@ Griddl.Canvas = (function() {
 				var jax = g.jax[i];
 				g.SetActivePage(jax.page);
 				
+				var svg = $(jax.inputDivId + ' .MathJax_SVG_Display').children().first().children().first();
+				
+				// these dimensions are in units of 'ex' - how to reliably convert to px?
+				//var width = svg.attr('width');
+				//var height = svg.attr('height');
+				
+				// this doesn't work for <svg> tags?
+				//var width = svg.clientWidth;
+				//var height = svg.clientHeight;
+				
+				var width = svg[0].width.baseVal.value;
+				var height = svg[0].height.baseVal.value;
+				
+				var d = AlignText(jax.style, width, height);
+				
 				g.save();
-				g.translate(jax.x, jax.y);
+				g.translate(jax.x + d.dx, jax.y + d.dy);
 				
 				var scale = g.fontSize / 1024;
 				g.scale(scale, -scale);
 				
-				$(jax.inputDivId + ' .MathJax_SVG_Display').children().first().children().first().children().each(function(key, val) {
+				svg.children().each(function(key, val) {
 					
 					var DrawTag = function(tag) {
 						
@@ -4425,6 +4676,15 @@ Griddl.Canvas = (function() {
 								DrawTag(child);
 							});
 						}
+						else if (tag.tagName == 'rect')
+						{
+							var x = parseFloat($(tag).attr('x'));
+							var y = parseFloat($(tag).attr('y'));
+							var width = parseFloat($(tag).attr('width'));
+							var height = parseFloat($(tag).attr('height'));
+							
+							g.fillRect(x, y, width, height);
+						}
 						else
 						{
 							throw new Error();
@@ -4440,24 +4700,38 @@ Griddl.Canvas = (function() {
 			}
 		};
 		
-		// all calls to drawMath put a typeset operation in the queue, and then at the end, we put this callback in the queue
-		// that guarantees that it will be executed after every typeset operation completes
-		if (window.MathJax) { MathJax.Hub.Queue(callback); }
-		
-		// we have to make this part of the callback, so that it executes after all mathjax have been rendered
-		if (window.MathJax) { MathJax.Hub.Queue(RenderSvg); } else { RenderSvg(); }
+		if (typeof window != 'undefined')
+		{
+			// all calls to drawMath put a typeset operation in the queue, and then at the end, we put this callback in the queue
+			// that guarantees that it will be executed after every typeset operation completes
+			if (window.MathJax) { MathJax.Hub.Queue(callback); }
+			
+			// we have to make this part of the callback, so that it executes after all mathjax have been rendered
+			if (window.MathJax) { MathJax.Hub.Queue(RenderSvg); } else { RenderSvg(); }
+		}
+		else
+		{
+			RenderSvg();
+		}
 	};
 	var RenderSvg = function() {
 		
-		if (this.drawSvg)
+		var xmlnss = 'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"';
+		
+		if (typeof window != 'undefined')
 		{
-			var xmlnss = 'xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"';
-			
-			for (var i = 0; i < this.pages.length; i++)
+			if (this.drawSvg)
 			{
-				var page = this.pages[i];
-				page.div.html('<svg ' + xmlnss + ' width="' + page.width + '" height="' + page.height + '">' + page.eltStrings.join('') + '</svg>');
+				for (var i = 0; i < this.pages.length; i++)
+				{
+					var page = this.pages[i];
+					page.div.html('<svg ' + xmlnss + ' width="' + page.width + '" height="' + page.height + '">' + page.eltStrings.join('') + '</svg>');
+				}
 			}
+		}
+		else
+		{
+			Griddl.svgOutput = '<svg ' + xmlnss + ' width="' + Griddl.g.pages[0].width + '" height="' + Griddl.g.pages[0].height + '">' + Griddl.g.pages[0].eltStrings.join('') + '</svg>';
 		}
 	};
 	
@@ -4530,6 +4804,58 @@ Griddl.Canvas = (function() {
 		return transform;
 	};
 	
+	function AlignText(style, width, height) {
+		
+		var dx = 0;
+		var dy = 0;
+		
+		if (style.textAlign == 'left' || style.textAlign == 'start') // i18n needed
+		{
+			// no change
+		}
+		else if (style.textAlign == 'center')
+		{
+			dx = -width / 2;
+		}
+		else if (style.textAlign == 'right' || style.textAlign == 'end') // i18n needed
+		{
+			dx = -width;
+		}
+		else
+		{
+			throw new Error();
+		}
+		
+		//var textHeightUnits = style.fontSize / style.unitsToPt;
+		
+		if (style.textBaseline == 'middle')
+		{
+			dy = height / 2;
+		}
+		else if (style.textBaseline == 'top')
+		{
+			dy = height;
+		}
+		else if (style.textBaseline == 'bottom')
+		{
+			// no change?
+		}
+		else if (style.textBaseline == 'alphabetic')
+		{
+			// no change?
+		}
+		else if (style.textBaseline == 'ideographic')
+		{
+			// wat do?
+		}
+		else
+		{
+			throw new Error();
+		}
+		
+		return {dx:dx,dy:dy};
+	}
+	
 	Canvas.prototype.DrawCanvas = function(bool) { this.drawCanvas = bool; };
 	Canvas.prototype.DrawSVG = function(bool) { this.drawSvg = bool; };
 	
@@ -4558,32 +4884,42 @@ Griddl.Canvas = (function() {
 	};
 	Canvas.prototype.SetPdfColors = function() {
 		
-		this.savedCanvasContext.fillStyle = this.fillStyle; // this will convert from 'red' to 'rgb(255,0,0)'
-		this.savedCanvasContext.strokeStyle = this.strokeStyle; // this will convert from 'red' to 'rgb(255,0,0)'
-		
 		var fillColor = null;
 		var strokeColor = null;
 		
-		if (this.savedCanvasContext.fillStyle[0] == '#')
+		if (typeof window != 'undefined')
 		{
-			fillColor = this.ParseHexColor(this.savedCanvasContext.fillStyle);
+			this.savedCanvasContext.fillStyle = this.fillStyle; // this will convert from 'red' to 'rgb(255,0,0)'
+			this.savedCanvasContext.strokeStyle = this.strokeStyle; // this will convert from 'red' to 'rgb(255,0,0)'
+			fillColor = this.savedCanvasContext.fillStyle;
+			strokeColor = this.savedCanvasContext.strokeStyle;
 		}
-		else if (this.savedCanvasContext.fillStyle.substr(0, 3) == 'rgb')
+		else
 		{
-			fillColor = this.ParseRgbColor(this.savedCanvasContext.fillStyle);
+			fillColor = this.fillStyle;
+			strokeColor = this.strokeStyle;
+		}
+		
+		if (fillColor[0] == '#')
+		{
+			fillColor = this.ParseHexColor(fillColor);
+		}
+		else if (fillColor.substr(0, 3) == 'rgb')
+		{
+			fillColor = this.ParseRgbColor(fillColor);
 		}
 		else
 		{
 			throw new Error();
 		}
 		
-		if (this.savedCanvasContext.strokeStyle[0] == '#')
+		if (strokeColor[0] == '#')
 		{
-			strokeColor = this.ParseHexColor(this.savedCanvasContext.strokeStyle);
+			strokeColor = this.ParseHexColor(strokeColor);
 		}
-		else if (this.savedCanvasContext.strokeStyle.substr(0, 3) == 'rgb')
+		else if (strokeColor.substr(0, 3) == 'rgb')
 		{
-			strokeColor = this.ParseRgbColor(this.savedCanvasContext.strokeStyle);
+			strokeColor = this.ParseRgbColor(strokeColor);
 		}
 		else
 		{
@@ -4603,9 +4939,12 @@ Griddl.Canvas = (function() {
 	
 	// there are three systems for drawing text:
 	// 1. the native CanvasRenderingContext2D/PDF systems (fillTextNative)
-	// 2. using truetype.js (fillTextTruetype and DrawGlyph)
-	// 3. using font coordinates dumped into fonts.js (fillText)
-	Canvas.prototype.fillText = function(text, x, y) {
+	// 2. using truetype.js, which reads from an uploaded font file (fillTextTruetype and DrawGlyph)
+	// 3. using font coordinates dumped into fonts.js (fillTextSvgFont)
+	
+	// the fillText toggle function must sync with measureText in order for typesetting and other stuff to work properly
+	Canvas.prototype.fillText = function(text, x, y) { this.fillTextNative(text, x, y); };
+	Canvas.prototype.fillTextSvgFont = function(text, x, y) {
 		
 		var glyphset = Griddl.fonts[this.fontFamily];
 		
@@ -4613,7 +4952,7 @@ Griddl.Canvas = (function() {
 		
 		var width = this.measureText(text);
 		
-		if (this.textAlign == 'left')
+		if (this.textAlign == 'left' || this.textAlign == 'start') // i18n needed
 		{
 			// no change
 		}
@@ -4621,7 +4960,7 @@ Griddl.Canvas = (function() {
 		{
 			x -= width / 2;
 		}
-		else if (this.textAlign == 'right')
+		else if (this.textAlign == 'right' || this.textAlign == 'end') // i18n needed
 		{
 			x -= width;
 		}
@@ -4642,7 +4981,15 @@ Griddl.Canvas = (function() {
 		}
 		else if (this.textBaseline == 'bottom')
 		{
-			// no change
+			// no change?
+		}
+		else if (this.textBaseline == 'alphabetic')
+		{
+			// no change?
+		}
+		else if (this.textBaseline == 'ideographic')
+		{
+			// wat do?
 		}
 		else
 		{
@@ -4673,11 +5020,20 @@ Griddl.Canvas = (function() {
 		
 		if (this.drawCanvas)
 		{
-			this.g.font = this.fontSize.toString() + this.fontSizeUnits + ' ' + this.fontFamily;
 			this.g.textAlign = this.textAlign;
 			this.g.textBaseline = this.textBaseline;
 			this.g.fillStyle = this.fillStyle;
-			this.g.fillText(text, x, y);
+			
+			// alternate approach, where we scale the font using a transform rather than canvas's hard to predict font parser
+			this.g.font = '12pt ' + this.fontFamily;
+			this.g.save();
+			this.g.translate(x, y);
+			this.g.scale(this.fontSize / 12, this.fontSize / 12);
+			this.g.fillText(text, 0, 0);
+			this.g.restore();
+			
+			//this.g.font = this.fontSize.toString() + this.fontSizeUnits + ' ' + this.fontFamily;
+			//this.g.fillText(text, x, y);
 		}
 		
 		if (this.drawSvg)
@@ -4774,7 +5130,7 @@ Griddl.Canvas = (function() {
 			this.eltStrings.push(svg);
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			var fontFamily = this.fontFamily;
 			if (!fontFamily) { fontFamily = 'Times-Roman'; }
@@ -4872,11 +5228,20 @@ Griddl.Canvas = (function() {
 			this.fill();
 		}
 	};
-	Canvas.prototype.measureText = function(str) {
+	Canvas.prototype.measureText = function(str) { this.measureTextSvgFont(str); }
+	Canvas.prototype.measureTextSvgFont = function(str) {
+		
+		//console.log(this.fontFamily);
+		//for (var fontname in Griddl.fonts) { console.log(fontname); }
 		
 		var glyphset = Griddl.fonts[this.fontFamily];
 		
-		var multiplier = this.fontSize / 2048; // replace 1000 with something
+		// this should work.  why doesn't it work?
+		console.log(Griddl.fonts);
+		console.log(this.fontFamily);
+		console.log(glyphset);
+		
+		var multiplier = this.fontSize / 2048;
 		
 		var sum = 0;
 		
@@ -5077,15 +5442,15 @@ Griddl.Canvas = (function() {
 			var svg = '<rect ';
 			if (this.currentId != null) { svg += 'id="' + this.currentId + '" '; }
 			svg += 'style="fill:white;stroke:none;" ';
-			svg += 'x=' + left.toString() + ' ';
-			svg += 'y=' + top.toString() + ' ';
-			svg += 'width=' + width.toString() + ' ';
-			svg += 'height=' + height.toString() + ' ';
+			svg += 'x="' + left.toString() + '" ';
+			svg += 'y="' + top.toString() + '" ';
+			svg += 'width="' + width.toString() + '" ';
+			svg += 'height="' + height.toString() + '" ';
 			svg += '></rect>';
 			this.eltStrings.push(svg);
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			this.commands.push('1 1 1 rg');
 			this.commands.push(left.toString() + ' ' + top.toString() + ' ' + width.toString() + ' ' + height.toString() + ' re');
@@ -5115,22 +5480,22 @@ Griddl.Canvas = (function() {
 			
 			if (this.currentId != null) { svg += 'id="' + this.currentId + '" '; }
 			var style = '';
-			style += 'fill:' + this.fillStyle + ';';
-			style += 'stroke:' + this.strokeStyle + ';';
+			style += 'fill:' + (doFill ? this.fillStyle : 'none') + ';';
+			style += 'stroke:' + (doStroke ? this.strokeStyle : 'none') + ';';
 			svg += 'style="' + style + '" ';
-			svg += 'stroke-width="' + this.lineWidth.toString() + '" ';
+			if (doStroke) { svg += 'stroke-width="' + this.lineWidth.toString() + '" '; }
 			
-			svg += 'x=' + left.toString() + ' ';
-			svg += 'y=' + top.toString() + ' ';
-			svg += 'width=' + width.toString() + ' ';
-			svg += 'height=' + height.toString() + ' ';
+			svg += 'x="' + left.toString() + '" ';
+			svg += 'y="' + top.toString() + '" ';
+			svg += 'width="' + width.toString() + '" ';
+			svg += 'height="' + height.toString() + '"';
 			
 			svg += '></rect>';
 			
 			this.eltStrings.push(svg);
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			this.SetPdfColors();
 			this.commands.push(left.toString() + ' ' + top.toString() + ' ' + width.toString() + ' ' + height.toString() + ' re');
@@ -5189,7 +5554,7 @@ Griddl.Canvas = (function() {
 			this.eltStrings.push(svg);
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			// http://hansmuller-flex.blogspot.com/2011/04/approximating-circular-arc-with-cubic.html
 			// we draw 4 bezier curves, one for each 90-degree quarter of the circle
@@ -5280,7 +5645,7 @@ Griddl.Canvas = (function() {
 			this.eltStrings.push(svg);
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			this.SetPdfColors();
 			this.commands.push(x1.toString() + ' ' + y1.toString() + ' m');
@@ -5334,7 +5699,7 @@ Griddl.Canvas = (function() {
 	Canvas.prototype.strokePath = function(path) { this.drawPath(path, false, true); };
 	Canvas.prototype.drawPath = function(path, doFill, doStroke) {
 		
-		if (this.drawCanvas || drawPdf)
+		if (this.drawCanvas || Griddl.drawPdf)
 		{
 			var args = [];
 			
@@ -5621,7 +5986,7 @@ Griddl.Canvas = (function() {
 			this.currentPath = '';
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			this.SetPdfColors();
 		}
@@ -5638,7 +6003,7 @@ Griddl.Canvas = (function() {
 			this.currentPath += 'z';
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			this.commands.push('h');
 		}
@@ -5658,7 +6023,7 @@ Griddl.Canvas = (function() {
 			
 			if (this.currentId != null) { svg += 'id="' + this.currentId + '" '; }
 			var style = '';
-			//style += 'fill:' + this.fillStyle + ';';
+			style += 'fill:' + 'none' + ';';
 			style += 'stroke:' + this.strokeStyle + ';';
 			svg += 'style="' + style + '" ';
 			svg += 'stroke-width="' + this.lineWidth.toString() + '" ';
@@ -5670,7 +6035,7 @@ Griddl.Canvas = (function() {
 			this.eltStrings.push(svg);
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			this.commands.push('S');
 		}
@@ -5701,7 +6066,7 @@ Griddl.Canvas = (function() {
 			this.eltStrings.push(svg);
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			this.commands.push('F');
 		}
@@ -5721,7 +6086,7 @@ Griddl.Canvas = (function() {
 			}
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			this.commands.push(x.toString() + ' ' + y.toString() + ' m');
 		}
@@ -5738,7 +6103,7 @@ Griddl.Canvas = (function() {
 			this.currentPath += ' L ' + x.toString() + ' ' + y.toString() + ' ';
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			this.commands.push(x.toString() + ' ' + y.toString() + ' l');
 		}
@@ -5755,7 +6120,7 @@ Griddl.Canvas = (function() {
 			this.currentPath += ' Q ' + x1.toString() + ' ' + y1.toString() + ' ' + x.toString() + ' ' + y.toString() + ' ';
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			// put the end point as the second control point
 			this.commands.push(x1.toString() + ' ' + y1.toString() + ' ' + x.toString() + ' ' + y.toString() + ' ' + x.toString() + ' ' + y.toString() + ' c');
@@ -5773,7 +6138,7 @@ Griddl.Canvas = (function() {
 			this.currentPath += ' C ' + x1.toString() + ' ' + y1.toString() + ' ' + x2.toString() + ' ' + y2.toString() + ' ' + x.toString() + ' ' + y.toString() + ' ';
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			this.commands.push(x1.toString() + ' ' + y1.toString() + ' ' + x2.toString() + ' ' + y2.toString() + ' ' + x.toString() + ' ' + y.toString() + ' c');
 		}
@@ -5809,7 +6174,7 @@ Griddl.Canvas = (function() {
 			this.currentPath += ' A ' + rx.toString() + ' ' + ry.toString() + ' ' + xAxisRotation.toString() + ' ' + largeArcFlag.toString() + ' ' + sweepFlag.toString() + ' ' + x.toString() + ' ' + y.toString() + ' ';
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			// http://hansmuller-flex.blogspot.com/2011/04/approximating-circular-arc-with-cubic.html
 			//this.commands.push(x1.toString() + ' ' + y1.toString() + ' ' + x2.toString() + ' ' + y2.toString() + ' ' + x.toString() + ' ' + y.toString() + ' c');
@@ -5881,7 +6246,7 @@ Griddl.Canvas = (function() {
 			this.eltStrings.push(svg);
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			var imageXObject = {};
 			imageXObject.Type = 'XObject';
@@ -6000,7 +6365,7 @@ Griddl.Canvas = (function() {
 			this.transformStack.push(clone);
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			this.commands.push('q');
 		}
@@ -6017,7 +6382,7 @@ Griddl.Canvas = (function() {
 			this.transforms = this.transformStack.pop();
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			this.commands.push('Q');
 		}
@@ -6035,7 +6400,7 @@ Griddl.Canvas = (function() {
 			this.transforms.push('scale(' + x.toString() + ' ' + y.toString() + ')');
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			var sx = x;
 			var kx = 0;
@@ -6069,7 +6434,7 @@ Griddl.Canvas = (function() {
 			this.transforms.push('rotate(' + -(angle / (Math.PI * 2) * 360).toString() + ')');
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			var sx = Math.cos(angle);
 			var kx = -Math.sin(angle);
@@ -6093,7 +6458,7 @@ Griddl.Canvas = (function() {
 			this.transforms.push('rotate(' + (angle / (Math.PI * 2) * 360).toString() + ')');
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			var sx = Math.cos(-angle);
 			var kx = -Math.sin(-angle);
@@ -6116,7 +6481,7 @@ Griddl.Canvas = (function() {
 			this.transforms.push('translate(' + x.toString() + ' ' + y.toString() + ')');
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			var sx = 1;
 			var kx = 0;
@@ -6161,7 +6526,7 @@ Griddl.Canvas = (function() {
 			this.transforms.push('matrix(' + sx.toString() + ' ' + ky.toString() + ' ' + kx.toString() + ' ' + sy.toString() + ' ' + dx.toString() + ' ' + dy.toString() + ')');
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			// discussion of transformations starts on page 207 of the PDF spec
 			// PDF transformation matrices specify the conversion from the transformed coordinate system to the untransformed system
@@ -6214,7 +6579,7 @@ Griddl.Canvas = (function() {
 			this.transforms = [ 'matrix(' + sx.toString() + ' ' + ky.toString() + ' ' + kx.toString() + ' ' + sy.toString() + ' ' + dx.toString() + ' ' + dy.toString() + ')' ];
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			//this.commands.push('');
 		}
@@ -6231,11 +6596,1329 @@ Griddl.Canvas = (function() {
 			this.transforms = [];
 		}
 		
-		if (drawPdf)
+		if (Griddl.drawPdf)
 		{
 			//this.commands.push('');
 		}
 	};
+	
+	
+	// to make this stuff CanvasRenderingContext2D-compatible, we need to replace 'this' with 'ctx' - everywhere
+	
+	Canvas.prototype.SetStyle = function(style) {
+		
+		if (style === undefined) { return; }
+		
+		if (typeof(style) == 'string') { style = this.styles[style]; }
+		
+		if (style.font)
+		{
+			this.font = style.font;
+		}
+		else if (style.fontFamily && style.fontSize)
+		{
+			this.font = style.fontSize + 'pt ' + style.fontFamily;
+		}
+		
+		if (style.color)
+		{
+			this.lineWidth = 1;
+			this.strokeStyle = style.color;
+			this.fillStyle = style.color;
+		}
+		
+		if (style.fill)
+		{
+			this.fillStyle = style.fill;
+		}
+		
+		if (style.stroke)
+		{
+			this.strokeStyle = style.stroke;
+		}
+		
+		var hAlign = 'left';
+		var vAlign = 'bottom';
+		if (style.hAlign) { hAlign = style.hAlign; }
+		if (style.vAlign) { vAlign = style.vAlign; }
+		this.textAlign = hAlign;
+		this.textBaseline = vAlign;
+	};
+	Canvas.prototype.SaveStyle = function() {
+		
+		var style = {};
+		
+		style.lineWidth = this.lineWidth;
+		style.strokeStyle = this.strokeStyle;
+		style.fillStyle = this.fillStyle;
+		
+		style.font = this.font;
+		style.textAlign = this.textAlign;
+		style.textBaseline = this.textBaseline;
+		
+		style.transform = this.transform;
+		
+		return style;
+	};
+	
+	Canvas.prototype.AddText = function(text, params) {
+		
+		this.Save(); // a big difference between AddText and the normal was of doing things is that AddText presents a stateless interface
+		
+		if (params.style) { this.SetStyle(params.style); }
+		if (params.font) { this.font = params.font; }
+		
+		if (params.fontFamily) { this.fontFamily = params.fontFamily; }
+		if (params.fontSize) { this.fontSize = params.fontSize; }
+		if (params.fontSizeUnits) { this.fontSizeUnits = params.fontSizeUnits; }
+		if (params.stroke) { this.strokeStyle = params.stroke; }
+		if (params.fill) { this.fillStyle = params.fill; }
+		if (params.lineWidth) { this.lineWidth = params.lineWidth; }
+		if (params.textAlign) { this.textAlign = params.textAlign; }
+		if (params.textBaseline) { this.textBaseline = params.textBaseline; }
+		
+		var x = null;
+		var y = null;
+		
+		if (params.left)
+		{
+			this.textAlign = 'left';
+			x = params.left;
+		}
+		else if (params.cx)
+		{
+			this.textAlign = 'center';
+			x = params.cx;
+		}
+		else if (params.right)
+		{
+			this.textAlign = 'right';
+			x = params.right;
+		}
+		//else if (params.x)
+		//{
+		//	this.textAlign = 'left';
+		//	x = params.x;
+		//}
+		else
+		{
+			//throw new Error();
+		}
+		
+		if (params.top)
+		{
+			this.textBaseline = 'top';
+			y = params.top;
+		}
+		else if (params.cy)
+		{
+			this.textBaseline = 'middle';
+			y = params.cy;
+		}
+		else if (params.bottom)
+		{
+			this.textBaseline = 'bottom';
+			y = params.bottom;
+		}
+		else
+		{
+			//throw new Error();
+			//this.textBaseline = 'alphabetic';
+		}
+		
+		var parent = this.MakeBox(this.currentPage);
+		
+		if (params.parent)
+		{
+			parent = params.parent;
+		}
+		
+		if (params.anchor)
+		{
+			var t = params.anchor.split(" ");
+			var hIntern = t[0][0];
+			var hExtern = t[0][1];
+			var hOffset = parseFloat(t[1]);
+			var vIntern = t[2][0];
+			var vExtern = t[2][1];
+			var vOffset = parseFloat(t[3]);
+			
+			if (hIntern == 'L')
+			{
+				this.textAlign = 'left';
+			}
+			else if (hIntern == 'C')
+			{
+				this.textAlign = 'center';
+			}
+			else if (hIntern == 'R')
+			{
+				this.textAlign = 'right';
+			}
+			else
+			{
+				throw new Error();
+			}
+			
+			if (hExtern == 'L')
+			{
+				x = parent.lf + hOffset;
+			}
+			else if (hExtern == 'C')
+			{
+				x = parent.cx + hOffset;
+			}
+			else if (hExtern == 'R')
+			{
+				x = parent.rg - hOffset;
+			}
+			else if (hExtern == 'S')
+			{
+				throw new Error(); // figure this out
+			}
+			else
+			{
+				throw new Error();
+			}
+			
+			if (vIntern == 'T')
+			{
+				this.textBaseline = 'top';
+			}
+			else if (vIntern == 'C')
+			{
+				this.textBaseline = 'middle';
+			}
+			else if (vIntern == 'B')
+			{
+				this.textBaseline = 'bottom';
+			}
+			else
+			{
+				throw new Error();
+			}
+			
+			if (vExtern == 'T')
+			{
+				y = parent.tp + vOffset;
+			}
+			else if (vExtern == 'C')
+			{
+				y = parent.cy + vOffset;
+			}
+			else if (vExtern == 'B')
+			{
+				y = parent.bt - vOffset;
+			}
+			else if (vExtern == 'S')
+			{
+				throw new Error(); // figure this out
+			}
+			else
+			{
+				throw new Error();
+			}
+		}
+		
+		this.fillText(text, x, y);
+		
+		this.Restore();
+	};
+	Canvas.prototype.AddImage = function(image, params) {
+		
+		if (typeof(image) == 'string') { image = Griddl.GetData(image); } // get the HTMLImageElement
+		
+		var dw = params.width ? params.width : image.width;
+		var dh = params.height ? params.height : image.height;
+		var sx = params.sx ? params.sx : 0;
+		var sy = params.sy ? params.sy : 0;
+		var sw = params.sw ? params.sw : image.width;
+		var sh = params.sh ? params.sh : image.height;
+		
+		var x = null;
+		var y = null;
+		
+		if (params.left)
+		{
+			x = params.left;
+		}
+		else if (params.cx)
+		{
+			x = params.cx - dw / 2;
+		}
+		else if (params.right)
+		{
+			x = params.right - dw;
+		}
+		else
+		{
+			throw new Error();
+		}
+		
+		if (params.top)
+		{
+			y = params.top;
+		}
+		else if (params.cy)
+		{
+			y = params.cy - dh / 2;
+		}
+		else if (params.bottom)
+		{
+			y = params.bottom - dh;
+		}
+		else
+		{
+			throw new Error();
+		}
+		
+		this.DrawImage(image, x, y, dw, dh, sx, sy, sw, sh);
+	};
+	Canvas.prototype.AddList = function(listGridName) { this.DrawList(listGridName); };
+	Canvas.prototype.AddTable = function(params) { this.DrawTable(params); };
+	Canvas.prototype.AddParagraphs = function(params) { this.DrawParas(params); };
+	Canvas.prototype.AddBarChart = function(params) { this.DrawChart('bar', params.params, params.data, params.key); };
+	Canvas.prototype.AddLineChart = function(params) { this.DrawChart('line', params.params, params.data, params.key); };
+	Canvas.prototype.AddScatterChart = function(params) { this.DrawChart('bubble', params.params, params.data, params.key); };
+	
+	// type = 'bubble', 'bar', 'line'
+	Canvas.prototype.DrawChart = function(type, paramsarg, data, key) {
+		
+		//var params = Griddl.GetParams(params); // this was the pre-dat.gui grid-based params
+		var params = (typeof(paramsarg) == 'string') ? Griddl.GetData(paramsarg) : paramsarg;
+		var objs = (typeof(data) == 'string') ? Griddl.GetData(data) : data;
+		var key = (typeof(key) == 'string') ? Griddl.GetData(key) : key;
+		
+		var chartLf = params.chartLeft;
+		var chartTp = params.chartTop;
+		var chartWd = params.chartWidth;
+		var chartHg = params.chartHeight;
+		var chartRt = chartLf + chartWd;
+		var chartBt = chartTp + chartHg;
+		var marginLf = params.leftMargin;
+		var marginBt = params.bottomMargin;
+		var marginRt = params.rightMargin;
+		var marginTp = params.topMargin;
+		
+		params.chartLf = chartLf;
+		params.chartTp = chartTp;
+		params.chartWd = chartWd;
+		params.chartHg = chartHg;
+		params.chartRt = chartRt;
+		params.chartBt = chartBt;
+		params.marginLf = marginLf;
+		params.marginBt = marginBt;
+		params.marginRt = marginRt;
+		params.marginTp = marginTp;
+		
+		this.clearRect(chartLf, chartTp, chartWd, chartHg);
+		this.doFill = true;
+		
+		// all of the label stuff assumes the chart fills the whole canvas - we need to make it relocatable
+		//var tpLabelFont = '16pt Arial';
+		//var btLabelFont = '16pt Arial';
+		//var lfLabelFont = '16pt Arial';
+		//var rtLabelFont = '16pt Arial';
+		//var tpLabelFontSize = 16;
+		//var btLabelFontSize = 16;
+		//var lfLabelFontSize = 16;
+		//var rtLabelFontSize = 16;
+		//var tpLabelFontFamily = 'Arial';
+		//var btLabelFontFamily = 'Arial';
+		//var lfLabelFontFamily = 'Arial';
+		//var rtLabelFontFamily = 'Arial';
+		//var tpLabelColor = 'black';
+		//var btLabelColor = 'black';
+		//var lfLabelColor = 'black';
+		//var rtLabelColor = 'black';
+		//var tpLabelOffset = 20;
+		//var btLabelOffset = -20;
+		//var lfLabelOffset = 20;
+		//var rtLabelOffset = 20;
+		
+		//this.font = tpLabelFontSize + 'pt ' + tpLabelFontFamily;
+		//this.textAlign = 'center';
+		//this.textBaseline = 'top';
+		//this.fillStyle = tpLabelColor;
+		//this.fillText(params.topLabel, chartLf + chartWd / 2, chartTp + tpLabelOffset);
+		
+		// this is the right, left, bottom axis labels that require transformations
+		/*
+		
+		this.save();
+		this.rotate(-Math.PI / 2);
+		
+		this.font = lfLabelFontSize + 'pt ' + lfLabelFontFamily;
+		this.textAlign = 'center';
+		this.textBaseline = 'top';
+		this.fillStyle = lfLabelColor;
+		
+		this.translate(-canvas.height / 2, lfLabelOffset); // needs to be made relocatable
+		
+		this.fillText(params.leftLabel, 0, 0);
+		
+		this.restore();
+		this.save();
+		this.rotate(Math.PI / 2);
+		
+		this.font = rtLabelFontSize + 'pt ' + rtLabelFontFamily;
+		this.textAlign = 'center';
+		this.textBaseline = 'top';
+		this.fillStyle = rtLabelColor;
+		
+		this.translate(canvas.height / 2, -canvas.width + rtLabelOffset); // needs to be made relocatable
+		
+		this.fillText(params.rightLabel, 0, 0);
+		
+		this.restore();
+		
+		this.font = btLabelFontSize + 'pt ' + btLabelFontFamily;
+		this.textAlign = 'center';
+		this.textBaseline = 'top';
+		this.fillStyle = btLabelColor;
+		
+		this.fillText(params.bottomLabel, canvas.width / 2, canvas.height + btLabelOffset); // needs to be made relocatable
+		
+		*/
+		
+		var xMin = params.xMin;
+		var xMax = params.xMax;
+		var yMin = params.yMin;
+		var yMax = params.yMax;
+		
+		var xPixelWidth = chartWd - marginLf - marginRt;
+		var yPixelWidth = chartHg - marginTp - marginBt;
+		var xValueWidth = xMax - xMin;
+		var yValueWidth = yMax - yMin;
+		var xScale = xPixelWidth / xValueWidth;
+		var yScale = yPixelWidth / yValueWidth;
+		
+		var volatileParams = {}; // we don't want xScale and yScale saved as part of the datgui
+		volatileParams.xScale = xScale; 
+		volatileParams.yScale = yScale;
+		
+		if (type == 'bar')
+		{
+			var columns = [];
+			var column = null;
+			var columnLabelDict = {};
+			for (var i = 0; i < objs.length; i++)
+			{
+				var obj = objs[i];
+				
+				if (columnLabelDict[obj.column] === undefined)
+				{
+					column = [];
+					columns.push(column);
+					columnLabelDict[obj.column] = columns.length - 1;
+					column["label"] = obj.column;
+				}
+				else
+				{
+					column = columns[columnLabelDict[obj.column]];
+				}
+				
+				column.push(obj);
+			}
+			
+			var widthBetweenBars = params.widthBetweenBars;
+			var width = params.width;
+			var textMargin = params.textMargin;
+			var scale = params.scale;
+			
+			for (var i = 0; i < columns.length; i++)
+			{
+				var totalHeight = 0;
+				var totalValue = 0;
+				
+				var columnLabel = columns[i].label;
+				
+				for (var k = 0; k < columns[i].length; k++)
+				{
+					var str = columns[i][k].value;
+					var label = columns[i][k].label;
+					var color = columns[i][k].color;
+					
+					var num = parseFloat(str);
+					var height = num * scale;
+					
+					// bar segment
+					totalValue += num;
+					totalHeight += height;
+					var left = chartLf + marginLf + (widthBetweenBars + width) * i;
+					var top = chartBt - marginBt - textMargin - totalHeight;
+					this.fillStyle = color;
+					this.lineWidth = 1;
+					this.strokeStyle = 'black';
+					this.fillRect(left, top, width, height);
+					// this.strokeRect(left, top, width, height);
+					
+					// segment label
+					this.font = '10pt Arial'; // parametrize
+					this.fillStyle = 'white'; // parametrize
+					this.textAlign = 'center';
+					this.textBaseline = 'middle';
+					var text = label; // or format 'num'
+					var x = left + width / 2;
+					var y = top + height / 2;
+					this.fillText(text, x, y);
+				}
+				
+				// top label
+				this.font = '10pt Arial'; // parametrize
+				this.fillStyle = 'black'; // parametrize
+				this.textAlign = 'center';
+				this.textBaseline = 'bottom';
+				var text = totalValue.toString();
+				var x = chartLf + marginLf + (widthBetweenBars + width) * i + width / 2;
+				var y = chartBt - marginBt - textMargin - totalHeight - textMargin;
+				this.fillText(text, x, y);
+				
+				// bottom label
+				this.font = '10pt Arial'; // parametrize
+				this.fillStyle = 'black'; // parametrize
+				this.textAlign = 'center';
+				this.textBaseline = 'top';
+				var text = columnLabel;
+				var x = chartLf + marginLf + (widthBetweenBars + width) * i + width / 2;
+				var y = chartBt - marginBt;
+				this.fillText(text, x, y);
+			}
+		}
+		else if (type == 'bubble')
+		{
+			for (var i = 0; i < objs.length; i++)
+			{
+				var obj = objs[i];
+				
+				var xNum = parseFloat(obj.x);
+				var yNum = parseFloat(obj.y);
+				var rNum = parseFloat(obj.r);
+				
+				var x = chartLf+marginLf+(xNum-xMin)*xScale;
+				var y = chartBt-marginBt-(yNum-yMin)*yScale;
+				var r = rNum * params.radiusScale;
+				
+				var fill = null;
+				var stroke = null;
+				
+				var lineWidth = 2;
+				var lineColor = 'black';
+				
+				// individual overrides for label params
+				if (obj.labelFont) { labelFont = obj.labelFont; }
+				if (obj.labelColor) { labelColor = obj.labelColor; }
+				if (obj.labelYOffset) { labelYOffset = obj.labelYOffset; }
+				if (obj.color) { fill = obj.color; }
+				if (obj.stroke) { stroke = obj.stroke; }
+				if (obj.lineWidth) { lineWidth = obj.lineWidth; }
+				if (obj.lineColor) { lineColor = obj.lineColor; }
+				
+				if (fill)
+				{
+					this.fillStyle = obj.color;
+					this.fillCircle(x, y, r);
+				}
+				
+				if (stroke)
+				{
+					this.lineWidth = lineWidth;
+					this.strokeStyle = lineColor;
+					this.strokeCircle(x, y, r);
+				}
+				
+				// label
+				this.font = '10pt Arial'; // parametrize
+				this.fillStyle = 'white'; // parametrize
+				this.textAlign = 'center';
+				this.textBaseline = 'middle';
+				this.fillText(obj.label, x, y);
+			}
+		}
+		else if (type == 'line')
+		{
+			var colormap = {};
+			
+			for (var i = 0; i < key.length; i++)
+			{
+				colormap[key[i].label] = key[i].color;
+			}
+			
+			var firstObj = objs[0];
+			
+			var xField = 'xAxis'; // beware: magic string here
+			
+			for (var k in firstObj)
+			{
+				this.lineWidth = 1;
+				this.strokeStyle = colormap[k];
+				
+				if (k == xField) { continue; }
+				
+				this.beginPath();
+				
+				for (var i = 0; i < objs.length; i++)
+				{
+					var val = objs[i][k];
+					
+					if (val == null || val == '') { continue; } // skip over blank entries
+					
+					var xNum = parseInt(objs[i][xField]);
+					var yNum = parseInt(val);
+					
+					var x = chartLf+marginLf+(xNum-xMin)*xScale;
+					var y = chartBt-marginBt-(yNum-yMin)*yScale;
+					
+					if (i == 1)
+					{
+						this.moveTo(x, y);
+					}
+					else
+					{
+						this.lineTo(x, y);
+					}
+				}
+				
+				this.stroke();
+			}
+		}
+		else
+		{
+			throw new Error();
+		}
+		
+		// a prime example of how transformations would be better
+		this.DrawKey(key, chartLf + params.keyLeft, chartTp + params.keyTop);
+		
+		// axes and tickmarks
+		if (type == 'bubble' || type == 'line')
+		{
+			this.DrawAxis(null, params, volatileParams);
+		}
+	};
+	Canvas.prototype.DrawAxis = function(xy, params, volatileParams) {
+		
+		// get rid of this once the passed-in params has these field
+		params.tickLabelFont = '10pt Arial';
+		params.tickLabelColor = 'black';
+		params.tickLength = 5;
+		
+		var x1 = null;
+		var y1 = null;
+		var x2 = null;
+		var y2 = null;
+		
+		var xAxisBarValue = Math.max(0, params.yMin); // x axis
+		var xAxisBarPixel = params.chartBt - params.marginBt - Math.floor((xAxisBarValue - params.yMin) * volatileParams.yScale, 1); // x axis
+		var yAxisBarValue = Math.max(0, params.xMin); // y axis
+		var yAxisBarPixel = params.chartLf + params.marginLf + Math.floor((yAxisBarValue - params.xMin) * volatileParams.xScale, 1); // y axis
+		
+		// x axis
+		x1 = params.chartLf + params.marginLf;
+		y1 = xAxisBarPixel + 0.5;
+		x2 = params.chartRt - params.marginRt;
+		y2 = xAxisBarPixel + 0.5;
+		
+		this.lineWidth = 1;
+		this.strokeStyle = 'black';
+		this.drawLine(x1, y1, x2, y2);
+		
+		// y axis
+		x1 = yAxisBarPixel + 0.5;
+		y1 = params.chartBt - params.marginBt;
+		x2 = yAxisBarPixel + 0.5;
+		y2 = params.chartTp + params.marginTp;
+		
+		this.lineWidth = 1;
+		this.strokeStyle = 'black';
+		this.drawLine(x1, y1, x2, y2);
+		
+		var xTickValueCursor = Math.floor(yAxisBarValue / params.xHashInterval, 1) * params.xHashInterval; // x axis
+		var yTickValueCursor = Math.floor(xAxisBarValue / params.yHashInterval, 1) * params.yHashInterval; // y axis
+		
+		var maxTickmarks = 100;
+		var tickmarkIndex = 0;
+		
+		// x axis tickmarks and labels
+		while (tickmarkIndex < maxTickmarks)
+		{
+			xTickValueCursor += params.xHashInterval; // x axis
+			var xTickPixelCursor = Math.floor(yAxisBarPixel + (xTickValueCursor - yAxisBarValue) * volatileParams.xScale, 1); // x axis
+			if (xTickPixelCursor >= params.chartRt - params.rightMargin) { break; } // x axis
+			
+			// x axis
+			var x1 = xTickPixelCursor + 0.5;
+			var y1 = xAxisBarPixel - params.tickLength;
+			var x2 = xTickPixelCursor + 0.5;
+			var y2 = xAxisBarPixel + params.tickLength + 1;
+			
+			this.lineWidth = 1;
+			this.strokeStyle = 'black';
+			this.drawLine(x1, y1, x2, y2);
+			
+			this.font = params.tickLabelFont;
+			this.fillStyle = params.tickLabelColor;
+			this.textAlign = 'center'; // x axis
+			this.textBaseline = 'top'; // x axis
+			this.fillText(xTickValueCursor.toString(), xTickPixelCursor, xAxisBarPixel + params.tickLength + 4); // x axis
+			
+			tickmarkIndex++;
+		}
+		
+		tickmarkIndex = 0;
+		
+		while (tickmarkIndex < maxTickmarks)
+		{
+			yTickValueCursor += params.yHashInterval; // y axis
+			var yTickPixelCursor = Math.floor(xAxisBarPixel - (yTickValueCursor - xAxisBarValue) * volatileParams.yScale, 1); // y axis
+			if (yTickPixelCursor <= params.chartTop + params.topMargin) { break; } // y axis
+			
+			// y axis
+			var x1 = yAxisBarPixel - params.tickLength;
+			var y1 = yTickPixelCursor + 0.5;
+			var x2 = yAxisBarPixel + params.tickLength + 1;
+			var y2 = yTickPixelCursor + 0.5;
+			
+			this.lineWidth = 1;
+			this.strokeStyle = 'black';
+			this.drawLine(x1, y1, x2, y2);
+			
+			this.font = params.tickLabelFont;
+			this.fillStyle = params.tickLabelColor;
+			this.textAlign = 'right'; // y axis
+			this.textBaseline = 'middle'; // y axis
+			this.fillText(yTickValueCursor.toString(), yAxisBarPixel - params.tickLength - 4, yTickPixelCursor); // y axis
+			
+			tickmarkIndex++;
+		}
+	};
+	Canvas.prototype.DrawKey = function(key, left, top, options) {
+		
+		var keyFontSize = 10;
+		var keyFontFamily = 'Arial';
+		var keyTextColor = 'black';
+		var keyBoxSize = 10;
+		var keyRowSpacing = 20;
+		var keyLabelOffsetX = 20;
+		
+		if (options)
+		{
+			keyFontSize = options.fontSize;
+			keyFontFamily = options.fontFamily;
+			keyTextColor = options.textColor;
+			keyBoxSize = options.boxSize;
+			keyRowSpacing = options.rowSpacing;
+			keyLabelOffsetX = options.keyLabelOffsetX;
+		}
+		
+		for (var i = 0; i < key.length; i++)
+		{
+			var x = left;
+			var y = top + i * keyRowSpacing;
+			var side = keyBoxSize;
+			
+			this.fillStyle = key[i].color;
+			this.fillRect(x, y, side, side);
+			this.font = keyFontSize + 'pt ' + keyFontFamily;
+			this.fillStyle = keyTextColor;
+			this.textAlign = 'left';
+			this.textBaseline = 'middle';
+			this.fillText(key[i].label, x + keyLabelOffsetX, y + keyBoxSize / 2);
+		}
+	};
+	Canvas.prototype.DrawTable = function(params) {
+		
+		// the function signature used to be function(tableName, tableStylesName, widthsName, heightsName, left, top)
+		
+		//Calculate('table1', 'table1Formulas');
+		
+		var tableName = params.content;
+		var tableStylesName = params.styles;
+		var data = Griddl.GetData(tableName);
+		var tableStyles = Griddl.GetData(tableStylesName);
+		
+		var widths = [];
+		var heights = [];
+		
+		if (typeof(params.widths) == 'number')
+		{
+			for (var i = 0; i < data[0].length; i++) { widths.push(params.widths); }
+		}
+		else if (typeof(params.widths) == 'object') // we'll assume its a list
+		{
+			widths = params.widths;
+		}
+		else if (typeof(params.widths) == 'string')
+		{
+			// we assume the widths objects is a one-row multi-column matrix
+			widths = Griddl.GetData(params.widths)[0].map(function(elt, index) { return parseInt(elt); });
+		}
+		else
+		{
+			throw new Error();
+		}
+		
+		if (typeof(params.heights) == 'number')
+		{
+			for (var i = 0; i < data.length; i++) { heights.push(params.heights); }
+		}
+		else if (typeof(params.heights) == 'object') // we'll assume its a list
+		{
+			heights = params.heights;
+		}
+		else if (typeof(params.heights) == 'string')
+		{
+			// we assume the heights objects is a one-column multi-row matrix
+			heights = Griddl.GetData(heightsName).map(function(elt, index) { return parseInt(elt[0]); });
+		}
+		else
+		{
+			throw new Error();
+		}
+		
+		var totalWidth = widths.reduce(function(a, b) { return a + b; });
+		var totalHeight = heights.reduce(function(a, b) { return a + b; });
+		
+		var left = null;
+		var top = null;
+		
+		// if the positioning paramater is blank, center the table
+		if (!params.left) { left = (this.currentPage.width - totalWidth) / 2; } else { left = params.left; }
+		if (!params.top) { top = (this.currentPage.height - totalHeight) / 2; } else { top = params.top; }
+		
+		var rowPxs = new Array(heights + 1);
+		var colPxs = new Array(widths + 1);
+		rowPxs[0] = top;
+		colPxs[0] = left;
+		
+		for (var i = 0; i < widths.length; i++) { colPxs[i + 1] = colPxs[i] + widths[i]; }
+		for (var i = 0; i < heights.length; i++) { rowPxs[i + 1] = rowPxs[i] + heights[i]; }
+		
+		// horizontal lines
+		for (var i = 0; i < rowPxs.length; i++)
+		{
+			var x1 = colPxs[0];
+			var x2 = colPxs[colPxs.length - 1] + 1;
+			var y = rowPxs[i] + 0.5;
+			this.lineWidth = 1;
+			this.strokeStyle = 'black';
+			this.drawLine(x1, y, x2, y);
+		}
+		
+		// vertical lines
+		for (var i = 0; i < colPxs.length; i++)
+		{
+			var y1 = rowPxs[0];
+			var y2 = rowPxs[rowPxs.length - 1] + 1;
+			var x = colPxs[i] + 0.5;
+			this.lineWidth = 1;
+			this.strokeStyle = 'black';
+			this.drawLine(x, y1, x, y2);
+		}
+		
+		// entries
+		for (var i = 0; i < data.length; i++)
+		{
+			for (var j = 0; j < data[i].length; j++)
+			{
+				var val = data[i][j];
+				
+				if (val != null && val != "")
+				{
+					this.SetStyle(tableStyles[i][j]);
+					
+					var tp = rowPxs[i];
+					var bt = rowPxs[i + 1];
+					var lf = colPxs[j];
+					var rt = colPxs[j + 1];
+					
+					var textX = 0;
+					var margin = 8;
+					
+					if (this.textAlign == 'left')
+					{
+						textX = lf + margin;
+					}
+					else if (this.textAlign == 'right')
+					{
+						textX = rt - margin;
+					}
+					else if (this.textAlign == 'center')
+					{
+						textX = (lf + rt) / 2;
+					}
+					
+					var textY = (tp + bt) / 2;
+					
+					this.fillText(val, textX, textY);
+				}
+			}
+		}
+	};
+	Canvas.prototype.DrawList = function(listName) {
+		
+		var data = Griddl.GetData(listName);
+		
+		var y = 0;
+		
+		for (var i = 0; i < data.length; i++)
+		{
+			var datum = data[i];
+			
+			var dy = parseFloat(datum.dy);
+			var left = parseFloat(datum.left);
+			var size = parseFloat(datum.bulSize);
+			var text = datum.text;
+			
+			y += dy;
+			
+			this.SetStyle(datum.style);
+			this.fillCircle(left, y, size);
+			this.fillText(text, left + size + 8, y);
+		}
+	};
+	
+	
+	// general MathJax notes:
+	// http://cdn.mathjax.org/mathjax/latest/test/sample-signals.html - this is an interesting page that shows all the signals that get sent
+	
+	// calls to drawMath don't immediately draw onto the canvas - the typesetting is put into the mathjax queue
+	// actual drawing to the canvas happens in GenerateDocument(), after all callbacks have returned
+	// jax = { page : Page , latex : string , x : float , y : float , d : string , style : Style }
+	Canvas.prototype.drawMath = function(latex, x, y) {
+		
+		if (typeof(latex) == 'object') { latex = '$$' + latex.ToLatex() + '$$'; }
+		
+		var jax = {};
+		jax.page = this.currentPage;
+		jax.latex = latex;
+		jax.x = x;
+		jax.y = y;
+		jax.style = this.SaveStyle();
+		
+		this.jax.push(jax);
+		
+		var n = this.jax.length;
+		var id = 'mathjax' + n.toString();
+		
+		var div = $(document.createElement('div'));
+		div.attr('id', id);
+		div.attr('class', 'mathjaxInput');
+		div.css('display', 'none');
+		$('body').append(div);
+		
+		jax.inputDivId = '#' + id;
+		jax.outputDivId = '#MathJax-Element-' + n.toString() + '-Frame';
+		
+		div.text(latex);
+		
+		// http://docs.mathjax.org/en/latest/api/callback.html
+		//MathJax.Hub.Queue(["Typeset", MathJax.Hub, id], [callback]);
+		MathJax.Hub.Queue(["Typeset", MathJax.Hub, id]);
+	};
+	
+	Canvas.prototype.DrawParasNaive = function(params) {
+		
+		this.SetStyle(params.style);
+		
+		var pitch = params.pitch ? params.pitch : 20;
+		var words = Griddl.Wordize(params.text);
+		
+		var line = '';
+		
+		var boxIndex = 0;
+		var currentBox = params.boxes[boxIndex];
+		var left = currentBox.left;
+		var top = currentBox.top;
+		var width = currentBox.width;
+		var height = currentBox.height;
+		
+		var y = top;
+		
+		for (var i = 0; i < words.length; i++)
+		{
+			var word = words[i];
+			
+			var testline = line + word;
+			var lineWidth = this.savedCanvasContext.measureText(testline).width;
+			
+			if (lineWidth > width)
+			{
+				this.fillText(line, left, y);
+				line = '';
+				y += pitch;
+				
+				if (y > top + height)
+				{
+					boxIndex++;
+					
+					if (boxIndex >= params.boxes.length) { return; } // we've run out of room
+					
+					currentBox = params.boxes[boxIndex];
+					left = currentBox.left;
+					top = currentBox.top;
+					width = currentBox.width;
+					height = currentBox.height;
+					y = top;
+				}
+			}
+			
+			line += word + ' ';
+		}
+		
+		if (line.length > 0)
+		{
+			this.fillText(line, left, y);
+		}
+	};
+	Canvas.prototype.DrawParas = function(params) {
+		
+		this.SetStyle(params.style);
+		
+		var text = params.text;
+		
+		var lineWidths = [];
+		var linePoints = [];
+		
+		var type = 'justify';
+		var tolerance = 3;
+		var center = false;
+		var verticalSpacing = params.pitch;
+		
+		for (var i = 0; i < params.boxes.length; i++)
+		{
+			var box = params.boxes[i];
+			var sumHeight = 0;
+			
+			while (sumHeight < box.height)
+			{
+				lineWidths.push(box.width);
+				linePoints.push({page:box.page,left:box.left,top:box.top+sumHeight});
+				sumHeight += verticalSpacing;
+			}
+		}
+		
+		var g = this;
+		var format = null;
+		
+		if (g.savedCanvasContext)
+		{
+			//format = Typeset.formatter(function(str) { return g.savedCanvasContext.measureText(str).width; });
+			format = Typeset.formatter(function(str) { return g.measureText(str); });
+		}
+		else
+		{
+			format = Typeset.formatter(function(str) { return g.measureText(str); });
+		}
+		
+		var nodes = format[type](text);
+		var breaks = Typeset.linebreak(nodes, lineWidths, { tolerance : tolerance });
+		if (breaks.length == 0) { throw new Error('Paragraph can not be set with the given tolerance'); }
+		
+		var lines = [];
+		var lineStart = 0;
+		
+		// Iterate through the line breaks, and split the nodes at the correct point.
+		for (var i = 1; i < breaks.length; i++)
+		{
+			var point = breaks[i].position;
+			var r = breaks[i].ratio;
+			
+			for (var j = lineStart; j < nodes.length; j++)
+			{
+				// After a line break, we skip any nodes unless they are boxes or forced breaks.
+				if (nodes[j].type === 'box' || (nodes[j].type === 'penalty' && nodes[j].penalty === -Typeset.linebreak.infinity))
+				{
+					lineStart = j;
+					break;
+				}
+			}
+			
+			lines.push({ ratio : r , nodes : nodes.slice(lineStart, point + 1) , position : point });
+			lineStart = point;
+		}
+		
+		var maxLength = Math.max.apply(null, lineWidths);
+		
+		for (var i = 0; i < lines.length; i++)
+		{
+			var line = lines[i];
+			var lineLength = i < lineWidths.length ? lineWidths[i] : lineWidths[lineWidths.length - 1];
+			
+			var x = linePoints[i].left;
+			var y = linePoints[i].top;
+			this.SetActivePage(linePoints[i].page);
+			
+			if (center) { x += (maxLength - lineLength) / 2; }
+			
+			for (var k = 0; k < line.nodes.length; k++)
+			{
+				var node = line.nodes[k];
+				
+				if (node.type === 'box')
+				{
+					this.fillText(node.value, x, y);
+					x += node.width;
+				}
+				else if (node.type === 'glue')
+				{
+					x += node.width + line.ratio * (line.ratio < 0 ? node.shrink : node.stretch);
+				}
+				else if (node.type === 'penalty' && node.penalty === 100 && k === line.nodes.length - 1)
+				{
+					this.fillText('-', x, y);
+				}
+			}
+		}
+	};
+	Griddl.Wordize = function(text) {
+		
+		var words = [];
+		var word = '';
+		
+		var k = 0;
+		
+		while (k < text.length)
+		{
+			var c = text[k];
+			var n = c.charCodeAt();
+			
+			if (n == 32 || n == 9 || n == 13 || n == 10)
+			{
+				words.push(word);
+				word = '';
+			}
+			else
+			{
+				word += c;
+			}
+			
+			k++;
+		}
+		
+		if (word.length > 0)
+		{
+			words.push(word);
+		}
+		
+		return words;
+	};
+	
+	Canvas.prototype.MakeBox = function(page) {
+		
+		var box = {};
+		
+		box.lf = 0;
+		box.cx = page.width / 2;
+		box.rg = page.width;
+		box.ww = page.width;
+		box.wr = page.width / 2;
+		
+		box.tp = 0;
+		box.cy = page.height / 2;
+		box.bt = page.height;
+		box.hh = page.height;
+		box.hr = page.height / 2;
+		
+		return box;
+	};
+	Canvas.Substitute = function(templateName, variablesName) {
+		
+		var text = Griddl.GetData(templateName);
+		var vars = Griddl.GetData(variablesName);
+		
+		for (var i = 0; i < vars.length; i++)
+		{
+			var name = vars[i].name;
+			var value = vars[i].value;
+			
+			while (text.search('@' + name) >= 0)
+			{
+				text = text.replace('@' + name, value);
+			}
+		}
+		
+		return text;
+	};
+	
+	Canvas.prototype.DrawShapes = function(shapesName) {
+		
+		var shapes = Griddl.GetData(shapesName, []);
+		
+		var parents = Griddl.MakeHash(Griddl.GetData(shapesName));
+		
+		for (var i = 0; i < shapes.length; i++)
+		{
+			var obj = shapes[i];
+			this.SetActivePage(obj.page);
+			this.SetStyle(obj.style);
+			
+			var x = parseFloat(obj.x);
+			var y = parseFloat(obj.y);
+			
+			var focus = obj;
+			
+			while (focus.parent)
+			{
+				var parent = parents[focus.parent];
+				x += parseFloat(parent.x);
+				y += parseFloat(parent.y);
+				focus = parent;
+			}
+			
+			var width = parseFloat(obj.width);
+			var height = parseFloat(obj.height);
+			
+			var type = obj.shape;
+			
+			if (type == 'text')
+			{
+				this.fillText(obj.text, x, y);
+			}
+			else if (type == 'rect')
+			{
+				// change x and y based on hAlign and vAlign
+				this.fillRect(x + 0.5, y + 0.5, width, height);
+				this.strokeRect(x, y, width, height); // x and y may need a +0.5 or something
+			}
+		}
+	};
+	Canvas.prototype.DrawTexts = function(componentName) {
+		
+		var objs = Griddl.GetData(componentName, []);
+		
+		for (var i = 0; i < objs.length; i++)
+		{
+			var obj = objs[i];
+			this.SetActivePage(obj.page);
+			
+			var color = obj.color ? obj.color : 'black';
+			var hAlign = obj.hAlign ? obj.hAlign : 'left';
+			var vAlign = obj.vAlign ? obj.vAlign : 'middle';
+			
+			this.SetStyle(obj.style);
+			
+			var x = parseFloat(obj.x);
+			var y = parseFloat(obj.y);
+			
+			this.fillText(obj.text, x, y);
+		}
+	};
+	Canvas.prototype.DrawImages = function(componentName) {
+		
+		var objs = Griddl.GetData(componentName, []);
+		
+		for (var i = 0; i < objs.length; i++)
+		{
+			var obj = objs[i];
+			this.SetActivePage(obj.page);
+			
+			var img = Griddl.GetData(obj.name);
+			
+			var x = parseFloat(obj.x);
+			var y = parseFloat(obj.y);
+			var hAlign = obj.hAlign;
+			var vAlign = obj.vAlign;
+			
+			var width = obj.width ? parseFloat(obj.width) : img.width;
+			var height = obj.height ? parseFloat(obj.height) : img.height;
+			
+			var left = null;
+			var top = null;
+			
+			if (hAlign == 'left' || hAlign == 'start') // is accepting multiple keywords a good idea?
+			{
+				left = x;
+			}
+			else if (hAlign == 'center' || hAlign == 'middle')
+			{
+				left = x - width / 2;
+			}
+			else if (hAlign == 'right' || hAlign == 'end')
+			{
+				left = x - width;
+			}
+			else
+			{
+				left = x - width / 2; // default to center - is this wise?
+			}
+			
+			if (vAlign == 'top' || vAlign == 'start') // is accepting multiple keywords a good idea?
+			{
+				top = y;
+			}
+			else if (vAlign == 'center' || vAlign == 'middle')
+			{
+				top = y - height / 2;
+			}
+			else if (vAlign == 'bottom' || vAlign == 'end')
+			{
+				top = y - height;
+			}
+			else
+			{
+				top = y - height / 2; // default to center - is this wise?
+			}
+			
+			//var left = parseFloat(obj.left);
+			//var top = parseFloat(obj.top);
+			
+			this.DrawImage(img, left, top, width, height);
+		}
+	};
+	Canvas.prototype.DrawCharts = function(componentName) {
+		
+		var objs = Griddl.GetData(componentName, []);
+		
+		for (var i = 0; i < objs.length; i++)
+		{
+			var obj = objs[i];
+			this.SetActivePage(obj.page);
+			
+			this.DrawChart(obj.type, obj.params, obj.data, obj.key);
+		}
+	};
+	Canvas.prototype.DrawTables = function(componentName) {
+		
+		var objs = Griddl.GetData(componentName, []);
+		
+		for (var i = 0; i < objs.length; i++)
+		{
+			var obj = objs[i];
+			this.SetActivePage(obj.page);
+			
+			this.DrawTable(obj.values, obj.styles, obj.widths, obj.heights, obj.left, obj.top);
+		}
+	};
+	
+	// a few convenience functions
+	//CanvasRenderingContext2D.prototype.drawLine = function(x1, y1, x2, y2)
+	//{
+	//	this.beginPath();
+	//	this.moveTo(x1, y1);
+	//	this.lineTo(x2, y2);
+	//	this.stroke();
+	//};
+	//CanvasRenderingContext2D.prototype.fillCircle = function(x, y, r)
+	//{
+	//	this.beginPath();
+	//	this.arc(x, y, r, 0, Math.PI * 2, true);
+	//	this.fill();
+	//};
+	//CanvasRenderingContext2D.prototype.strokeCircle = function(x, y, r)
+	//{
+	//	this.beginPath();
+	//	this.arc(x, y, r, 0, Math.PI * 2, true);
+	//	this.stroke();
+	//};
+	
+	// frequently useful for scatter charts
+	// fillRegularPolygon(x, y, r, n, angle)
+	// strokeRegularPolygon(x, y, r, n, angle)
+	// fillStar(x, y, r, angle)
+	// strokeStar(x, y, r, angle)
+	// fillCross(x, y, r, angle)
+	// strokeCross(x, y, r, angle)
 	
 	return Canvas;
 })();
@@ -6244,18 +7927,5 @@ return Griddl;
 
 })();
 
-Number.prototype.toCommaNumber = function() {
-	var str = this.toString();
-	
-	var index = 4;
-	
-	while (index <= str.length)
-	{
-		var pos = str.length - index + 1;
-		str = str.substr(0, pos) + ',' + str.substr(pos);
-		index += 4;
-	}
-	
-	return str;
-};
+exports.Griddl = Griddl;
 

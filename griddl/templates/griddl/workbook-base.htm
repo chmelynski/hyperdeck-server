@@ -13,23 +13,27 @@
 <style>{% block style %}{% endblock %}</style>
 </head>
 <body onload="Griddl.Main()">
-<!-- <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0.js' %}"></script>
+<!--
+<script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0.js' %}"></script>
 <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-javascript.js' %}"></script>
 <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-css.js' %}"></script>
-<script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-xml.js' %}"></script> -->
+<script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-xml.js' %}"></script>
+ -->
 <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20.js' %}"></script>
-<script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-javascript.js' %}"></script>
-<script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-css.js' %}"></script>
-<script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-xml.js' %}"></script>
+<script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-javascript.js' %}"></script>
+<script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-css.js' %}"></script>
+<script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-xml.js' %}"></script>
 <script type='text/javascript' src="{% static 'griddl/js/lib/jquery-1.10.2.min.js' %}"></script>
 <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.mousewheel.js' %}"></script>
 <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.handsontable.full.js' %}"></script>
 <script type='text/javascript' src="{% static 'griddl/js/lib/jquery-ui.min.js' %}"></script>
-<!-- <script type='text/javascript' src="{% static 'griddl/js/lib/jquery-ui.menubar.js' %}"></script> -->
+<!--
+<script type='text/javascript' src="{% static 'griddl/js/lib/jquery-ui.menubar.js' %}"></script>
 <script type='text/javascript' src="{% static 'griddl/js/lib/indentree.js' %}"></script>
 <script type='text/javascript' src="{% static 'griddl/js/lib/keymaster.js' %}"></script>
 <script type='text/javascript' src="{% static 'griddl/js/lib/canvas2image-mod.js' %}"></script>
-<input type="file" id="fileChooser" style="display:none" onchange="Frce.HandleLocalLoad(this.files)" />
+ -->
+<input type="file" id="fileChooser" style="display:none" onchange="Griddl.IO.HandleLocalLoad(this.files)" />
 
 <script type='text/javascript'>owner = {{ workbook.owner.pk }};</script>
 
@@ -48,14 +52,14 @@
 		{% if user.is_authenticated %}
 			{% if user == workbook.owner %}
 				<button id="saveMenuButton" style="color:black;" onclick="$('#saveForm').submit()">Save</button>
-				<button id="saveasMenuButton" style="color:black;" onclick="Frce.ShowSaveAsModal()">Save As</button>
+				<button id="saveasMenuButton" style="color:black;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button>
 			{% else %}
 				<button id="saveMenuButton" disabled style="color:gray;" onclick="$('#saveForm').submit()">Save</button>
-				<button id="saveasMenuButton" style="color:black;" onclick="Frce.ShowSaveAsModal()">Save As</button>
+				<button id="saveasMenuButton" style="color:black;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button>
 			{% endif %}
 		{% else %}
 			<button id="saveMenuButton" disabled style="color:gray;" onclick="$('#saveForm').submit()">Save</button>
-			<button id="saveasMenuButton" disabled style="color:gray;" onclick="Frce.ShowSaveAsModal()">Save As</button> <!-- or onclick="Frce.ShowLoginModal()" if you want to redirect -->
+			<button id="saveasMenuButton" disabled style="color:gray;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button> <!-- or onclick="Griddl.UI.ShowLoginModal()" if you want to redirect -->
 		{% endif %}
 		
 		{% block menuitems %}{% endblock %}
@@ -69,10 +73,10 @@
 		
 		{% if user.is_authenticated %}
 			<a id="logoutLink" style="display:inline; text-decoration:none; cursor:pointer; color:rgb(70,150,230); margin-right:1em;" href="/logout">Logout</a>
-			<a id="loginLink" style="display:none; text-decoration:none; cursor:pointer; color:rgb(70,150,230); margin-right:1em;" onclick="Frce.ShowLoginModal()">Login</a>
+			<a id="loginLink" style="display:none; text-decoration:none; cursor:pointer; color:rgb(70,150,230); margin-right:1em;" onclick="Griddl.UI.ShowLoginModal()">Login</a>
 		{% else %}
 			<a id="logoutLink" style="display:none; text-decoration:none; cursor:pointer; color:rgb(70,150,230); margin-right:1em;" href="/logout">Logout</a>
-			<a id="loginLink" style="display:inline; text-decoration:none; cursor:pointer; color:rgb(70,150,230); margin-right:1em;" onclick="Frce.ShowLoginModal()">Login</a>
+			<a id="loginLink" style="display:inline; text-decoration:none; cursor:pointer; color:rgb(70,150,230); margin-right:1em;" onclick="Griddl.UI.ShowLoginModal()">Login</a>
 		{% endif %}
 	</div>
 </div>
@@ -99,7 +103,7 @@
 				<input id="saveasFormTextInput" type="hidden" name="text" value=""></input>
 				<input type="text" name="newname"></input>
 				<input type="submit" value="Save"></input>
-				<input type="button" value="Cancel" onclick="Frce.HideSaveAsModal();"></input>
+				<input type="button" value="Cancel" onclick="Griddl.UI.HideSaveAsModal();"></input>
 			</div>
 		</div>
 	</form>
@@ -124,11 +128,11 @@
 					</tr>
 					<tr>
 						<!-- <input type="submit" value="Login"></input> -->
-						<td><input type="button" value="Log in" onclick="Frce.SubmitLoginForm();"></input></td>
-						<td><input type="button" value="Sign up" onclick="Frce.SubmitSignupForm();"></input></td>
+						<td><input type="button" value="Log in" onclick="Griddl.UI.SubmitLoginForm();"></input></td>
+						<td><input type="button" value="Sign up" onclick="Griddl.UI.SubmitSignupForm();"></input></td>
 					</tr>
 					<tr>
-						<td><input type="button" value="Cancel" onclick="Frce.HideLoginModal();"></input></td>
+						<td><input type="button" value="Cancel" onclick="Griddl.UI.HideLoginModal();"></input></td>
 					</tr>
 				</table>
 				<!-- <input type="hidden" name="redirect" value="/{{ workbook.owner.pk }}/{{ workbook.name }}" /> -->

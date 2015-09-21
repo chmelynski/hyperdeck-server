@@ -1,4 +1,4 @@
-Griddl.fonts = {
+var fonts = {
 "Times New Roman":
 {
 " ":{"path":null,"width":1000},
@@ -594,3 +594,8 @@ Griddl.fonts = {
 }
 ,
 };
+
+fonts["Times-Roman"] = fonts["Times New Roman"];
+
+if (typeof Griddl != 'undefined') { Griddl.fonts = fonts; } else { exports.fonts = fonts; }
+

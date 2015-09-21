@@ -847,6 +847,8 @@ var stopAudio = function() {
 
 (function(root) { 'use strict';
 
+	var window = window || {};
+	
 	window.Audio && (function() {
 		var midi = root.AudioTag = { api: 'audiotag' };
 		var noteToKey = {};
@@ -996,6 +998,8 @@ var stopAudio = function() {
 */
 
 (function(root) { 'use strict';
+
+var window = window || {};
 
 	window.AudioContext && (function() {
 		var audioContext = null; // new AudioContext();
@@ -1422,7 +1426,7 @@ var stopAudio = function() {
 */
 
 if (typeof MIDI === 'undefined') MIDI = {};
-
+/*
 (function(root) {
 
 	var util = root.util || (root.util = {});
@@ -1542,6 +1546,8 @@ if (typeof MIDI === 'undefined') MIDI = {};
 	}
 
 })(MIDI);
+*/
+
 /*
 	-----------------------------------------------------------
 	dom.loadScript.js : 0.1.4 : 2014/02/12 : http://mudcu.be
@@ -1767,3 +1773,4 @@ var globalExists = function(path, root) {
 if (typeof (module) !== "undefined" && module.exports) {
 	module.exports = dom.loadScript;
 }
+
