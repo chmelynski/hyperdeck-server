@@ -1,6 +1,6 @@
 
-var Typeset = require('C:\\cygwin64\\home\\adam\\frce\\mysite\\griddl\\static\\griddl\\js\\lib\\typeset.js'); Typeset = Typeset.Typeset;
-var GriddlFonts = require('C:\\cygwin64\\home\\adam\\frce\\mysite\\griddl\\static\\griddl\\js\\fonts.js'); GriddlFonts = GriddlFonts.fonts;
+//var Typeset = require('C:\\cygwin64\\home\\adam\\frce\\mysite\\griddl\\static\\griddl\\js\\lib\\typeset.js'); Typeset = Typeset.Typeset;
+//var GriddlFonts = require('C:\\cygwin64\\home\\adam\\frce\\mysite\\griddl\\static\\griddl\\js\\fonts.js'); GriddlFonts = GriddlFonts.fonts;
 
 var Griddl = (function() {
 
@@ -11,8 +11,8 @@ var Griddl = {};
 Griddl.drawPdf = false; // the function invoked by the export button sets this to true, runs the user code, and then sets it to false again
 var griddlCanvas = null; // this is how user drawing code communicates with the PDF export button
 Griddl.objs = null; // set in Main() - not a great idea to make this a var, because there are lots of local vars named 'objs'
-//Griddl.fonts = null; // set in fonts.js
-Griddl.fonts = GriddlFonts;
+Griddl.fonts = null; // set in fonts.js
+//Griddl.fonts = GriddlFonts;
 
 function Main() {
 	
@@ -5236,10 +5236,10 @@ Griddl.Canvas = (function() {
 		
 		var glyphset = Griddl.fonts[this.fontFamily];
 		
-		// this should work.  why doesn't it work?
-		console.log(Griddl.fonts);
-		console.log(this.fontFamily);
-		console.log(glyphset);
+		// this should work (in Node).  why doesn't it work?
+		//console.log(Griddl.fonts);
+		//console.log(this.fontFamily);
+		//console.log(glyphset);
 		
 		var multiplier = this.fontSize / 2048;
 		
@@ -7927,5 +7927,5 @@ return Griddl;
 
 })();
 
-exports.Griddl = Griddl;
+if (typeof window == 'undefined') { exports.Griddl = Griddl; }
 

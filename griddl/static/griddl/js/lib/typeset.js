@@ -826,7 +826,7 @@ Hypher.prototype.hyphenate = function (word) {
     return result;
 };
 
-exports.Typeset = Typeset;
+if (typeof window == 'undefined') { exports.Typeset = Typeset; }
 
 //jQuery(function ($) {
 //	function browserTypeset() {
