@@ -121,7 +121,7 @@ else:
 	STATICFILES_DIRS = ( os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static'), )
 	#STATICFILES_DIRS = ()
 
-
+STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
 
 # List of finder classes that know how to find static files in various locations.
 STATICFILES_FINDERS = (
@@ -131,6 +131,7 @@ STATICFILES_FINDERS = (
 )
 
 # Make this unique, and don't share it with anybody.
+# todo: this should ideally come from getenv
 SECRET_KEY = 'slvy^mosip%vo8atr69t)g$=vyhtmqggm8^w7#*e$_&^mj1261'
 
 # List of callables that know how to import templates from various sources.
