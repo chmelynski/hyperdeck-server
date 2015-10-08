@@ -4,7 +4,6 @@
 	margin-left: auto;
 	margin-right: auto;
 	width:100%;
-	background:  url(../img/patternbg/pat-1.png) top center repeat;
 }
 .inner_wrap {
 	margin-top:30px;
@@ -24,7 +23,6 @@
 	float:left;
 }
 #logo {
-	background: transparent url(../img/Airkeepr-Launch_nobgsmall.png) no-repeat scroll center left;
 }
 #logo a {
 	display:block;
@@ -37,7 +35,6 @@
 	height: 2px;
 	margin-top:30px;
 	margin-bottom:30px;
-	background:url(../img/divider.png) repeat-x center;
 }
 
 
@@ -137,7 +134,6 @@
 
 .static-bg {
 	height:auto; 
-	background:url(../img/pattern/bg-pat-1.png) no-repeat left top;
 }
 
 
@@ -146,12 +142,10 @@
 			/* Give the header a height and a background image */
 #animated-bg {
 				height:auto; 
-				background: url(../img/pattern/1.jpg) repeat-y scroll left top;
 }	
 			
 			#animated-bg-inner {
 				height:auto; 
-				background:url(../img/pattern/bg-inner.jpg) repeat-y scroll left center;
 			}
 			
 
@@ -191,7 +185,6 @@
 	position:absolute;
 	top:10px;
 	right:20px;
-	background: url(../img/contentcarousel/close-icon.png) no-repeat center right;
 	width:48px;
 	height:48px;
 	text-indent:-9000px;
@@ -207,7 +200,6 @@
 	left:0px;
 	right:5px;
 	bottom:5px;
-	background:  url(../img/contentcarousel/item-main-bg.png) top center repeat;
 	overflow:hidden;
 	-moz-box-shadow:1px 1px 2px rgba(0,0,0,0.2);
 	-webkit-box-shadow:1px 1px 2px rgba(0,0,0,0.2);
@@ -220,28 +212,6 @@
 	margin:0 auto;
 	padding:0;
 	margin-bottom:30px;
-	background:transparent url(../img/contentcarousel/c-thumb.jpg) no-repeat center center;
-}
-.ca-item-2 .ca-icon{
-	background-image:url(../img/contentcarousel/c-thumb.jpg);
-}
-.ca-item-3 .ca-icon{
-	background-image:url(../img/contentcarousel/c-thumb.jpg);
-}
-.ca-item-4 .ca-icon{
-	background-image:url(../img/contentcarousel/c-thumb.jpg);
-}
-.ca-item-5 .ca-icon{
-	background-image:url(../img/contentcarousel/c-thumb.jpg);
-}
-.ca-item-6 .ca-icon{
-	background-image:url(../img/contentcarousel/c-thumb.jpg);
-}
-.ca-item-7 .ca-icon{
-	background-image:url(../img/contentcarousel/c-thumb.jpg);
-}
-.ca-item-8 .ca-icon{
-	background-image:url(../img/contentcarousel/c-thumb.jpg);
 }
 .ca-item h3{
 	font-family: 'Rokkitt', serif;
@@ -268,13 +238,11 @@
 	display:block;
 }
 .ca-item .desc  span.ca-quote{
-	background:url(../img/quote-1.png) no-repeat 0% 5px;
 	color:#848383;
 	padding-left:30px;
 	font-size:12px;
 }
 .ca-content-wrapper{
-	background:url(../img/contentcarousel/item-main-bg.png) repeat;
 	position:absolute;
 	width:0px; /* expands to width of the wrapper minus 1 element */
 	height:440px;
@@ -321,7 +289,6 @@
 .ca-nav span{
 	width:25px;
 	height:38px;
-	background:transparent url(../img/contentcarousel/arrows.png) no-repeat top left;
 	position:absolute;
 	top:50%;
 	margin-top:-19px;
@@ -471,7 +438,6 @@
 blockquote {
 	margin-top:15px;
 	padding-left:46px;
-	background:url('../img/icons/quote.png') no-repeat 0% 4px;
 
 }
 
@@ -567,7 +533,6 @@ img.right {
 /*==================================== Footer ====================================*/
 
 #footer {
-	background: url(../img/patternbg/pat-2.png) repeat top center;
 	color:#656565;
 	text-shadow: 1px 0px 0px #000;
 }
@@ -642,7 +607,6 @@ ul.link_nav li{
 	border-top: 1px solid #2c2c2c;
 	margin-top:0 !important;
 	margin-bottom:0 !important;
-	background: url(../img/list/list-arrow.png) no-repeat 0% 9px;
 	padding:2px 10px 2px 10px;
 }
 ul.link_nav li a{
@@ -704,39 +668,40 @@ ul.flickr li a:hover{
     display:none;
 }
 
-
+/*
 
 #facebook-icon{
-	background: url(../img/social/fb.png);
+	background: url('../img/social/fb.png');
 }
 
 #facebook-icon:hover{
-	background: url(../img/social/fb_hov.png);
+	background: url('../img/social/fb_hov.png');
 }
 
 #twitter-icon{
-	background: url(../img/social/twitter.png);
+	background: url('../img/social/twitter.png');
 }
 
 #twitter-icon:hover{
-	background: url(../img/social/twitter_hov.png);
+	background: url('../img/social/twitter_hov.png');
 }
 
 #linkedin-icon{
-	background: url(../img/social/linkedin.png);
+	background: url('../img/social/linkedin.png');
 }
 
 #linkedin-icon:hover{
-	background: url(../img/social/linkedin_hov.png);
+	background: url('../img/social/linkedin_hov.png');
 }
 
 #flickr-icon{
-	background: url(../img/social/flickr.png);
+	background: url('../img/social/flickr.png');
 }
 
 #flickr-icon:hover{
-	background: url(../img/social/flickr_hov.png);
+	background: url('../img/social/flickr_hov.png');
 }
+*/
 
 /*-------------------------------------------- list styles ------------------------------------*/
 
@@ -760,7 +725,6 @@ ul.arrow_full, ul.arrow_dot, ul.bullet, ul.diamond {
 /* arrow full */
 ul.arrow_full li {
 	background-attachment: scroll;
-	background-image: url('../img/list/arrow-full.png');
 	background-repeat: no-repeat;
 	background-position: left center;
 	padding-left:26px;
@@ -770,7 +734,6 @@ ul.arrow_full li {
 /* arrow dot */
 ul.arrow_dot li {
 	background-attachment: scroll;
-	background-image: url('../img/list/arrow-dot.png');
 	background-repeat: no-repeat;
 	background-position: left center;
 	padding-left:26px;
@@ -780,7 +743,6 @@ ul.arrow_dot li {
 /* bullet */
 ul.bullet li {
 	background-attachment: scroll;
-	background-image: url('../img/list/bullet.png');
 	background-repeat: no-repeat;
 	background-position: left center;
 	padding-left:26px;
@@ -790,7 +752,6 @@ ul.bullet li {
 /* diamond */
 ul.diamond li {
 	background-attachment: scroll;
-	background-image: url('../img/list/diamond.png');
 	background-repeat: no-repeat;
 	background-position: left center;
 	padding-left:26px;
@@ -807,13 +768,11 @@ ul.diamond li {
 .recent_post{
     float:left;
 	width:598px;
-	background: url(../img/vertical-line.png) center right repeat-y;
 	padding-right:20px;
 }
 .small_excerpt {
     float:left;
 	padding-bottom:20px;
-	background: url(../img/divider.png) repeat-x bottom;
 }
 
 .small_excerpt h5 {
@@ -908,7 +867,6 @@ ul.list li{
 	list-style:none;
 }
 ul.arrow li{
-	background: url(../img/icons/list-arrow.png) no-repeat left 7px;
 	list-style:none;
 	margin:0 !important;
 	padding-left:15px !important;	
@@ -952,7 +910,6 @@ ul.arrow li{
 	
 .reply{
 	float:left;
-	background:url(../img/icons/reply.png) no-repeat top left;
 
 }
 .reply_post{
@@ -1010,7 +967,6 @@ span.reply {
 }
 
 #aside h3, #aside h4, #aside h5{
-	background: url(../img/h3-widget.png) no-repeat top left;
 	height:45px;
 	padding-left:20px;
 	line-height:45px;
@@ -1170,13 +1126,11 @@ ul.portfolio li {
 .zoom {
 	float:left;
 	margin-left:10px;
-	background: url(../img/icons/zoom.png) no-repeat;	
 }
 
 .detail {
 	float:left;
 	margin-right:10px;
-	background: url(../img/icons/detail.png) no-repeat;	
 }
 
 /*==================================== portfolio 4 columns ====================================*/
@@ -1367,10 +1321,17 @@ ul.portfolio li {
 	background-position:0 0;
 }
 
-a.smallbtn1 { background:url(../img/buttons/smallbtn1-r.png) no-repeat top right; display: block; float: left; height: 25px; padding-right: 15px; text-decoration: none; font-size:12px;  text-transform:none; }
+a.smallbtn1 {
+ display: block;
+ float: left;
+ height: 25px;
+ padding-right: 15px;
+ text-decoration: none;
+ font-size:12px;
+  text-transform:none;
+}
 
 a.smallbtn1 span { 
-	background:url(../img/buttons/smallbtn1-l.png) no-repeat; 
 	display: block; 
 	line-height: 25px; 
 	padding: 0px 0 0px 15px; 
@@ -1388,9 +1349,23 @@ a.smallbtn1:hover { background-position: right -25px; }
 	background-position:0 0;
 }
 
-a.bigbtn1 { background:url(../img/buttons/bigbtn1-r.png) no-repeat top right; display: block; float: left; height: 45px; margin-right: 10px; padding-right: 20px; text-decoration: none; font-size:1.6em;  text-transform:none; }
+a.bigbtn1 { 
+ display: block;
+ float: left;
+ height: 45px;
+ margin-right: 10px;
+ padding-right: 20px;
+ text-decoration: none;
+ font-size:1.6em;
+  text-transform:none;
+}
 
-a.bigbtn1 span { background:url(../img/buttons/bigbtn1-l.png) no-repeat; display: block; line-height: 45px; padding: 0px 0 0px 20px; color: #767676; }
+a.bigbtn1 span {
+ display: block;
+ line-height: 45px;
+ padding: 0px 0 0px 20px;
+ color: #767676;
+}
 
 a.bigbtn1:hover span { background-position: 0 -45px; color: #484848; }
 
@@ -1406,10 +1381,17 @@ a.bigbtn1:hover { background-position: right -45px; }
 	background-position:0 0;
 }
 
-a.smallbtn2 { background:url(../img/buttons/smallbtn2-r.png) no-repeat top right; display: block; float: left; height: 25px; padding-right: 15px; text-decoration: none; font-size:12px;  text-transform:none; }
+a.smallbtn2 {
+ display: block;
+ float: left;
+ height: 25px;
+ padding-right: 15px;
+ text-decoration: none;
+ font-size:12px;
+  text-transform:none;
+}
 
 a.smallbtn2 span { 
-	background:url(../img/buttons/smallbtn2-l.png) no-repeat; 
 	display: block; 
 	line-height: 25px; 
 	padding: 0px 0 0px 15px; 
@@ -1427,9 +1409,23 @@ a.smallbtn2:hover { background-position: right -25px; }
 	background-position:0 0;
 }
 
-a.bigbtn2 { background:url(../img/buttons/bigbtn2-r.png) no-repeat top right; display: block; float: left; height: 45px; margin-right: 10px; padding-right: 20px; text-decoration: none; font-size:1.6em;  text-transform:none; }
+a.bigbtn2 {
+ display: block;
+ float: left;
+ height: 45px;
+ margin-right: 10px;
+ padding-right: 20px;
+ text-decoration: none;
+ font-size:1.6em;
+  text-transform:none;
+}
 
-a.bigbtn2 span { background:url(../img/buttons/bigbtn2-l.png) no-repeat; display: block; line-height: 45px; padding: 0px 0 0px 20px; color: #767676; }
+a.bigbtn2 span {
+ display: block;
+ line-height: 45px;
+ padding: 0px 0 0px 20px;
+ color: #767676;
+}
 
 a.bigbtn2:hover span { background-position: 0 -45px; color: #484848; }
 
@@ -1446,10 +1442,17 @@ a.bigbtn2:hover { background-position: right -45px; }
 	background-position:0 0;
 }
 
-a.smallbtn3 { background:url(../img/buttons/smallbtn3-r.png) no-repeat top right; display: block; float: left; height: 25px; padding-right: 15px; text-decoration: none; font-size:12px;  text-transform:none; }
+a.smallbtn3 {
+ display: block;
+ float: left;
+ height: 25px;
+ padding-right: 15px;
+ text-decoration: none;
+ font-size:12px;
+  text-transform:none;
+}
 
 a.smallbtn3 span { 
-	background:url(../img/buttons/smallbtn3-l.png) no-repeat; 
 	display: block; 
 	line-height: 23px; 
 	padding: 0px 0 2px 15px; 
@@ -1467,9 +1470,23 @@ a.smallbtn3:hover { background-position: right -25px; }
 	background-position:0 0;
 }
 
-a.bigbtn3 { background:url(../img/buttons/bigbtn3-r.png) no-repeat top right; display: block; float: left; height: 45px; margin-right: 10px; padding-right: 20px; text-decoration: none; font-size:1.6em;  text-transform:none; }
+a.bigbtn3 { 
+ display: block;
+ float: left;
+ height: 45px;
+ margin-right: 10px;
+ padding-right: 20px;
+ text-decoration: none;
+ font-size:1.6em;
+  text-transform:none;
+}
 
-a.bigbtn3 span { background:url(../img/buttons/bigbtn3-l.png) no-repeat; display: block; line-height: 37px; padding: 0px 8px 8px 20px; color: #767676; }
+a.bigbtn3 span { 
+ display: block;
+ line-height: 37px;
+ padding: 0px 8px 8px 20px;
+ color: #767676;
+}
 
 a.bigbtn3:hover span { background-position: 0 -45px; color: #484848; }
 
@@ -1485,10 +1502,17 @@ a.bigbtn3:hover { background-position: right -45px; }
 	background-position:0 0;
 }
 
-a.smallbtn4 { background:url(../img/buttons/smallbtn4-r.png) no-repeat top right; display: block; float: left; height: 25px; padding-right: 15px; text-decoration: none; font-size:12px;  text-transform:none; }
+a.smallbtn4 { 
+ display: block;
+ float: left;
+ height: 25px;
+ padding-right: 15px;
+ text-decoration: none;
+ font-size:12px;
+  text-transform:none;
+}
 
 a.smallbtn4 span { 
-	background:url(../img/buttons/smallbtn4-l.png) no-repeat; 
 	display: block; 
 	line-height: 23px; 
 	padding: 0px 0 2px 15px; 
@@ -1505,9 +1529,6 @@ a.smallbtn4:hover { background-position: right -25px;color:#fefefe;text-shadow:n
 	background-position:0 0;
 }
 
-a.bigbtn4 { background:url(../img/buttons/bigbtn4-r.png) no-repeat top right; display: block; float: left; height: 45px; margin-right: 10px; padding-right: 20px; text-decoration: none; font-size:1.6em;  text-transform:none; }
-
-a.bigbtn4 span { background:url(../img/buttons/bigbtn4-l.png) no-repeat; display: block; line-height: 45px; padding: 0px 0 0 20px; color: #767676; }
 
 a.bigbtn4:hover span { background-position: 0 -45px;color:#fefefe;text-shadow:none;}
 
@@ -1793,7 +1814,6 @@ a.bigbtn4:hover { background-position: right -45px; color:#fefefe;text-shadow:no
 	   the browser does not support multiple backgrounds. */
 
 	background-position:bottom left;
-	background-image:url('../img/buttons/animated/button_bg.png');
 	
 	/* Multiple backgrounds version. The background images
 	   are defined individually in color classes */
@@ -1833,13 +1853,9 @@ a.bigbtn4:hover { background-position: right -45px; color:#fefefe;text-shadow:no
 /* black Button */
 .black.animatedbutton{
 	background-color: #333;	
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png');
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-webkit-gradient(linear, 0% 0%, 0% 100%, from(#666), to(#000));
 }
 .black.animatedbutton:hover{
 	background-color:#000;	
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-moz-linear-gradient(#000, #444);
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-webkit-gradient(linear, 0% 0%, 0% 100%, from(#000), to(#444));
 }
 
 
@@ -1848,97 +1864,65 @@ a.bigbtn4:hover { background-position: right -45px; color:#fefefe;text-shadow:no
 .orange.animatedbutton{
 
 	background-color: #faa51a;	
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png');
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'), -webkit-gradient(linear, 50% 100%, 0, 50% 100%, 100, from(rgba(232,189,45,1)), to(rgba(232,189,45,0))),-webkit-gradient(linear, 0% 0%, 0% 100%, from(#f47a20), to(#f47a20));
 }
 .orange.animatedbutton:hover{
 	background-color:#f47a20;	
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-moz-linear-gradient(#f9a746, #e18f2b);
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-webkit-gradient(linear, 0% 0%, 0% 100%, from(#f9a746), to(#e18f2b));
 }
 
 /* pink Button */
 .pink.animatedbutton{
 	background-color: #f895c2;	
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png');
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-webkit-gradient(linear, 0% 0%, 0% 100%, from(#feb1d3), to(#f171ab));
 }
 .pink.animatedbutton:hover{
 	background-color:#d57ea5;	
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-moz-linear-gradient(#f4aacb, #e86ca4);
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-webkit-gradient(linear, 0% 0%, 0% 100%, from(#f4aacb), to(#e86ca4));
 }
 
 /* red Button */
 .red.animatedbutton{
 	background-color: #d81b21;	
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png');
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-webkit-gradient(linear, 0% 0%, 0% 100%, from(#ed1c24), to(#aa1317));
 }
 .red.animatedbutton:hover{
 	background-color:#d57ea5;	
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-moz-linear-gradient(#c9151b, #a11115);
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-webkit-gradient(linear, 0% 0%, 0% 100%, from(#c9151b), to(#a11115));
 }
 
 /* blue animated button */
 .blue.animatedbutton{
 	background-color: #0095cd;	
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png');
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-webkit-gradient(linear, 0% 0%, 0% 100%, from(#00adee), to(#0078a5));
 }
 .blue.animatedbutton:hover{
 	background-color:#007ead;	
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-moz-linear-gradient(#0095cc, #00678e);
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-webkit-gradient(linear, 0% 0%, 0% 100%, from(#0095cc), to(#00678e));
 }
 
 /* green animated button */
 .green.animatedbutton{
 	background-color: #64991e;	
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png');
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-webkit-gradient(linear, 0% 0%, 0% 100%, from(#7db72f), to(#4e7d0e));
 }
 .green.animatedbutton:hover{
 	background-color:#538018;	
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-moz-linear-gradient(#6b9d28, #436b0c);
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-webkit-gradient(linear, 0% 0%, 0% 100%, from(#6b9d28), to(#436b0c));
 }
 
 /* rosy animated button */
 .rosy.animatedbutton{
 	background-color: #da5867;	
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png');
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-webkit-gradient(linear, 0% 0%, 0% 100%, from(#f16c7c), to(#bf404f));
 }
 .rosy.animatedbutton:hover{
 	background-color:#ba4b58;	
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-moz-linear-gradient(#cf5d6a, #a53845);
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-webkit-gradient(linear, 0% 0%, 0% 100%, from(#cf5d6a), to(#a53845));
 }
 
 /* gray animated button */
 .gray.animatedbutton{
 	background-color: #6e6e6e;	
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png');
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-webkit-gradient(linear, 0% 0%, 0% 100%, from(#888), to(#575757));
 }
 .gray.animatedbutton:hover{
 	background-color:#616161;	
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-moz-linear-gradient(#757575, #4b4b4b);
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-webkit-gradient(linear, 0% 0%, 0% 100%, from(#757575), to(#4b4b4b));
 }
 
 /* white animated button */
 .white.animatedbutton{
 	background-color: #fff;	
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png');
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-webkit-gradient(linear, 0% 0%, 0% 100%, from(#fff), to(#ededed));
 }
 .white.animatedbutton:hover{
 	background-color:#ededed;	
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-moz-linear-gradient(#fff, #dcdcdc);
-	background-image:url('../img/buttons/animated/button_bg.png'), url('../img/buttons/animated/button_bg.png'),-webkit-gradient(linear, 0% 0%, 0% 100%, from(#fff), to(#dcdcdc));
 }
 /*==================================== GotoTop ====================================*/
 #toTop {
@@ -1952,11 +1936,9 @@ a.bigbtn4:hover { background-position: right -45px; color:#fefefe;text-shadow:no
 	height:34px;
 	border:none;
 	text-indent:-999px;
-	background:url(../img/ui.totop.png) no-repeat left top;
 }
 
 #toTopHover {
-	background:url(../img/ui.totop.png) no-repeat left -35px;
 	width:51px;
 	height:51px;
 	display:block;
@@ -2129,14 +2111,12 @@ code, pre {
 
 p.testimonial_text {
 	font: italic 1.2em/1.6em Georgia, sans-serif;
-	background: url(../img/icons/close-quote.png) no-repeat right bottom;
 	padding-left:46px;
   font-weight:normal;
   text-indent: -46px;
 }
 
 p.testimonial_text:first-letter {
-  background: url(../img/icons/quote.png) no-repeat left top;
   padding-left: 46px;
   font: italic 1.4em Georgia, sans-serif;
 
@@ -2291,7 +2271,6 @@ ul.tabs a.current, ul.tabs a.current:hover, ul.tabs li.current a {
 display: block;
 overflow: hidden;
 position: relative;
-background: url(../img/icons/toggle_plus.png) no-repeat center right;
 }
 
 /* toggle pane */
@@ -2321,9 +2300,6 @@ background: url(../img/icons/toggle_plus.png) no-repeat center right;
 	background: #f1f1f1;
 }
 
-.tstyle1 h5.active span.title_content {
-	background: url(../img/icons/toggle_minus.png) no-repeat center right;
-}
 
 .tstyle1 span.active {
 color: #333;
@@ -2335,12 +2311,6 @@ color: #333;
 
 /*alert message*/
 div.boxes {font-size:12px;margin:2px 0 15px;padding:20px 15px 20px 75px;-moz-border-radius:6px;-webkit-border-radius:6px;border-radius:6px;}
-div.success_box {background:url("../img/icons/message/check.png") no-repeat 15px center #ebfab6;border:1px solid #bbcc5b;color:#599847;}
-div.arrow_box   {background:url("../img/icons/message/arrow.png") no-repeat 15px center #ebfab6;border:1px solid #bbcc5b;color:#599847;}
-div.alert_box   {background:url("../img/icons/message/alert.png") no-repeat 15px center #fbdd96;border:1px solid #e5af51;color:#ca6b1c;}
-div.error_box   {background:url("../img/icons/message/error.png") no-repeat 15px center #fdd2d1;border:1px solid #f6988f;color:#883333;}
-div.notice_box  {background:url("../img/icons/message/notice.png") no-repeat 15px center #f9ebca;border:1px solid #e5b2ac;color:#9f6722;}
-div.question_box    {background:url("../img/icons/message/question.png") no-repeat 15px center #e6ebf0;border:1px solid #89becd;color:#277dce;}
 
 
 
@@ -2413,14 +2383,12 @@ ul.team_contact {
 }
 ul.team_contact .phone {
 	background-attachment: scroll;
-	background-image: url(../img/icons/home.png);
 	background-repeat: no-repeat;
 	background-position: left center;
 	padding-left:24px;
 }
 ul.team_contact .email {
 	background-attachment: scroll;
-	background-image: url(../img/icons/email.png);
 	background-repeat: no-repeat;
 	background-position: left center;
 	padding-left:24px;
@@ -2458,7 +2426,6 @@ ul.tweet_list {
 	list-style:none;
 	background-attachment: scroll;
 	background-color: transparent;
-	background-image: url('../img/icons/twitter.png');
 	background-repeat: no-repeat;
 	background-position: left center;
 }
@@ -2469,7 +2436,6 @@ li.tweet_first, li.tweet_odd, li.tweet_even {
 .loading {
 	margin:0;
 	padding:0;
-	background-image: url('../img/icons/loading.gif');
 	background-attachment: scroll;
 	background-repeat: no-repeat;
 	background-position: 105px center;
@@ -2581,7 +2547,6 @@ input, textarea {
 	display:none;
 }
 #sendmessage {
-	background:url('../img/icons/success_icon.png') no-repeat 20px center #DFF2BF;
 	border:1px solid #4F8A10;
 	color:#4F8A10;
 	display:none;
@@ -2874,7 +2839,7 @@ ul#fade li {
 
 a.openpanel{ 
 	_background-image:none; 
-	background:#f6f6f6 url(../img/theme-option.png) no-repeat center center; 
+	background:#f6f6f6; 
 	padding:5px;
 	border:1px solid #b4b3b3; 
 	color:#fff;
@@ -2917,7 +2882,7 @@ a.openpanel{
 	margin-left:5px;
 }
 
-	
+/*	
 #bg1 { background: url(../img/pattern/1.jpg) }
 #bg2 { background: url(../img/pattern/2.jpg) }
 #bg3 { background: url(../img/pattern/3.jpg) }
@@ -2928,7 +2893,7 @@ a.openpanel{
 #bg8 { background: url(../img/pattern/8.jpg) }
 #bg9 { background: url(../img/pattern/9.jpg) }
 #bg10 { background: url(../img/pattern/10.jpg) }
-
+*/
 #default { background: #0095cd }
 #green { background: #64991e }
 #orange { background: #f78d1d }
