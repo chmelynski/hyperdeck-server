@@ -1,3 +1,6 @@
 /griddl/static/griddl/img
 /griddl/static/10ks
+venv
 *.pyc
+staticfiles
+.env
