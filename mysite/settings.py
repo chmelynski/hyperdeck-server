@@ -20,6 +20,7 @@ else:
 
 ADMINS = (
 	# ('Your Name', 'your_email@example.com'),
+        ("Noah Hall", "noah.t.hall@gmail.com")
 )
 
 MANAGERS = ADMINS
@@ -43,7 +44,7 @@ elif noahDev:
 	DATABASES = {
 		'default' : {
 			'ENGINE' : 'django.db.backends.sqlite3' , 
-			'NAME' : '/var/www/griddl/mysite/db.sqlite3'
+			'NAME' : '/var/www/griddl/db.sqlite3'
 		}
 	}
 
