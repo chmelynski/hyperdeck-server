@@ -7,6 +7,8 @@ import os
 developmentServer = (os.getcwd() != '/app');
 
 noahDev = os.getenv('griddlDev');
+if noahDev:
+    developmentServer = False
 
 if developmentServer:
 	DEBUG = True
