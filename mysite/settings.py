@@ -6,6 +6,8 @@ import os
 #developmentServer = (os.getcwd() == '/cygdrive/c/Users/Adam/Desktop/frce/mysite')
 developmentServer = (os.getcwd() != '/app');
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 noahDev = os.getenv('griddlDev');
 if noahDev:
     developmentServer = False
