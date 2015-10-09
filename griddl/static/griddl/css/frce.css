@@ -16,7 +16,7 @@ span.right-indent {
 	top: 7px;
 	width: 11px;
 	height: 11px;
-	background-image: url('../img/plusminus11.png');
+	background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABYAAAALCAIAAAD0nuopAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAA/SURBVChTY6AO+I8bEKmA2kZgctFE0ABEAfWMgHJgAFkQmQ0HKIIQDgRgctFE0ABEAbWNQANEKqCGERQBBgYAAc26VBhcBeYAAAAASUVORK5CYII=');
 }
 
 .plus {
