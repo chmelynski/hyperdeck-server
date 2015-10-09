@@ -299,8 +299,7 @@ def workbook2(request, userid, path):
 
 def index(request):
 	context = {}
-	#return render(request, 'griddl/index.htm', context)
-	return render(request, 'griddl/narrow-jumbotron.htm', context)
+	return render(request, 'griddl/index.htm', context)
 
 def image(request):
 	context = {}

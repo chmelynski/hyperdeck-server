@@ -1,0 +1,27 @@
+{% extends 'griddl/__base.htm' %}
+{% load static from staticfiles %}
+
+{% block meta-tags %}
+  {{ block.super }}
+{% endblock %}
+
+{% block styles %}
+  {{ block.super }}
+  <link href="{% static 'griddl/css/jumbotron-narrow.css' %}" rel="stylesheet">
+{% endblock %}
+
+
+{% block header %}
+  <ul class="nav nav-pills pull-right">
+    <a class="btn btn-info" href="/login"  role="button">Sign in</a>
+  </ul>
+  <h3 class="text-muted">Griddl</h3>
+{% endblock %}
+
+{% block body %}
+  <div class="jumbotron">
+    <h1>Welcome to Griddl!</h1>
+    <p class="lead">Programmable documents in the browser, inspired by the spreadsheet</p>
+    <p><a class="btn btn-lg btn-success" href="/signup" role="button">Sign up</a></p>
+  </div>
+{% endblock %}
