@@ -1,2 +1,0 @@
-[15/Oct/2015 14:59:25] DEBUG [billing.views:7] <WSGIRequest: GET '/notify/sub_activate'>
-[15/Oct/2015 15:00:18] DEBUG [billing.views:7] <WSGIRequest: GET '/notify/sub_activate?test=heyo'>
