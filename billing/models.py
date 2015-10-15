@@ -1,7 +1,8 @@
 from django.db import models
 
 class Subscription(models.Model):
-        '''Holds current account status & external reference ID from FastSpring
+        '''
+        Holds current account status & external reference ID from FastSpring
         '''
 
         PLAN_SIZES = (
