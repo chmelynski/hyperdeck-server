@@ -178,6 +178,7 @@ INSTALLED_APPS = (
 	# 'django.contrib.admindocs', # enable admin documentation
 	
 	'griddl',
+  'billing'
 #	'south',
 	#'rest_framework'
 )
@@ -208,12 +209,27 @@ LOGGING = {
 			'()': 'django.utils.log.RequireDebugFalse'
 		}
 	},
+  'formatters': {
+    'verbose': {
+      'format' : "[%(asctime)s] %(levelname)s [%(name)s:%(lineno)s] %(message)s",
+      'datefmt' : "%d/%b/%Y %H:%M:%S"
+    },
+    'simple': {
+      'format': '%(levelname)s - %(message)s'
+    },
+  },
 	'handlers': {
 		'mail_admins': {
 			'level': 'ERROR',
 			'filters': ['require_debug_false'],
 			'class': 'django.utils.log.AdminEmailHandler'
-		}
+		},
+    'billing': {
+      'level': 'DEBUG',
+      'class': 'logging.FileHandler',
+      'filename': BASE_DIR + '/billing/billing.log',
+      'formatter': 'verbose'
+    }
 	},
 	'loggers': {
 		'django.request': {
@@ -221,6 +237,18 @@ LOGGING = {
 			'level': 'ERROR',
 			'propagate': True,
 		},
+    'billing': {
+      'handlers': ['billing'],
+      'level': 'DEBUG',
+      'propagate': False,
+    }
 	}
 }
 
+API_CREDENTIALS = {
+        'fastspring': {
+                    'company': 'adamchmelynski',
+                    'login': 'adam.chmelynski+fsapi@gmail.com',
+                    'password':  'CAssIce548L4'
+        }
+}
