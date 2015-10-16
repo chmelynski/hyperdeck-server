@@ -30,6 +30,7 @@ class FastSpringNotificationView(View):
 
     def post(self, request):
         data = json.gets(request.POST)
+        logger.debug(data)
         if not settings.DEBUG:
             if not self.verify_msg(
                                    self.private_key, 
@@ -46,6 +47,16 @@ class FastSpringNotificationView(View):
         return HttpResponse()
                 
 
+class Create(FastSpringNotificationView):
+    '''FastSpring Notifications endpoint -- Subscription Creation'''
+
+    private_key = ''
+
+    def process(self, data):
+        logger.debug("Creation! " + json.dumps(data))
+        return HttpResponse()
+
+
 class Activate(FastSpringNotificationView):
     '''FastSpring Notifications endpoint -- Subscription Activation'''
 
@@ -54,6 +65,7 @@ class Activate(FastSpringNotificationView):
     def process(self, data):
         logger.debug("Activation! " + json.dumps(data))
         return HttpResponse()
+
 
 class Change(FastSpringNotificationView):
     '''FastSpring Notifications endpoint -- Subscription Change'''
