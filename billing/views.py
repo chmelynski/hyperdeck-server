@@ -13,31 +13,38 @@ class FastSpringNotificationView(View):
 
     private_key = '' # all child views should define this value
 
-    def verify(self, key, msg_data, msg_hash):
+    def verify(self, private_key, request):
         '''
         Verify message authenticity using FS's private key scheme
         (done this way bc i'm not sure how to do as decorator)
+        todo: apparently mixins are the trick for class-based views
         '''
 
-        challenge = hashlib.md5(msg_data + key).hexdigest()
+        if not request.META['User-Agent'] == "FS":
+            return false
+
+        msg_data = request.META['X-Security-Data']
+        msg_hash = request.META['X-Security-Hash']
+        challenge = hashlib.md5(msg_data + private_key).hexdigest()
         return (challenge == msg_hash)
 
     def get(self, request):
+        logger.debug(request)
         if not settings.DEBUG:
-            return HttpResponse(405)
+            resp = HttpResponse(405)
+            resp['Allow'] = 'POST'
+            return resp
 
         return self.process(request.GET)
 
     def post(self, request):
+        logger.debug(request)
         data = json.gets(request.POST)
-        logger.debug(data)
         if not settings.DEBUG:
-            if not self.verify_msg(
-                                   self.private_key, 
-                                   data.security_data,
-                                   data.security_hash
-                                ):
-                                    return HttpResponse(403)
+            logger.debug('apparently not debug')
+            if not self.verify_msg(self.private_key, request):
+                logger.warn('bad POST to FS notification endpoint' + request)
+                return HttpResponse(403)
 
         return self.process(data)
 
@@ -50,7 +57,7 @@ class FastSpringNotificationView(View):
 class Create(FastSpringNotificationView):
     '''FastSpring Notifications endpoint -- Subscription Creation'''
 
-    private_key = ''
+    private_key = 'c0620c2ae55d510aa18f4db913db0bcf'
 
     def process(self, data):
         logger.debug("Creation! " + json.dumps(data))

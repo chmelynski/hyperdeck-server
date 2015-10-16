@@ -229,30 +229,30 @@ LOGGING = {
 			'filters': ['require_debug_false'],
 			'class': 'django.utils.log.AdminEmailHandler'
 		},
-                'file': {
-                    'level': 'DEBUG',
-                    'class': 'logging.FileHandler',
-                    'filename': BASE_DIR + '/app.log',
-                    'formatter': 'verbose'
-                },
-                'stdout': {
-                    'level': 'DEBUG',
-                    'class': 'logging.StreamHandler',
-                    'formatter': 'verbose',
+    'file': {
+        'level': 'DEBUG',
+        'class': 'logging.FileHandler',
+        'filename': BASE_DIR + '/app.log',
+        'formatter': 'verbose'
+    },
+    'stdout': {
+        'level': 'DEBUG',
+        'class': 'logging.StreamHandler',
+        'formatter': 'verbose',
 
-                }
-	},
-	'loggers': {
-		'django.request': {
-			'handlers': ['mail_admins'],
-			'level': 'ERROR',
-			'propagate': True,
-		},
-                'billing': {
-                    'handlers': [default_handler],
-                    'level': 'DEBUG',
-                    'propagate': False,
-                }
+    }
+  },
+  'loggers': {
+    'django.request': {
+      'handlers': ['mail_admins'],
+      'level': 'ERROR',
+      'propagate': True,
+    },
+    'billing': {
+        'handlers': [default_handler],
+        'level': 'DEBUG',
+        'propagate': False,
+    }
 	}
 }
 
