@@ -3,7 +3,9 @@ import json
 import logging
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.utils.decorators import method_decorator
 from django.views.generic import View
+from django.views.decorators.csrf import csrf_exempt
 from mysite import settings
 
 logger = logging.getLogger(__name__)
@@ -12,6 +14,12 @@ class FastSpringNotificationView(View):
     '''base view class for FS notification views.'''
 
     private_key = '' # all child views should define this value
+
+    # this block allows notifications to bypass CSRF protection
+    @method_decorator(csrf_exempt)
+    def dispatch(self, *args, **kwargs):
+        return super(FastSpringNotificationView, self).dispatch(*args, **kwargs)
+
 
     def verify(self, private_key, request):
         '''
@@ -27,6 +35,7 @@ class FastSpringNotificationView(View):
         msg_hash = request.META['X-Security-Hash']
         challenge = hashlib.md5(msg_data + private_key).hexdigest()
         return (challenge == msg_hash)
+        
 
     def get(self, request):
         logger.debug(request)
@@ -37,17 +46,16 @@ class FastSpringNotificationView(View):
 
         return self.process(request.GET)
 
-    @method_decorator(csrf_exempt)
+
     def post(self, request):
         logger.debug(request)
-        data = json.gets(request.POST)
         if not settings.DEBUG:
             logger.debug('apparently not debug')
             if not self.verify_msg(self.private_key, request):
                 logger.warn('bad POST to FS notification endpoint' + request)
                 return HttpResponse(403)
 
-        return self.process(data)
+        return self.process(json.loads(request.body))
 
 
     def process(self, data):
