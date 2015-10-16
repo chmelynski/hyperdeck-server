@@ -37,6 +37,7 @@ class FastSpringNotificationView(View):
 
         return self.process(request.GET)
 
+    @method_decorator(csrf_exempt)
     def post(self, request):
         logger.debug(request)
         data = json.gets(request.POST)
