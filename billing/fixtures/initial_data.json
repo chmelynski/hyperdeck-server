@@ -1,0 +1,30 @@
+[
+    {
+        "model": "billing.plan",
+        "pk": 1,
+        "fields": {
+            "name": 0
+        }
+    },
+    {
+        "model": "billing.plan",
+        "pk": 2,
+        "fields": {
+            "name": 1
+        }
+    },
+    {
+        "model": "billing.plan",
+        "pk": 3,
+        "fields": {
+            "name": 2
+        }
+    },
+    {
+        "model": "billing.plan",
+        "pk": 4,
+        "fields": {
+            "name": 3
+        }
+    }
+]
