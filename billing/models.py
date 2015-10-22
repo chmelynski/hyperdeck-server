@@ -13,7 +13,7 @@ class Plan(models.Model):
     NB: table contents managed by billing/fixtures/initial_data.json
     '''
 
-    FREE, SMALL, MEDIUM, LARGE = range(0, 3)
+    FREE, SMALL, MEDIUM, LARGE = range(4)
 
     NAMES = (
         (FREE, 'Free'),
@@ -32,7 +32,7 @@ class Plan(models.Model):
         (LARGE, 250)
     )
 
-    name = models.IntegerField(choices=NAMES, default=FREE)
+    name = models.IntegerField(choices=NAMES, default=FREE, unique=True)
 
     def _get_size(self):
         return self.SIZES[self.name]
