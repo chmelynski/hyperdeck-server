@@ -1,8 +1,23 @@
+{% extends 'griddl/__base.htm' %}
+{% load static from staticfiles %}
+{% load crispy_forms_tags %}
 
-<p><span style="color:red;">{{ errorMessage }}</span></p>
+{% block header %}
+    <div class="row">
+        <div class="col-md-10 col-md-offset-2">
+           <h1>Sign up</h1> 
+        </div>
+    </div>
+{% endblock %}
 
-<form action="/join" method="post">
-{% csrf_token %}
-{{ form.as_p }}
-<input type="submit" value="Submit" />
-</form>
+{% block body %}
+    {% if errorMessage %}
+        <div class="row">
+            <div class="col-md-12">
+                <p><span style="color:red;">{{ errorMessage }}</span></p>
+            </div>
+        </div>
+    {% endif %}
+
+    {% crispy form %}
+{% endblock %}
