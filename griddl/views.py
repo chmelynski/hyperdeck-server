@@ -6,6 +6,7 @@ from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
 from django.http import HttpResponseNotFound
 from django.shortcuts import render
+from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 
@@ -37,6 +38,12 @@ class SignupForm(forms.Form):
     email = forms.EmailField(max_length=254, label="Email Address")
 
 
+def signup(request):
+    form = SignupForm()
+    context = {'form': form}
+    return render(request, 'griddl/signup.htm', context)
+
+
 def saveasForm(request):
     context = {"workbook": request.GET['workbook']}
     return render(request, 'griddl/saveasForm.htm', context)
@@ -46,19 +53,9 @@ def newcsrftoken(request):
     return render(request, 'griddl/newcsrftoken.htm', {"userid": request.user})
 
 
-def signup(request):
-    form = SignupForm()
-    context = {'form': form}
-    return render(request, 'griddl/signup.htm', context)
-
-
 def ajaxlogin(request):
     username = request.POST['username']
     password = request.POST['password']
-    # existingUser = User.objects.filter(username=username)
-    # but we don't want to give away whether a given username is in use
-    # if existingUser.count == 0:
-    #    return HttpResponseNotFound('Username does not exist')
     user = authenticate(username=username, password=password)
     if user is None:
         return HttpResponseNotFound('Username and password do not match')
@@ -93,6 +90,8 @@ def register(request):
         user = authenticate(username=username, password=password)
         login(request, user)
         # change to return profileRedirect(request)
+        messages.success(request,
+                         "Congratulations, your account has been created!")
         return HttpResponseRedirect("/" + str(user.pk))
 
 
@@ -116,6 +115,8 @@ def ajaxregister(request):
 
         user = authenticate(username=username, password=password)
         login(request, user)
+        messages.success(request,
+                         "Congratulations, your account has been created!")
 
         # must replace csrftokens with a new one
         return HttpResponseRedirect("/newcsrftoken")

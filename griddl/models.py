@@ -29,12 +29,53 @@ class Workbook(models.Model):
         return self.owner.username + '/' + self.path + sep + self.name
 
 
+class Plan(models.Model):
+    '''
+    Details about each plan available
+    Unfortunately, tied pretty heavily to FastSpring settings.
+
+    NB: table contents managed by griddl/fixtures/initial_data.json
+    '''
+
+    FREE, SMALL, MEDIUM, LARGE = range(4)
+
+    NAMES = (
+        (FREE, 'Free'),
+        (SMALL, 'Small'),
+        (MEDIUM, 'Medium'),
+        (LARGE, 'Large')
+    )
+
+    # in MB
+    # note: changes here *require* changes in FastSpring settings,
+    #       and vice versa.
+    SIZES = (
+        (FREE, 1),
+        (SMALL, 5),
+        (MEDIUM, 25),
+        (LARGE, 250)
+    )
+
+    name = models.IntegerField(choices=NAMES, default=FREE, unique=True)
+
+    def _get_size(self):
+        return self.SIZES[self.name]
+
+    def _set_size(self):
+        self.size = self.SIZES[self.name]
+
+    size = property(_get_size, _set_size)
+
+    def __unicode__(self):
+        return "%s Plan (%dMB)".format(self.get_name_display(), self.size)
+
+
 class MyUser(models.Model):
     user = models.ForeignKey(User)
-    plan = models.ForeignKey('billing.Plan')
-    subscription = models.ForeignKey('billing.Subscription', default=None)
-    appsUsed = models.IntegerField()
-    appsAllowed = models.IntegerField()
+    plan = models.ForeignKey(Plan, default=Plan.FREE)
+    subscription = models.ForeignKey('billing.Subscription', null=True)
+    appsUsed = models.IntegerField(null=True)
+    appsAllowed = models.IntegerField(null=True)
 
     def _get_plan_size(self):
         return self.plan.size
