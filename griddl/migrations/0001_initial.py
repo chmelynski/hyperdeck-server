@@ -1,118 +1,50 @@
 # -*- coding: utf-8 -*-
-from south.utils import datetime_utils as datetime
-from south.db import db
-from south.v2 import SchemaMigration
-from django.db import models
+from __future__ import unicode_literals
+
+from django.db import models, migrations
+from django.conf import settings
 
 
-class Migration(SchemaMigration):
+class Migration(migrations.Migration):
 
-    def forwards(self, orm):
-        # Adding model 'Workbook'
-        db.create_table(u'griddl_workbook', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('owner', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'])),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=200)),
-            ('type', self.gf('django.db.models.fields.CharField')(max_length=255)),
-            ('text', self.gf('django.db.models.fields.TextField')(blank=True)),
-            ('public', self.gf('django.db.models.fields.BooleanField')()),
-        ))
-        db.send_create_signal(u'griddl', ['Workbook'])
+    dependencies = [
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        ('billing', '0002_auto_20151023_1604'),
+    ]
 
-        # Adding model 'MyUser'
-        db.create_table(u'griddl_myuser', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'])),
-            ('plan', self.gf('django.db.models.fields.CharField')(max_length=20)),
-            ('appsUsed', self.gf('django.db.models.fields.IntegerField')()),
-            ('appsAllowed', self.gf('django.db.models.fields.IntegerField')()),
-            ('stripeCustomerToken', self.gf('django.db.models.fields.CharField')(max_length=50, blank=True)),
-        ))
-        db.send_create_signal(u'griddl', ['MyUser'])
-
-        # Adding model 'DefaultWorkbook'
-        db.create_table(u'griddl_defaultworkbook', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=255)),
-            ('type', self.gf('django.db.models.fields.CharField')(max_length=255)),
-            ('text', self.gf('django.db.models.fields.TextField')(blank=True)),
-        ))
-        db.send_create_signal(u'griddl', ['DefaultWorkbook'])
-
-
-    def backwards(self, orm):
-        # Deleting model 'Workbook'
-        db.delete_table(u'griddl_workbook')
-
-        # Deleting model 'MyUser'
-        db.delete_table(u'griddl_myuser')
-
-        # Deleting model 'DefaultWorkbook'
-        db.delete_table(u'griddl_defaultworkbook')
-
-
-    models = {
-        u'auth.group': {
-            'Meta': {'object_name': 'Group'},
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '80'}),
-            'permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'})
-        },
-        u'auth.permission': {
-            'Meta': {'ordering': "(u'content_type__app_label', u'content_type__model', u'codename')", 'unique_together': "((u'content_type', u'codename'),)", 'object_name': 'Permission'},
-            'codename': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['contenttypes.ContentType']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '50'})
-        },
-        u'auth.user': {
-            'Meta': {'object_name': 'User'},
-            'date_joined': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'email': ('django.db.models.fields.EmailField', [], {'max_length': '75', 'blank': 'True'}),
-            'first_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
-            'groups': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "u'user_set'", 'blank': 'True', 'to': u"orm['auth.Group']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
-            'is_staff': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'is_superuser': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'last_login': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'last_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
-            'password': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
-            'user_permissions': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "u'user_set'", 'blank': 'True', 'to': u"orm['auth.Permission']"}),
-            'username': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '30'})
-        },
-        u'contenttypes.contenttype': {
-            'Meta': {'ordering': "('name',)", 'unique_together': "(('app_label', 'model'),)", 'object_name': 'ContentType', 'db_table': "'django_content_type'"},
-            'app_label': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
-        },
-        u'griddl.defaultworkbook': {
-            'Meta': {'object_name': 'DefaultWorkbook'},
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '255'}),
-            'text': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'type': ('django.db.models.fields.CharField', [], {'max_length': '255'})
-        },
-        u'griddl.myuser': {
-            'Meta': {'object_name': 'MyUser'},
-            'appsAllowed': ('django.db.models.fields.IntegerField', [], {}),
-            'appsUsed': ('django.db.models.fields.IntegerField', [], {}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'plan': ('django.db.models.fields.CharField', [], {'max_length': '20'}),
-            'stripeCustomerToken': ('django.db.models.fields.CharField', [], {'max_length': '50', 'blank': 'True'}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']"})
-        },
-        u'griddl.workbook': {
-            'Meta': {'object_name': 'Workbook'},
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '200'}),
-            'owner': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']"}),
-            'public': ('django.db.models.fields.BooleanField', [], {}),
-            'text': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
-            'type': ('django.db.models.fields.CharField', [], {'max_length': '255'})
-        }
-    }
-
-    complete_apps = ['griddl']
+    operations = [
+        migrations.CreateModel(
+            name='DefaultWorkbook',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(max_length=255)),
+                ('type', models.CharField(max_length=255)),
+                ('text', models.TextField(blank=True)),
+            ],
+        ),
+        migrations.CreateModel(
+            name='MyUser',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('appsUsed', models.IntegerField()),
+                ('appsAllowed', models.IntegerField()),
+                ('plan', models.ForeignKey(to='billing.Plan')),
+                ('subscription', models.ForeignKey(default=None, to='billing.Subscription')),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+            ],
+        ),
+        migrations.CreateModel(
+            name='Workbook',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('name', models.CharField(max_length=200)),
+                ('type', models.CharField(max_length=255)),
+                ('text', models.TextField(blank=True)),
+                ('public', models.BooleanField()),
+                ('filetype', models.CharField(blank=True, max_length=1, choices=[(b'F', b'File'), (b'D', b'Dir'), (b'L', b'Link')])),
+                ('path', models.CharField(max_length=2000, blank=True)),
+                ('owner', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+                ('parent', models.ForeignKey(blank=True, to='griddl.Workbook', null=True)),
+            ],
+        ),
+    ]
