@@ -130,12 +130,12 @@ def profile(request, userid):
 
 
 def profileRedirect(request):
-    return HttpResponseRedirect("/d/" + str(request.user.pk) + "/")
+    return HttpResponseRedirect("/d/" + str(request.user.account.pk) + "/")
 
 
 def directory(request, userid, path):
     if request.user.is_authenticated():
-        wbs = Workbook.objects.filter(owner=request.user.pk, path=path) \
+        wbs = Workbook.objects.filter(owner=request.user.account.pk, path=path) \
             .order_by('filetype', 'name')
         dwbs = DefaultWorkbook.objects.filter()
         context = {
@@ -151,8 +151,8 @@ def directory(request, userid, path):
 
 def editProfile(request):
     if request.user.is_authenticated():
-        appsUsed = Workbook.objects.filter(owner=request.user.pk).count()
-        myUser = Account.objects.filter(user=request.user.pk)[0]
+        appsUsed = Workbook.objects.filter(owner=request.user.account.pk).count()
+        myUser = Account.objects.filter(user=request.user.account.pk)[0]
         context = {
             'plan': myUser.plan,
             'appsUsed': appsUsed,
@@ -235,7 +235,7 @@ def saveas(request):
         wb.public = False
         wb.path = oldwb.path
         wb.save()
-        return HttpResponse('/f/' + str(request.user.pk) + '/' + wb.path +
+        return HttpResponse('/f/' + str(request.user.account.pk) + '/' + wb.path +
                             '/' + wb.name)
     else:
         return HttpResponse('Log in to save workbook')
@@ -256,7 +256,7 @@ def create(request):
         wb.filetype = 'F'
         wb.path = request.POST['path']
         wb.save()
-        return HttpResponseRedirect("/d/" + str(request.user.pk) +
+        return HttpResponseRedirect("/d/" + str(request.user.account.pk) +
                                     "/" + request.POST['path'])
     else:
         return HttpResponse('Log in to create workbook')
@@ -274,7 +274,7 @@ def createDir(request):
         wb.filetype = 'D'
         wb.path = request.POST['path']
         wb.save()
-        return HttpResponseRedirect("/d/" + str(request.user.pk) +
+        return HttpResponseRedirect("/d/" + str(request.user.account.pk) +
                                     "/" + request.POST['path'])
     else:
         return HttpResponse('Log in to create directory')
@@ -286,7 +286,7 @@ def rename(request):
         return HttpResponse('Access denied')
     wb.name = request.POST['newname']
     wb.save()
-    return HttpResponseRedirect("/d/" + str(request.user.pk) +
+    return HttpResponseRedirect("/d/" + str(request.user.account.pk) +
                                 "/" + request.POST['path'])
 
 
@@ -295,7 +295,7 @@ def delete(request):
     if wb.owner != request.user:
         return HttpResponse('Access denied')
     wb.delete()
-    return HttpResponseRedirect("/d/" + str(request.user.pk) +
+    return HttpResponseRedirect("/d/" + str(request.user.account.pk) +
                                 "/" + request.POST['path'])
 
 
@@ -305,7 +305,7 @@ def move(request):
         return HttpResponse('Access denied')
     wb.path = request.POST['newpath']
     wb.save()
-    return HttpResponseRedirect("/d/" + str(request.user.pk) +
+    return HttpResponseRedirect("/d/" + str(request.user.account.pk) +
                                 "/" + request.POST['path'])
 
 
