@@ -26,5 +26,15 @@
         "fields": {
             "name": 3
         }
+    },
+    {
+        "model": "billing.defaultworkbook",
+        "pk": 1,
+        "fields": {
+            "name": "bubble-chart",
+            "type": "bubble-chart",
+            "text": "Edit this to get started!"
+        }
     }
+
 ]

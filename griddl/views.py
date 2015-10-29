@@ -2,7 +2,6 @@ import os
 from os.path import join
 
 from django import forms
-from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
 from django.http import HttpResponseNotFound
 from django.shortcuts import render
@@ -13,7 +12,7 @@ from django.contrib.auth.models import User
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 
-from griddl.models import Workbook, MyUser, DefaultWorkbook
+from griddl.models import Workbook, Account, DefaultWorkbook
 
 
 def logoutView(request):
@@ -82,10 +81,7 @@ def register(request):
                           'form': form
                       })
     else:
-        with transaction.atomic():
-            user = User.objects.create_user(username, email, password)
-            myuser = MyUser(user=user)
-            myuser.save()
+        user = User.objects.create_user(username, email, password)
 
         user = authenticate(username=username, password=password)
         login(request, user)
@@ -108,10 +104,7 @@ def ajaxregister(request):
         return HttpResponseNotFound(
             'Already a user with this username - please pick a new one')
     else:
-        with transaction.atomic():
-            user = User.objects.create_user(username, email, password)
-            myuser = MyUser(user=user)
-            myuser.save()
+        user = User.objects.create_user(username, email, password)
 
         user = authenticate(username=username, password=password)
         login(request, user)
@@ -126,9 +119,11 @@ def profile(request, userid):
     # todo: a weird bug: if you go to a profile url that is not yours,
     # it will just show your profile page, but with the wrong url
     if request.user.is_authenticated():
-        wbs = Workbook.objects.filter(owner=request.user.pk)
+        print("Account PK = %d" % request.user.account.pk)
+        wbs = Workbook.objects.filter(owner=request.user.account.pk)
+        print(wbs)
         dwbs = DefaultWorkbook.objects.filter()
-        context = {"workbook": wbs, "defaultWorkbooks": dwbs}
+        context = {"workbooks": wbs, "defaultWorkbooks": dwbs}
         return render(request, 'griddl/profile.htm', context)
     else:
         return HttpResponse("Access denied")
@@ -157,7 +152,7 @@ def directory(request, userid, path):
 def editProfile(request):
     if request.user.is_authenticated():
         appsUsed = Workbook.objects.filter(owner=request.user.pk).count()
-        myUser = MyUser.objects.filter(user=request.user.pk)[0]
+        myUser = Account.objects.filter(user=request.user.pk)[0]
         context = {
             'plan': myUser.plan,
             'appsUsed': appsUsed,
@@ -314,32 +309,14 @@ def move(request):
                                 "/" + request.POST['path'])
 
 
-def workbook(request, userid, bookid):
+def workbook(request, userid, path, filename):
     try:
-        # this should just be a pk, not an (owner,name) pair
-        wb = Workbook.objects.filter(owner=userid, name=bookid)[0]
+        user = User.objects.get(pk=userid)
+        wb = Workbook.objects.filter(owner=user.account.pk,
+                                     path=path, name=filename)[0]
     except:
-        return HttpResponse('Not found')
-    context = {"workbook": wb}
-    if wb.public:
-        return render(request, 'griddl/' + wb.type + '.htm', context)
-    else:
-        if request.user.is_authenticated():
-            if request.user == wb.owner:
-                return render(request, 'griddl/' + wb.type + '.htm', context)
-            else:
-                return HttpResponse('Access denied')
-        else:
-            return HttpResponse('Access denied')
-
-
-def workbook2(request, userid, path):
-    try:
-        name = path.split('/')[-1]
-        dirs = path[:-len(name) - 1]
-        wb = Workbook.objects.filter(owner=userid, path=dirs, name=name)[0]
-    except:
-        return HttpResponse('Not found')
+        print("path: %s" % path)
+        return HttpResponse('Not found')  # todo :D
     context = {
         "workbook": wb,
         "parentdir": path[:-(len(path.split('/')[-1])+1)],
@@ -350,7 +327,7 @@ def workbook2(request, userid, path):
         return render(request, 'griddl/' + wb.type + '.htm', context)
     else:
         if request.user.is_authenticated():
-            if request.user == wb.owner:
+            if request.user.account == wb.owner:
                 return render(request, 'griddl/' + wb.type + '.htm', context)
             else:
                 return HttpResponse('Access denied')

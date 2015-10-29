@@ -30,7 +30,8 @@ MANAGERS = ADMINS
 
 # ENGINE : 'postgresql_psycopg2' , 'mysql' , 'sqlite3' , 'oracle'
 # NAME : dbname for postgres, path to sqlite file for sqlite
-# HOST : Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP
+# HOST : Empty for localhost through domain sockets
+#        or '127.0.0.1' for localhost through TCP
 # PORT : Set to empty string for default
 
 

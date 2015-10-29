@@ -1,5 +1,6 @@
-from django.db import models
+import logging
 
+from django.db import models
 from django.contrib.auth.models import User
 
 FILE_TYPES = (
@@ -8,15 +9,18 @@ FILE_TYPES = (
     ('L', 'Link')
 )
 
+logger = logging.getLogger(__name__)
+
 
 class Workbook(models.Model):
-    owner = models.ForeignKey(User)
+    owner = models.ForeignKey("Account")
     name = models.CharField(max_length=200)
     type = models.CharField(max_length=255)  # to pick a template .htm file
     text = models.TextField(blank=True)
     public = models.BooleanField()
     parent = models.ForeignKey('self', null=True, blank=True)
-    filetype = models.CharField(max_length=1, blank=True, choices=FILE_TYPES)
+    filetype = models.CharField(max_length=1, choices=FILE_TYPES,
+                                default='F')
 
     # path to containing directory
     path = models.CharField(max_length=2000, blank=True)
@@ -26,7 +30,14 @@ class Workbook(models.Model):
             sep = '/'
         else:
             sep = ''
-        return self.owner.username + '/' + self.path + sep + self.name
+        return self.owner.user.username + '/' + self.path + sep + self.name
+
+    def save(self, *args, **kwargs):
+        '''
+        override save to check size and send to billing if needed
+        '''
+
+        super(Workbook, self).save(*args, **kwargs)
 
 
 class Plan(models.Model):
@@ -46,14 +57,14 @@ class Plan(models.Model):
         (LARGE, 'Large')
     )
 
-    # in MB
+    # in KB
     # note: changes here *require* changes in FastSpring settings,
     #       and vice versa.
     SIZES = (
-        (FREE, 1),
-        (SMALL, 5),
-        (MEDIUM, 25),
-        (LARGE, 250)
+        (FREE, 512),
+        (SMALL, 1024),
+        (MEDIUM, 4096),
+        (LARGE, 10240)
     )
 
     name = models.IntegerField(choices=NAMES, default=FREE, unique=True)
@@ -70,12 +81,13 @@ class Plan(models.Model):
         return "%s Plan (%dMB)".format(self.get_name_display(), self.size)
 
 
-class MyUser(models.Model):
-    user = models.ForeignKey(User)
+class Account(models.Model):
+    '''
+    extend User model with Account info
+    '''
+    user = models.OneToOneField(User)
     plan = models.ForeignKey(Plan, default=Plan.FREE)
     subscription = models.ForeignKey('billing.Subscription', null=True)
-    appsUsed = models.IntegerField(null=True)
-    appsAllowed = models.IntegerField(null=True)
 
     def _get_plan_size(self):
         return self.plan.size
@@ -85,24 +97,11 @@ class MyUser(models.Model):
     def __unicode__(self):
         return self.user.username
 
-    def create(self, *args, **kwargs):
-        '''
-        override create to add my-first-workbook & free plan
-        todo: don't add WB if registered via views.saveas()
-        todo: would this make more sense overriding self.save()?
-        '''
-        wb = Workbook()
-        wb.owner = self.user
-        wb.name = 'my-first-workbook'
-        default = DefaultWorkbook.objects.filter(name='bubble-chart')[0]
-        wb.type = default.type
-        wb.text = default.text
-        wb.public = False
-        wb.save()
-        super(MyUser, self).create(*args, **kwargs)
-
 
 class DefaultWorkbook(models.Model):
+    '''
+    Define base/standard workbooks; data in fixtures/initial_data.
+    '''
     # this is not the same as Workbook.name
     # - it is a handle that corresponds to options in a select box
     name = models.CharField(max_length=255)
