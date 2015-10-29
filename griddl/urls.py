@@ -19,8 +19,7 @@ urlpatterns = patterns(
     url(r'^register$', views.register),
     url(r'^ajaxregister$', views.ajaxregister),
 
-    # url(r'^f/(?P<userid>[0-9]+)/(?P<bookid>[A-Za-z0-9-]+)$', views.workbook, name='workbook'),
-    url(r'^f/(?P<userid>[0-9]+)/(?P<path>[A-Za-z0-9-/ ]*)$', views.workbook2),
+    url(r'^f/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ %]*)/(?P<filename>[A-Za-z0-9-/ %]*)$', views.workbook),
     url(r'^d/(?P<userid>[0-9]+)/(?P<path>[A-Za-z0-9-/]*)$', views.directory),
 
     url(r'^accounts/profile/$', views.profileRedirect),
