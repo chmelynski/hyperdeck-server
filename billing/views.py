@@ -2,7 +2,6 @@ import hashlib
 import json
 import logging
 from django.http import HttpResponse
-from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.views.generic import View
 from django.views.decorators.csrf import csrf_exempt
@@ -10,16 +9,17 @@ from mysite import settings
 
 logger = logging.getLogger(__name__)
 
+
 class FastSpringNotificationView(View):
     '''base view class for FS notification views.'''
 
-    private_key = '' # all child views should define this value
+    private_key = ''  # all child views should define this value
 
     # this block allows notifications to bypass CSRF protection
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
-        return super(FastSpringNotificationView, self).dispatch(*args, **kwargs)
-
+        return super(FastSpringNotificationView, self) \
+            .dispatch(*args, **kwargs)
 
     def verify(self, private_key, request):
         '''
@@ -29,13 +29,12 @@ class FastSpringNotificationView(View):
         '''
 
         if not request.META['User-Agent'] == "FS":
-            return false
+            return False
 
         msg_data = request.META['X-Security-Data']
         msg_hash = request.META['X-Security-Hash']
         challenge = hashlib.md5(msg_data + private_key).hexdigest()
         return (challenge == msg_hash)
-        
 
     def get(self, request):
         logger.debug(request)
@@ -45,7 +44,6 @@ class FastSpringNotificationView(View):
             return resp
 
         return self.process(request.GET)
-
 
     def post(self, request):
         logger.debug(request)
@@ -57,11 +55,10 @@ class FastSpringNotificationView(View):
 
         return self.process(json.loads(request.body))
 
-
     def process(self, data):
         logger.debug(data)
         return HttpResponse()
-                
+
 
 class Create(FastSpringNotificationView):
     '''FastSpring Notifications endpoint -- Subscription Creation'''
@@ -97,7 +94,7 @@ class Deactivate(FastSpringNotificationView):
     '''FastSpring Notifications endpoint -- Subscription Deactivation'''
 
     private_key = '693bfb0a4dab24da21334cd6dbac6bb2'
-    
+
     def process(self, data):
         logger.debug("Deactivation! " + json.dumps(data))
         return HttpResponse()
@@ -105,10 +102,9 @@ class Deactivate(FastSpringNotificationView):
 
 class PayFail(FastSpringNotificationView):
     '''FastSpring Notifications endpoint -- Subscription Payment Failure'''
-    
+
     private_key = '228287fcc1faa140bf4b820e700b3ec2'
-    
+
     def process(self, data):
         logger.debug("Payment failure! " + json.dumps(data))
         return HttpResponse()
-
