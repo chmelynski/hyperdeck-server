@@ -5,11 +5,6 @@ from griddl import views
 urlpatterns = patterns(
     '',
     url(r'^$', views.index, name='index'),
-    url(r'^filereport$', views.filereport, name='filereport'),     # ex: /filereport
-    url(r'^drawing$', views.drawing, name='drawing'),              # ex: /drawing?text=foo.txt&table=bar.tsv
-    url(r'^music$', views.music, name='music'),                    # ex: /music?song=gymnopedie
-    url(r'^scrubber$', views.scrubber, name='scrubber'),           # ex: /scrubber?type=rawjson&json=foo.json
-    url(r'^image$', views.image, name='image'),                    # ex: /image
 
     url(r'^ajaxlogin$', views.ajaxlogin),
     url(r'^logout$', views.logoutView),
