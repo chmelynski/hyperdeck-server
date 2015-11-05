@@ -9,7 +9,7 @@ default_workbooks = [
         "fields": {
             "name": "bubble-chart",
             "type": "bubble-chart",
-            "text": "Edit this to get started!"
+            "text": "@txt example visible\nEdit this to get started!\n@end"
         }
     }
 ]
