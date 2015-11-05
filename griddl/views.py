@@ -7,6 +7,7 @@ from django.http import HttpResponseNotFound
 from django.shortcuts import render
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 
 from crispy_forms.helper import FormHelper
@@ -39,7 +40,7 @@ class SignupForm(forms.Form):
 
 def signup(request):
     form = SignupForm()
-    context = {'form': form}
+    context = {'form': form, 'next': request.GET.get('next', '')}
     return render(request, 'griddl/signup.htm', context)
 
 
@@ -115,52 +116,53 @@ def ajaxregister(request):
         return HttpResponseRedirect("/newcsrftoken")
 
 
+@login_required
 def profile(request, userid):
-    # todo: a weird bug: if you go to a profile url that is not yours,
-    # it will just show your profile page, but with the wrong url
-    if request.user.is_authenticated():
-        print("Account PK = %d" % request.user.account.pk)
-        wbs = Workbook.objects.filter(owner=request.user.account.pk)
-        print(wbs)
-        dwbs = DefaultWorkbook.objects.filter()
-        context = {"workbooks": wbs, "defaultWorkbooks": dwbs}
-        return render(request, 'griddl/profile.htm', context)
-    else:
-        return HttpResponse("Access denied")
+    '''
+    todo: this is different from user's topmost directory, right?
+          -- maybe not currently, but probably should be
+    '''
+    if request.user.account.pk != int(userid):
+        return HttpResponseRedirect("/d/" + str(request.user.account.pk) + "/")
+
+    print("Account PK = %d" % request.user.account.pk)
+    wbs = Workbook.objects.filter(owner=request.user.account.pk)
+    print(wbs)
+    dwbs = DefaultWorkbook.objects.filter()
+    context = {"workbooks": wbs, "defaultWorkbooks": dwbs}
+    return render(request, 'griddl/profile.htm', context)
 
 
+@login_required
 def profileRedirect(request):
     return HttpResponseRedirect("/d/" + str(request.user.account.pk) + "/")
 
 
+@login_required
 def directory(request, userid, path):
-    if request.user.is_authenticated():
-        wbs = Workbook.objects.filter(owner=request.user.account.pk, path=path) \
-            .order_by('filetype', 'name')
-        dwbs = DefaultWorkbook.objects.filter()
-        context = {
-            "workbooks": wbs,
-            "defaultWorkbooks": dwbs,
-            "parentdir": path[:-(len(path.split('/')[-1])+1)],
-            "path": path
-            }
-        return render(request, 'griddl/profile.htm', context)
-    else:
-        return HttpResponse("Access denied")
+    if request.user.account.pk != int(userid):
+        print("user: %s and userid: %s" % (request.user.account.pk, userid))
+        return HttpResponseRedirect("/d/" + str(request.user.account.pk) + "/")
+
+    wbs = Workbook.objects.filter(owner=request.user.account.pk, path=path) \
+        .order_by('filetype', 'name')
+    dwbs = DefaultWorkbook.objects.filter()
+    context = {
+        "workbooks": wbs,
+        "defaultWorkbooks": dwbs,
+        "parentdir": path[:-(len(path.split('/')[-1])+1)],
+        "path": path
+        }
+    return render(request, 'griddl/profile.htm', context)
 
 
-def editProfile(request):
-    if request.user.is_authenticated():
-        appsUsed = Workbook.objects.filter(owner=request.user.account.pk).count()
-        myUser = Account.objects.filter(user=request.user.account.pk)[0]
-        context = {
-            'plan': myUser.plan,
-            'appsUsed': appsUsed,
-            'appsAllowed': myUser.appsAllowed
-            }
-        return render(request, 'griddl/editProfile.htm', context)
-    else:
-        return HttpResponse("Log in to edit profile")
+@login_required
+def editProfile(request, userid):
+    user = Account.objects.get(user=request.user.account.pk)
+    context = {
+        'plan': user.plan,
+        }
+    return render(request, 'griddl/editProfile.htm', context)
 
 
 def oldsave(request, bookid):
@@ -182,16 +184,14 @@ def oldsave(request, bookid):
     return HttpResponse('saved')
 
 
+@login_required
 def togglepublic(request):
-    if request.user.is_authenticated():
-        wb = Workbook.objects.filter(pk=request.GET['pk'])[0]
-        if wb.owner != request.user:
-            return HttpResponse('Access denied')
-        wb.public = not wb.public
-        wb.save()
-        return HttpResponse('toggled')
-    else:
-        return HttpResponse('Log in to save workbook')
+    wb = Workbook.objects.get(pk=request.GET['pk'])
+    if wb.owner != request.user.account:
+        return HttpResponse('Access denied')
+    wb.public = not wb.public
+    wb.save()
+    return HttpResponse('toggled')
 
 
 def save(request):
@@ -218,6 +218,7 @@ def save(request):
         return HttpResponse('Log in to save workbook')
 
 
+@login_required
 def saveas(request):
     # prompt for a name (with a popup or something)
     # save as that new name
@@ -235,8 +236,8 @@ def saveas(request):
         wb.public = False
         wb.path = oldwb.path
         wb.save()
-        return HttpResponse('/f/' + str(request.user.account.pk) + '/' + wb.path +
-                            '/' + wb.name)
+        return HttpResponse('/f/' + str(request.user.account.pk) + '/' +
+                            wb.path + '/' + wb.name)
     else:
         return HttpResponse('Log in to save workbook')
 
@@ -311,18 +312,23 @@ def move(request):
 
 def workbook(request, userid, path, filename):
     try:
-        user = User.objects.get(pk=userid)
-        wb = Workbook.objects.filter(owner=user.account.pk,
+        user = User.objects.get(account=userid)
+        wb = Workbook.objects.filter(owner=user.account,
                                      path=path, name=filename)[0]
+        print(wb)
+        print(user.account)
+        print("path: %s" % path)
     except:
         print("path: %s" % path)
         return HttpResponse('Not found')  # todo :D
+
     context = {
         "workbook": wb,
         "parentdir": path[:-(len(path.split('/')[-1])+1)],
         "path": path,
         "userid": userid
         }
+
     if wb.public:
         return render(request, 'griddl/' + wb.type + '.htm', context)
     else:

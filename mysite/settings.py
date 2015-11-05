@@ -272,3 +272,5 @@ API_CREDENTIALS = {
         'password':  'CAssIce548L4'
     }
 }
+
+LOGIN_URL = '/login'
