@@ -45,12 +45,10 @@
                     <button id="saveMenuButton" style="color:black;" onclick="$('#saveForm').submit()">Save</button>
                     <button id="saveasMenuButton" style="color:black;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button>
                 {% else %}
-                    <button id="saveMenuButton" disabled style="color:gray;" onclick="$('#saveForm').submit()">Save</button>
                     <button id="saveasMenuButton" style="color:black;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button>
                 {% endif %}
             {% else %}
-                <button id="saveMenuButton" disabled style="color:gray;" onclick="$('#saveForm').submit()">Save</button>
-                <button id="saveasMenuButton" disabled style="color:gray;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button> <!-- or onclick="Griddl.UI.ShowLoginModal()" if you want to redirect -->
+                <button id="saveasMenuButton" style="color:gray;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button> <!-- or onclick="Griddl.UI.ShowLoginModal()" if you want to redirect -->
             {% endif %}
             
             {% block menuitems %}{% endblock %}

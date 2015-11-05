@@ -20,26 +20,6 @@
     {{ block.super }}
     
     <script type="text/javascript">
-
-    (function($) {
-        $(document).ready(function() {
-            Main();
-
-            function Main() {
-                $('.workbook').on('click', function(e) {
-                    $('.selected').removeClass('selected');
-                    $(this).addClass('selected');
-                    $('.workbookActionButton').attr('disabled',false);
-                    $('.workbookActionButton').css('color','black');
-                    e.stopPropagation();
-                });
-                
-                $('body').on('click', function(e) {
-                    $('.selected').removeClass('selected');
-                    $('.workbookActionButton').attr('disabled',true);
-                    $('.workbookActionButton').css('color','rgb(200,200,200)');
-                });
-            }
             function NewWorkbook() {
                 $('#newWorkbookScreen').css('display', 'block');
                 $('#newWorkbookModal').css('display', 'block');
@@ -92,18 +72,37 @@
                 $('#moveModal').css('display', 'none');
             }
             function TogglePublic(pk) {
+                
                 $.ajax({
                     type: 'GET',
                     url: '/togglepublic',
                     data: { pk : pk },
                     success: function (data) {
-                        
                     },
                     error: function(data) {
-                        
                     }
                 });
             }
+            function Main() {
+                $('.workbook').on('click', function(e) {
+                    $('.selected').removeClass('selected');
+                    $(this).addClass('selected');
+                    $('.workbookActionButton').attr('disabled',false);
+                    $('.workbookActionButton').css('color','black');
+                    e.stopPropagation();
+                });
+                
+                $('body').on('click', function(e) {
+                    $('.selected').removeClass('selected');
+                    $('.workbookActionButton').attr('disabled',true);
+                    $('.workbookActionButton').css('color','rgb(200,200,200)');
+                });
+            }
+
+
+    (function($) {
+        $(document).ready(function() {
+            Main();
 
         });
     })(jQuery);
