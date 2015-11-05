@@ -346,6 +346,8 @@ def index(request):
     return render(request, 'griddl/index.htm', context)
 
 
+# as far as i know, everything below this point can go.  these were experiments that were either unrelated or abandoned
+
 def image(request):
     context = {}
     return render(request, 'griddl/image.htm', context)
