@@ -1,1 +1,0 @@
-./manage.py dumpdata griddl.Workbook --indent 2 > workbookdump.txt
