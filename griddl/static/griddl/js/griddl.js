@@ -2431,7 +2431,8 @@ function SaveAjax() {
 			url: saveasForm.attr('action'),
 			data: saveasForm.serialize(),
 			success: function (redirectUrl) {
-				document.location.replace(redirectUrl);
+                cl('hey wow ok');
+				document.location.href = redirectUrl;
 				//$("#SOME-DIV").html(data);
 			},
 			error: function(data) {

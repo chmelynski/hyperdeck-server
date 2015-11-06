@@ -1,6 +1,3 @@
-import os
-from os.path import join
-
 from django import forms
 from django.http import HttpResponse, HttpResponseRedirect
 from django.http import HttpResponseNotFound
@@ -218,15 +215,14 @@ def save(request):
         return HttpResponse('Log in to save workbook')
 
 
-@login_required
 def saveas(request):
     # prompt for a name (with a popup or something)
     # save as that new name
     # similar login/signup prompts necessary if no user
 
-    # but this check should take place before the form is presented
+    oldwb = Workbook.objects.get(pk=request.POST['id'])
+
     if request.user.is_authenticated():
-        oldwb = Workbook.objects.filter(pk=request.POST['id'])[0]
         wb = Workbook()
         wb.owner = request.user.account
         wb.name = request.POST['newname']
@@ -236,10 +232,23 @@ def saveas(request):
         wb.public = False
         wb.path = oldwb.path
         wb.save()
-        return HttpResponse('/f/' + str(request.user.account.pk) + '/' +
-                            wb.path + '/' + wb.name)
+        urlparts = ['f', str(request.user.account.pk), wb.name]
+        if wb.path:
+            urlparts.insert(2, wb.path)
+        urlpath = '/'.join(urlparts)
+        return HttpResponse(urlpath)
     else:
-        return HttpResponse('Log in to save workbook')
+        request.session['saveas'] = {
+            'wb': oldwb.pk,
+            'name': request.POST['newname']
+            }
+        messages.add_message(
+            request,
+            messages.INFO,
+            'Please create an account to save your copy of the workbook "%s"' %
+            oldwb.name
+            )
+        return HttpResponse('/signup')
 
 
 def create(request):
@@ -263,24 +272,23 @@ def create(request):
         return HttpResponse('Log in to create workbook')
 
 
+@login_required
 def createDir(request):
-    if request.user.is_authenticated():
-        wb = Workbook()
-        wb.owner = request.user
-        wb.name = request.POST['name']
-        wb.type = 'directory'
-        wb.text = ''
-        wb.public = False
-        wb.parent = None  # need to figure this one out
-        wb.filetype = 'D'
-        wb.path = request.POST['path']
-        wb.save()
-        return HttpResponseRedirect("/d/" + str(request.user.account.pk) +
-                                    "/" + request.POST['path'])
-    else:
-        return HttpResponse('Log in to create directory')
+    wb = Workbook()
+    wb.owner = request.user
+    wb.name = request.POST['name']
+    wb.type = 'directory'
+    wb.text = ''
+    wb.public = False
+    wb.parent = None  # need to figure this one out
+    wb.filetype = 'D'
+    wb.path = request.POST['path']
+    wb.save()
+    return HttpResponseRedirect("/d/" + str(request.user.account.pk) +
+                                "/" + request.POST['path'])
 
 
+@login_required
 def rename(request):
     wb = Workbook.objects.filter(pk=request.POST['id'])[0]
     if wb.owner != request.user:
@@ -291,6 +299,7 @@ def rename(request):
                                 "/" + request.POST['path'])
 
 
+@login_required
 def delete(request):
     wb = Workbook.objects.filter(pk=request.POST['id'])[0]
     if wb.owner != request.user:
@@ -300,6 +309,7 @@ def delete(request):
                                 "/" + request.POST['path'])
 
 
+@login_required
 def move(request):
     wb = Workbook.objects.filter(pk=request.POST['id'])[0]
     if wb.owner != request.user:
@@ -344,70 +354,3 @@ def workbook(request, userid, path, filename):
 def index(request):
     context = {}
     return render(request, 'griddl/index.htm', context)
-
-
-# as far as i know, everything below this point can go.  these were experiments that were either unrelated or abandoned
-
-def image(request):
-    context = {}
-    return render(request, 'griddl/image.htm', context)
-
-
-def path(request, username):
-    # request.path = '/griddl/chmelynski/path/to/workbook'
-    # query the database for the requested resource and its permissions
-    # check permissions against the requesting user
-    # if a folder (username is just the name of the root folder), folder view
-    # if a workbook, assemble the workbook (this may involve a template)
-    # if an asset, just deliver the asset (this doesn't involve a template)
-
-    # todo: this needs to be a setting, something like BASEDIR
-    prefix = 'c:\\Users\\Adam\\Desktop\\DAZ Assets\\'
-
-    filelist = []
-
-    for root, dirs, files in os.walk(prefix):
-        for file in files:
-            filelist.append(join(root, file))
-
-    context = {'filelist': filelist}  # 'path' : thepath
-    return render(request, 'griddl/filereport.htm', context)
-
-
-def drawing(request):
-    context = {}
-    context['text'] = '/static/griddl/drawingdata/' + request.GET['text']
-    context['table'] = '/static/griddl/drawingdata/' + request.GET['table']
-    return render(request, 'griddl/drawing.htm', context)
-
-
-def music(request):
-    context = {}
-    context['song'] = '/static/griddl/musicdata/' + request.GET['song']
-    return render(request, 'griddl/music.htm', context)
-
-
-def scrubber(request):
-    context = {}
-    context['type'] = request.GET['type']
-    context['json'] = '/static/griddl/scrubberdata/' + request.GET['json']
-    return render(request, 'griddl/scrubber.htm', context)
-
-
-def filereport(request):
-    # prefix = 'C:\\Users\\Adam\\Desktop\\DAZ Assets'
-    # prefix = 'C:\\Program Files\\DAZ 3D\\DAZStudio4'
-    # prefix = 'C:\\Users\\Public\\Documents\\My DAZ 3D Library'
-    # prefix = 'C:\\Users\\Adam\\Documents\\DAZ 3D'
-    # prefix = 'C:\\Users\\Adam\\Downloads\\DAZ'
-    # prefix = 'C:\\Users\\Adam\\AppData\\Roaming\\DAZ 3D'
-    # prefix = 'C:\\Users\\Adam\\Desktop\\django'
-    # prefix = 'C:\\Users\\Adam\\Downloads\\python-2.6.6'
-    # prefix = 'C:\\cygwin'
-    prefix = request.GET['dir']
-    filelist = []
-    for root, dirs, files in os.walk(prefix):
-        for file in files:
-            filelist.append(root + '\\' + file)
-    context = {'filelist': filelist}
-    return render(request, 'griddl/filereport.htm', context)
