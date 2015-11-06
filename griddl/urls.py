@@ -42,5 +42,5 @@ urlpatterns += patterns(
     url(r'^password_reset_done$', 'password_reset_done'),
     url(r'^password_reset_confirm$', 'password_reset_confirm'),
     url(r'^password_reset_complete$', 'password_reset_complete'),
-    url(r'^login$', 'login')
+    url(r'^login$', 'login', {'template_name': 'griddl/login.htm'})
 )

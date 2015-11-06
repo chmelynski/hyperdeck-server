@@ -1,6 +1,15 @@
+{% extends 'griddl/__base.htm' %}
+{% load static from staticfiles %}
+{% load bootstrap3 %}
 
-<form action="/griddl/auth" method="post">
-{% csrf_token %}
-{{ form.as_p }}
-<input type="submit" value="Submit" />
-</form>
+{% block title %}Log In | {{ block.super }} {% endblock %}
+
+{% block body %}
+    <form class='form' method="post">
+        {% csrf_token %}
+        {% bootstrap_form form %}
+        {% buttons %}
+            <input class='btn btn-primary' type="submit" value="Submit" />
+        {% endbuttons %}
+    </form>
+{% endblock %}
