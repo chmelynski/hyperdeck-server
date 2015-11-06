@@ -209,7 +209,7 @@ def save(request):
     #     - we save every revision whole
     if request.user.is_authenticated():
         wb = Workbook.objects.filter(pk=request.POST['id'])[0]
-        if wb.owner != request.user:
+        if wb.owner != request.user.account:
             return HttpResponse('Access denied')
         wb.text = request.POST['text']
         wb.save()
@@ -228,7 +228,7 @@ def saveas(request):
     if request.user.is_authenticated():
         oldwb = Workbook.objects.filter(pk=request.POST['id'])[0]
         wb = Workbook()
-        wb.owner = request.user
+        wb.owner = request.user.account
         wb.name = request.POST['newname']
         wb.type = oldwb.type
         wb.filetype = 'F'
