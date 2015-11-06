@@ -25,6 +25,9 @@
     <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.handsontable.full.js' %}"></script>
     <script type='text/javascript' src="{% static 'griddl/js/lib/jquery-ui.min.js' %}"></script>
     <script type='text/javascript' src="{% static 'griddl/js/griddl.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/lib/typeset.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/graphviz.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/layout.js' %}"></script>
     <script type='text/javascript'>
         owner = {{ workbook.owner.pk }};
         $(document).ready(Griddl.Main);
@@ -41,7 +44,7 @@
             <a style="text-decoration:none; color:rgb(70,150,230); margin-right:1em; {% if user.is_authenticated %}{% if user == workbook.owner %}{% else %}display:none; {% endif %}{% else %}display:none; {% endif %}" href="/d/{{ user.pk }}{{ parentdir|yesno:'/,,' }}{{ parentdir }}">Parent dir</a>
             
             {% if user.is_authenticated %}
-                {% if user == workbook.owner %}
+                {% if user.account == workbook.owner %}
                     <button id="saveMenuButton" style="color:black;" onclick="$('#saveForm').submit()">Save</button>
                     <button id="saveasMenuButton" style="color:black;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button>
                 {% else %}
@@ -73,6 +76,7 @@
     <!-- use? {% autoescape off %}{% endautoescape %} -->
     <div id="frce" style="display:none;">{{ workbook.text }}</div>
 
+    <div id='cells'></div>
 
     <form id="saveForm" action="/save" method="POST" style="display:none;">
         {% csrf_token %}
