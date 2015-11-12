@@ -45,12 +45,15 @@ class Plan(models.Model):
     Details about each plan available
     Unfortunately, tied pretty heavily to FastSpring settings.
 
-    NB: table contents managed by griddl/fixtures/initial_data.json
+    Maybe we need to re-rethink this?
+
+    NB: table contents managed by a custom migration
     '''
 
-    FREE, SMALL, MEDIUM, LARGE = range(4)
+    FREE, SMALL, MEDIUM, LARGE = range(1, 5)
 
     NAMES = (
+        (0, 'Placeholder'),
         (FREE, 'Free'),
         (SMALL, 'Small'),
         (MEDIUM, 'Medium'),
@@ -61,6 +64,7 @@ class Plan(models.Model):
     # note: changes here *require* changes in FastSpring settings,
     #       and vice versa.
     SIZES = (
+        (0, 0),  # placeholder (i know, and i'm sorry)
         (FREE, 512),
         (SMALL, 1024),
         (MEDIUM, 4096),
@@ -70,15 +74,15 @@ class Plan(models.Model):
     name = models.IntegerField(choices=NAMES, default=FREE, unique=True)
 
     def _get_size(self):
-        return self.SIZES[self.name]
+        return self.SIZES[self.name][1]
 
     def _set_size(self):
-        self.size = self.SIZES[self.name]
+        self.size = self.SIZES[self.name][1]
 
     size = property(_get_size, _set_size)
 
     def __unicode__(self):
-        return "%s Plan (%dMB)".format(self.get_name_display(), self.size)
+        return "%s Plan (%d kB)" % (self.get_name_display(), self.size)
 
 
 class Account(models.Model):

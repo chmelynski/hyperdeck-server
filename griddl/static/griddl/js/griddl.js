@@ -2,6 +2,16 @@
 //var Typeset = require('C:\\cygwin64\\home\\adam\\frce\\mysite\\griddl\\static\\griddl\\js\\lib\\typeset.js'); Typeset = Typeset.Typeset;
 //var GriddlFonts = require('C:\\cygwin64\\home\\adam\\frce\\mysite\\griddl\\static\\griddl\\js\\fonts.js'); GriddlFonts = GriddlFonts.fonts;
 
+/* console shim*/
+(function () {
+    var f = function () {};
+    if (!window.console) {
+        window.console = {
+            log:f, info:f, warn:f, debug:f, error:f
+        };
+    }
+}());
+
 var Griddl = (function() {
 
 var Griddl = {};
@@ -2431,7 +2441,7 @@ function SaveAjax() {
 			url: saveasForm.attr('action'),
 			data: saveasForm.serialize(),
 			success: function (redirectUrl) {
-                cl('hey wow ok');
+                console.log('hey wow ok: ', redirectUrl);
 				document.location.href = redirectUrl;
 				//$("#SOME-DIV").html(data);
 			},

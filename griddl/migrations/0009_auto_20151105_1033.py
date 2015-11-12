@@ -17,7 +17,7 @@ default_workbooks = [
 
 def insert_initial_data(apps, schema_editor):
     #  plans are really simple atm
-    for i in range(4):
+    for i in range(1, 5):
         Plan.objects.create(name=i)
 
     # default workbooks a little less simple

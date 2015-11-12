@@ -1,4 +1,5 @@
 from django import forms
+from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
 from django.http import HttpResponseNotFound
 from django.shortcuts import render
@@ -10,7 +11,8 @@ from django.contrib.auth.models import User
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 
-from griddl.models import Workbook, Account, DefaultWorkbook
+from .models import Workbook, Account, DefaultWorkbook
+from .signals import WorkbookSizeException
 
 
 def logoutView(request):
@@ -122,9 +124,20 @@ def profile(request, userid):
     if request.user.account.pk != int(userid):
         return HttpResponseRedirect("/d/" + str(request.user.account.pk) + "/")
 
-    print("Account PK = %d" % request.user.account.pk)
     wbs = Workbook.objects.filter(owner=request.user.account.pk)
-    print(wbs)
+    if saveas in request.session:  # hack for saveas for new account
+        with transaction.atomic():
+            wbs.filter(name='My First Workbook').delete()
+            data = request.session['saveas']
+            clone = Workbook.objects.get(pk=data['wb'])
+            clone.owner = request.user.account
+            clone.name = data['name']
+            clone.text = data['text']
+            clone.public = False
+            clone.pk = None
+            clone.save()
+            del(request.session['saveas'])
+
     dwbs = DefaultWorkbook.objects.filter()
     context = {"workbooks": wbs, "defaultWorkbooks": dwbs}
     return render(request, 'griddl/profile.htm', context)
@@ -138,7 +151,6 @@ def profileRedirect(request):
 @login_required
 def directory(request, userid, path):
     if request.user.account.pk != int(userid):
-        print("user: %s and userid: %s" % (request.user.account.pk, userid))
         return HttpResponseRedirect("/d/" + str(request.user.account.pk) + "/")
 
     wbs = Workbook.objects.filter(owner=request.user.account.pk, path=path) \
@@ -160,25 +172,6 @@ def editProfile(request, userid):
         'plan': user.plan,
         }
     return render(request, 'griddl/editProfile.htm', context)
-
-
-def oldsave(request, bookid):
-    # if user is looking at a workbook belonging to another user:
-    #   if user is logged in:
-    #     redirect to create_new_workbook, prompt for a name
-    #   else:
-    #     prompt for login or signup
-    # else: # if user is looking at his own workbook
-    #   if workbook is read-only:
-    #     redirect to save_workbook_as
-    #   else:
-    #     save (note: until we have some sort of version control,
-    #       this involves creating a new database row -
-    #       we save every revision whole
-    wb = Workbook.objects.filter(name=bookid)[0]
-    wb.text = request.GET['text']
-    wb.save()
-    return HttpResponse('saved')
 
 
 @login_required
@@ -209,8 +202,12 @@ def save(request):
         if wb.owner != request.user.account:
             return HttpResponse('Access denied')
         wb.text = request.POST['text']
-        wb.save()
-        return HttpResponse('saved')
+        try:
+            wb.save()
+            return HttpResponse('saved')
+        except WorkbookSizeException as e:
+            message = "pay us this much: %s" % e.plan_size
+            return HttpResponse(message)
     else:
         return HttpResponse('Log in to save workbook')
 
@@ -220,44 +217,48 @@ def saveas(request):
     # save as that new name
     # similar login/signup prompts necessary if no user
 
-    oldwb = Workbook.objects.get(pk=request.POST['id'])
+    wb = Workbook.objects.get(pk=request.POST['id'])
 
     if request.user.is_authenticated():
-        wb = Workbook()
         wb.owner = request.user.account
         wb.name = request.POST['newname']
-        wb.type = oldwb.type
-        wb.filetype = 'F'
         wb.text = request.POST['text']
-        wb.public = False
-        wb.path = oldwb.path
-        wb.save()
-        urlparts = ['f', str(request.user.account.pk), wb.name]
+        wb.public = False  # for now, don't copy public status
+        wb.pk = None
+        try:
+            wb.save()
+            return HttpResponse('saved')
+        except:
+            return HttpResponse('nope')
+        urlparts = ['/f', str(request.user.account.pk), wb.name]
         if wb.path:
             urlparts.insert(2, wb.path)
         urlpath = '/'.join(urlparts)
         return HttpResponse(urlpath)
     else:
         request.session['saveas'] = {
-            'wb': oldwb.pk,
-            'name': request.POST['newname']
+            'wb': wb.pk,
+            'name': request.POST['newname'],
+            'text': request.POST['text']
             }
-        messages.add_message(
+        messages.info(
             request,
-            messages.INFO,
             'Please create an account to save your copy of the workbook "%s"' %
-            oldwb.name
+            wb.name
             )
         return HttpResponse('/signup')
 
 
 def create(request):
+    '''
+    lawd we gotta refactor this at some point. not at all DRY
+    '''
     if request.user.is_authenticated():
         # todo: var name should be changed to something other than 'type';
         #  - it is just a DefaultWorkbook handle
         dwb = DefaultWorkbook.objects.filter(name=request.POST['type'])[0]
         wb = Workbook()
-        wb.owner = request.user
+        wb.owner = request.user.account
         wb.name = request.POST['name']
         wb.type = dwb.type
         wb.text = dwb.text
@@ -325,11 +326,7 @@ def workbook(request, userid, path, filename):
         user = User.objects.get(account=userid)
         wb = Workbook.objects.filter(owner=user.account,
                                      path=path, name=filename)[0]
-        print(wb)
-        print(user.account)
-        print("path: %s" % path)
     except:
-        print("path: %s" % path)
         return HttpResponse('Not found')  # todo :D
 
     context = {
