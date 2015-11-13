@@ -37,8 +37,13 @@ def check_size(sender, instance, **kwargs):
     Future warning: much more complicated in python3 -- see:
     http://stackoverflow.com/questions/4013230/how-many-bytes-does-a-string-have
     '''
-    size = len(instance.text)
+
     acct = instance.owner
+
+    # don't even bother if they're on the big plan already, yeah?
+    if acct.plan == (len(Plan.SIZES) - 1):
+        pass
+    size = len(instance.text)
     print "size: %d" % size
     print "plan size: %d" % (acct.plan_size * 1024)
     if size > (acct.plan_size * 1024):

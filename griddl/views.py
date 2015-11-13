@@ -1,6 +1,6 @@
 from django import forms
 from django.db import transaction
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.http import HttpResponseNotFound
 from django.shortcuts import render
 from django.contrib import messages
@@ -200,16 +200,17 @@ def save(request):
     if request.user.is_authenticated():
         wb = Workbook.objects.filter(pk=request.POST['id'])[0]
         if wb.owner != request.user.account:
-            return HttpResponse('Access denied')
+            return JsonResponse({'success': False, 'message': 'Access denied'})
         wb.text = request.POST['text']
         try:
             wb.save()
-            return HttpResponse('saved')
-        except WorkbookSizeException as e:
-            message = "pay us this much: %s" % e.plan_size
-            return HttpResponse(message)
+            return JsonResponse({'success': True, 'message': 'saved'})
+        except WorkbookSizeException:
+            return JsonResponse({'success': False,
+                                 'redirect': '/subscriptions'
+                                 })
     else:
-        return HttpResponse('Log in to save workbook')
+        return JsonResponse({'success': False, 'message': 'Access denied'})
 
 
 def saveas(request):
@@ -227,14 +228,15 @@ def saveas(request):
         wb.pk = None
         try:
             wb.save()
-            return HttpResponse('saved')
         except:
-            return HttpResponse('nope')
+            # todo: actually save wb just in case, or whatever.
+            return JsonResponse({'redirect': '/subscriptions?billing=true'})
+
         urlparts = ['/f', str(request.user.account.pk), wb.name]
         if wb.path:
             urlparts.insert(2, wb.path)
         urlpath = '/'.join(urlparts)
-        return HttpResponse(urlpath)
+        return JsonResponse({'redirect': urlpath})
     else:
         request.session['saveas'] = {
             'wb': wb.pk,
@@ -246,7 +248,7 @@ def saveas(request):
             'Please create an account to save your copy of the workbook "%s"' %
             wb.name
             )
-        return HttpResponse('/signup')
+        return JsonResponse({'redirect': '/signup'})
 
 
 def create(request):
@@ -346,6 +348,23 @@ def workbook(request, userid, path, filename):
                 return HttpResponse('Access denied')
         else:
             return HttpResponse('Access denied')
+
+
+def subscriptions(request):
+    '''
+    either show subscription options, or explain that sub (or upgrade)
+        is necessary due to size limits, w/ link to the upgrade.
+    '''
+    if 'billing' in request.GET:
+        msg = '''
+            The workbook you attempted to save is too big for your current
+            plan. All your edits will be saved, but remain inaccessible until
+            you have upgraded to a larger subscription.
+            '''
+        messages.warn(request, msg)
+
+    context = {'upgrades': request.user.account.upgrade_options()}
+    return render(request, 'griddl/subscribe.htm', context)
 
 
 def index(request):

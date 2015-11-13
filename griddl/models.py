@@ -76,10 +76,21 @@ class Plan(models.Model):
     def _get_size(self):
         return self.SIZES[self.name][1]
 
-    def _set_size(self):
-        self.size = self.SIZES[self.name][1]
+    size = property(_get_size)
 
-    size = property(_get_size, _set_size)
+    def _get_link(self):
+        name = self.NAMES[self.name][1].lower()
+        return "https://sites.fastspring.com/adamchmelynski/instant/" + name
+
+    store_link = property(_get_link)
+
+    def details(self):
+        details = {
+            'name': self.get_name_display(),
+            'size': '%d kB' % self.size,
+            'link': self.store_link
+        }
+        return details
 
     def __unicode__(self):
         return "%s Plan (%d kB)" % (self.get_name_display(), self.size)
@@ -97,6 +108,25 @@ class Account(models.Model):
         return self.plan.size
 
     plan_size = property(_get_plan_size)
+
+    def _get_upgrade_link(self):
+        upgrade = Plan.objects.get(pk=self.plan + 1)
+        return upgrade.store_link + "?referrer=%d" % self.pk
+
+    upgrade_link = property(_get_upgrade_link)
+
+    def upgrade_options(self):
+        plans = Plan.objects.all()
+        upgrades = []
+        for plan in plans:
+            details = plan.details()
+            details['link'] = details['link'] + "?referrer=%d" % self.pk
+            if plan < self.plan:
+                details['disabled'] = True
+            elif plan == self.plan:
+                details['current_plan'] = True
+            upgrades.append(details)
+        return upgrades
 
     def __unicode__(self):
         return self.user.username

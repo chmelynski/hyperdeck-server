@@ -2421,8 +2421,16 @@ function SaveAjax() {
 			url: saveForm.attr('action'),
 			data: saveForm.serialize(),
 			success: function (data) {
-				$('#saveMenuButton').css('color', 'rgb(0, 0, 0)'); // this must match the 'on' color in MarkDirty()
-				$('#saveasMenuButton').css('color', 'rgb(0, 0, 0)');
+                if (data.success) {
+                    $('#saveMenuButton').css('color', 'rgb(0, 0, 0)'); // this must match the 'on' color in MarkDirty()
+                    $('#saveasMenuButton').css('color', 'rgb(0, 0, 0)');
+                } else {
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    } else {
+                        // should display error message but for now nah
+                    }
+                }
 			},
 			error: function(data) {
 				// by virtue of the button text remaining red, we know that the save did not go through.  but we could also do an alert popup or something
@@ -2441,9 +2449,11 @@ function SaveAjax() {
 			url: saveasForm.attr('action'),
 			data: saveasForm.serialize(),
 			success: function (redirectUrl) {
-                console.log('hey wow ok: ', redirectUrl);
-				document.location.href = redirectUrl;
-				//$("#SOME-DIV").html(data);
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                } else {
+                    // should display error message but for now nah
+                }
 			},
 			error: function(data) {
 				//$("#MESSAGE-DIV").html("Something went wrong!");

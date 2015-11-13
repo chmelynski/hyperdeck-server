@@ -26,6 +26,7 @@ class FastSpringNotificationView(View):
         Verify message authenticity using FS's private key scheme
         (done this way bc i'm not sure how to do as decorator)
         todo: apparently mixins are the trick for class-based views
+        also todo: honestly should raise an exception on fail
         '''
 
         if not request.META['User-Agent'] == "FS":

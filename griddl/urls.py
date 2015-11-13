@@ -21,6 +21,7 @@ urlpatterns = patterns(
     url(r'^editProfile$', views.editProfile),
     url(r'^(?P<userid>[0-9]+)$', views.profile),
     url(r'^(?P<userid>[0-9]+)/profile$', views.editProfile),
+    url(r'^subscriptions', views.subscriptions),
 
     # url(r'^save/(?P<bookid>[A-Za-z0-9-]+)$', views.save),
     url(r'^save$', views.save),

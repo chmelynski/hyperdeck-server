@@ -1,0 +1,30 @@
+{% extends 'griddl/__base.htm' %}
+{% load static from staticfiles %}
+
+{% block title %}Manage Subscription | {{ block.super }}{% endblock %}
+
+{% block body %}
+<div class='row'>
+    <div class='col-sm-8 col-sm-offset-2'>
+        <h1>Subscription Plans</h1>
+        <p>
+            Subscription plans for GridPile are based on the amount of storage you require. When your needs change, so can your plan! All billing is managed by FastSpring.
+        </p>
+        {% for upgrade in upgrades %}
+            <div class='row subscription {% if upgrade.current_plan %}current-plan{% endif %} {% if upgrade.disabled %}disable-upgrade{% endif %}'>
+                <div class='col-sm-4'>
+                    <h3>{{ upgrade.name }}</h3>
+                </div>
+                <div class='col-sm-4'>
+                    <span class='plan-size'>{{ upgrade.size }}</span>
+                </div>
+                <div class='col-sm-4'>
+                    {% if not upgrade.current_plan or upgrade.disabled %}
+                        <a title='Upgrade to a {{ upgrade.name }} plan' class='btn btn-success' href='{{ upgrade.link }}'>Upgrade to {{ upgrade.name }} plan</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
