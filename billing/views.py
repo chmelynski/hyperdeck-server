@@ -10,10 +10,19 @@ from mysite import settings
 logger = logging.getLogger(__name__)
 
 
+def billing_redirect(request):
+    '''
+    track redirects to fastspring to ensure accuracy wrt subscriptions
+    this lets us use a hash rather than just pk or anything
+    lots of other possible benefits, including analytics on abandonment
+    '''
+    pass
+
+
 class FastSpringNotificationView(View):
     '''base view class for FS notification views.'''
 
-    private_key = ''  # all child views should define this value
+    private_key = ''  # all child views must define this value
 
     # this block allows notifications to bypass CSRF protection
     @method_decorator(csrf_exempt)
@@ -68,6 +77,7 @@ class Create(FastSpringNotificationView):
 
     def process(self, data):
         logger.debug("Creation! " + json.dumps(data))
+
         return HttpResponse()
 
 
