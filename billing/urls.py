@@ -1,8 +1,12 @@
-from django.conf.urls import patterns, include, url
+from django.conf.urls import patterns, url
 import views
 
 urlpatterns = patterns('',
-    #fastspring notifications
+    # redirect to fastspring with trackable hash for referrer
+    url(r'^billing/(?P<planid>[0-9]+)/(?P<userid>[0-9]+)$',
+        views.billing_redirect),
+
+    # fastspring notifications
     url(r'^notify/sub_create$', views.Create.as_view()),
     url(r'^notify/sub_activate$', views.Activate.as_view()),
     url(r'^notify/sub_change$', views.Change.as_view()),

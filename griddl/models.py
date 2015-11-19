@@ -78,17 +78,11 @@ class Plan(models.Model):
 
     size = property(_get_size)
 
-    def _get_link(self):
-        name = self.NAMES[self.name][1].lower()
-        return "https://sites.fastspring.com/adamchmelynski/instant/" + name
-
-    store_link = property(_get_link)
-
     def details(self):
         details = {
             'name': self.get_name_display(),
             'size': '%d kB' % self.size,
-            'link': self.store_link
+            'id': self.pk
         }
         return details
 
@@ -110,17 +104,20 @@ class Account(models.Model):
     plan_size = property(_get_plan_size)
 
     def _get_upgrade_link(self):
-        upgrade = Plan.objects.get(pk=self.plan + 1)
-        return upgrade.store_link + "?referrer=%d" % self.pk
+        return "/billing/%d/%d" % (self.plan + 1, self.pk)
 
     upgrade_link = property(_get_upgrade_link)
 
     def upgrade_options(self):
+        '''
+        100% not sure if this is really a good way to build this but here it is
+        (also gosh this maybe should just be a view, huh? idk)
+        '''
         plans = Plan.objects.all()
         upgrades = []
         for plan in plans:
             details = plan.details()
-            details['link'] = details['link'] + "?referrer=%d" % self.pk
+            details['link'] = "/billing/%d/%d" % (plan.id, self.pk)
             if plan < self.plan:
                 details['disabled'] = True
             elif plan == self.plan:

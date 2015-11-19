@@ -1,22 +1,29 @@
 import hashlib
 import json
 import logging
-from django.http import HttpResponse
+from django.db import transaction
+from django.http import HttpResponse, HttpResponseRedirect
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.generic import View
 from django.views.decorators.csrf import csrf_exempt
+
 from mysite import settings
+from .models import BillingRedirect
 
 logger = logging.getLogger(__name__)
 
 
-def billing_redirect(request):
+def billing_redirect(request, planid, userid):
     '''
     track redirects to fastspring to ensure accuracy wrt subscriptions
     this lets us use a hash rather than just pk or anything
     lots of other possible benefits, including analytics on abandonment
     '''
-    pass
+    timestamp = timezone.now()
+    redirect = BillingRedirect.create(accountid=userid, planid=planid,
+                                      created=timestamp)
+    return HttpResponseRedirect(redirect.url)
 
 
 class FastSpringNotificationView(View):
@@ -77,6 +84,12 @@ class Create(FastSpringNotificationView):
 
     def process(self, data):
         logger.debug("Creation! " + json.dumps(data))
+        with transaction.atomic():
+            referrer = BillingRedirect.objects.get(data.referrer)
+            referrer.status = 1
+            referrer.save()
+            referrer.account.plan = referrer.plan
+            referrer.account.save()
 
         return HttpResponse()
 
