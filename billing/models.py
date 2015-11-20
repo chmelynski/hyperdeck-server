@@ -54,6 +54,9 @@ class BillingRedirect(models.Model):
 
     @classmethod
     def create(cls, accountid, planid, created):
+        '''
+        create object, including automatic referrer generation
+        '''
         account = Account.objects.get(pk=accountid)
         plan = Plan.objects.get(pk=planid)
         redirect = cls(account=account, plan=plan, created=created)

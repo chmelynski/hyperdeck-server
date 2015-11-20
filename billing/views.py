@@ -9,7 +9,8 @@ from django.views.generic import View
 from django.views.decorators.csrf import csrf_exempt
 
 from mysite import settings
-from .models import BillingRedirect
+from griddl.models import Plan
+from .models import BillingRedirect, Subscription
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ def billing_redirect(request, planid, userid):
     timestamp = timezone.now()
     redirect = BillingRedirect.create(accountid=userid, planid=planid,
                                       created=timestamp)
+    redirect.save()
     return HttpResponseRedirect(redirect.url)
 
 
@@ -85,10 +87,21 @@ class Create(FastSpringNotificationView):
     def process(self, data):
         logger.debug("Creation! " + json.dumps(data))
         with transaction.atomic():
-            referrer = BillingRedirect.objects.get(data.referrer)
+            referrer = BillingRedirect.objects.get(referrer=data['referrer'])
             referrer.status = 1
             referrer.save()
             referrer.account.plan = referrer.plan
+
+            subscription = Subscription()
+            subscription.reference_id = data['id']
+            subscription.status = 'created'
+            plan = Plan.objects.get(
+                name=getattr(Plan, data['items'][0]['productName'].upper())
+                )
+            subscription.plan = plan
+            subscription.save()
+            referrer.account.subscription = subscription
+
             referrer.account.save()
 
         return HttpResponse()
