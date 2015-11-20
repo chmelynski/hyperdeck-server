@@ -12,7 +12,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 
 from .models import Workbook, Account, DefaultWorkbook
-from .signals import WorkbookSizeException
+from .models import AccountSizeException, MaxWorkbookSizeException
 
 
 def logoutView(request):
@@ -195,8 +195,7 @@ def save(request):
     #     redirect to save_workbook_as
     #   else:
     #     save (note: until we have some sort of version control,
-    #     this involves creating a new database row
-    #     - we save every revision whole
+    #     this involves overwriting the old data.
     if request.user.is_authenticated():
         wb = Workbook.objects.filter(pk=request.POST['id'])[0]
         if wb.owner != request.user.account:
@@ -205,10 +204,13 @@ def save(request):
         try:
             wb.save()
             return JsonResponse({'success': True, 'message': 'saved'})
-        except WorkbookSizeException:
+        except AccountSizeException:
             return JsonResponse({'success': False,
                                  'redirect': '/subscriptions'
                                  })
+        except MaxWorkbookSizeException:
+            msg = "Sorry, your workbook is too large and cannot be saved."
+            return JsonResponse({'success': False, 'message': msg})
     else:
         return JsonResponse({'success': False, 'message': 'Access denied'})
 
