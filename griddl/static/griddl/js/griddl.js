@@ -2428,7 +2428,7 @@ function SaveAjax() {
                     if (data.redirect) {
                         window.location.href = data.redirect;
                     } else {
-                        // should display error message but for now nah
+                        $('.container').prepend($("<div class='alert alert-danger alert-dismissable'>" + data.message + "<button type='button' class='close' data-dismiss='alert' aria-label='Close'><span aria-hidden='true'>&times;</span></button></div>")); // todo: reusable function for this :P
                     }
                 }
 			},

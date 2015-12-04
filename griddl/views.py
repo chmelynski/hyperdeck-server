@@ -206,7 +206,11 @@ def save(request):
             return JsonResponse({'success': True, 'message': 'saved'})
         except AccountSizeException:
             return JsonResponse({'success': False,
-                                 'redirect': '/subscriptions'
+                                 'message': 'This workbook is too large for\
+                                             your current plan. Please\
+                                             <a href="/subscriptions">upgrade\
+                                             to a larger plan</a> or delete\
+                                             some data to save this workbook.'
                                  })
         except MaxWorkbookSizeException:
             msg = "Sorry, your workbook is too large and cannot be saved."

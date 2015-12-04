@@ -1,5 +1,6 @@
 '''
 billing models
+NB: designed around FastSpring
 '''
 
 import hashlib
@@ -31,8 +32,8 @@ class Subscription(models.Model):
     plan = models.ForeignKey('griddl.Plan', to_field='name')
 
     def __unicode__(self):
-        return "Ref#: " + self.reference_id + \
-            " (%s)".format(self.plan.get_name_display())
+        return "Ref#: %s (%s)" % (self.reference_id,
+                                  self.plan.get_name_display())
 
 
 class BillingRedirect(models.Model):

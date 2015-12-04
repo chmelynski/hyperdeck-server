@@ -31,7 +31,8 @@ class Workbook(models.Model):
     parent = models.ForeignKey('self', null=True, blank=True)
     filetype = models.CharField(max_length=1, choices=FILE_TYPES,
                                 default='F')
-    deleted = models.BooleanField(default=False)
+    deleted = models.BooleanField(default=False)  # user-initiated removal
+    locked = models.BooleanField(default=False)  # automated/administrative
 
     # path to containing directory
     path = models.CharField(max_length=2000, blank=True)
@@ -51,84 +52,25 @@ class Workbook(models.Model):
     def save(self, *args, **kwargs):
         '''
         Before saving a workbook, check account size against plan size.
-        Reject saves that go over the limit with a link to upgrade plan
+        If saving would break plan size limit, lock stuff as needed.
+        Unresolved so far: notifications regarding account size stuff.
 
         Future warning: much more complicated in python3 -- see:
         http://stackoverflow.com/questions/4013230/how-many-bytes-does-a-string-have
         '''
 
+        # deal with the hard nopes first
         if len(self.text) >= settings.MAX_WORKBOOK_SIZE:
             raise MaxWorkbookSizeException()
+        if len(self.text) >= self.owner.plan_size * 1024:
+            raise AccountSizeException()
 
-        # don't even bother if they're on the big plan already, yeah?
-        if self.owner.plan == (len(Plan.SIZES) - 1):
-            pass
-
-        # get size of all but current wb, then add new size of current wb
-        wbs = Workbook.objects.filter(owner=self.owner).exclude(pk=self.pk)
-        account_size = sum([wb.size for wb in wbs]) + self.size
-
-        print "account size: %d" % account_size
-        print "plan size: %d" % (self.owner.plan_size * 1024)
-        if account_size > (self.owner.plan_size * 1024):
-            '''
-            save plan-breaking workbook as hidden?
-
-            raise exception, sending to billing
-            '''
-            temp = TempWorkbook(text=self.text)
-            temp.owner = self.owner
-            temp.type = self.type
-            temp.name = self.name
-            temp.parent = self
-            temp.public = self.public  # NB: only saved for restoring.
-            temp.save()
-
-            print 'oversize! send to billing.'
-            raise AccountSizeException()  # this prevents the save
-
+        # save before handling size restrictions other than hard nopes
+        # this means everything below should be careful re: recursion?
         super(Workbook, self).save(*args, **kwargs)
 
-
-class TempWorkbook(models.Model):
-    '''
-    This way, we don't even have to worry about differentiating btwn
-    "real" workbooks and "temp" workbooks... but
-
-    I hope we can figure out a way to DRY this out :/
-    '''
-    owner = models.ForeignKey("Account")
-    name = models.CharField(max_length=200)
-    type = models.CharField(max_length=255)  # to pick a template .htm file
-    text = models.TextField(blank=True)
-    public = models.BooleanField(default=False)
-    parent = models.ForeignKey("Workbook", null=True, blank=True)
-    filetype = models.CharField(max_length=1, choices=FILE_TYPES,
-                                default='F')
-    # path to containing directory
-    path = models.CharField(max_length=2000, blank=True)
-
-    def __unicode__(self):
-        if len(self.path) > 0:
-            sep = '/'
-        else:
-            sep = ''
-        return self.owner.user.username + '/' + self.path + sep + self.name
-
-    def restore(self):
-        '''
-        surface option for user to restore? or..
-        idk, maybe just make it its own thing
-
-        definitely don't auto-overwrite parent workbook -
-        merge conflicts might occur
-        '''
-        restored = Workbook()
-        restored.name = "RESTORED - " + self.name
-        restored.type = self.type
-        restored.parent = self.parent
-        restored.text = self.text
-        restored.save()
+        # surprise! actually now we're doing both signal and override.
+        # pre_save signal for workbooks handles workbook/account size checks.
 
 
 class Plan(models.Model):

@@ -9,7 +9,7 @@ from django.views.generic import View
 from django.views.decorators.csrf import csrf_exempt
 
 from mysite import settings
-from griddl.models import Plan
+from griddl.models import Account, Plan
 from .models import BillingRedirect, Subscription
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ class FastSpringNotificationView(View):
         Verify message authenticity using FS's private key scheme
         (done this way bc i'm not sure how to do as decorator)
         todo: apparently mixins are the trick for class-based views
-        also todo: honestly should raise an exception on fail
+        also todo: prob should raise an exception on fail
         '''
 
         if not request.META['User-Agent'] == "FS":
@@ -134,11 +134,31 @@ class Deactivate(FastSpringNotificationView):
 
     def process(self, data):
         logger.debug("Deactivation! " + json.dumps(data))
+        with transaction.atomic():
+            sub = Subscription.objects.get(reference_id=data.id)
+            if not sub:  # weird, bail
+                return
+            sub.status = 'inactive'
+            sub.status_reason = 'FS Deactivate'
+            sub.save()
+
+            acct = Account.objects.get(subscription=sub)
+            if not acct:  # huh? bail.
+                return
+            acct.plan = Plan.FREE
+            acct.save()  # note - auto-triggers workbook locking
+
         return HttpResponse()
 
 
 class PayFail(FastSpringNotificationView):
-    '''FastSpring Notifications endpoint -- Subscription Payment Failure'''
+    '''
+    FastSpring Notifications endpoint -- Subscription Payment Failure
+
+    FS takes care of dunning so... maybe we set a message?
+    would require that message lib mentioned on Trello since async.
+    todo: check what data is in this notification
+    '''
 
     private_key = '228287fcc1faa140bf4b820e700b3ec2'
 
