@@ -356,23 +356,6 @@ def workbook(request, userid, path, filename):
             return HttpResponse('Access denied')
 
 
-def subscriptions(request):
-    '''
-    either show subscription options, or explain that sub (or upgrade)
-        is necessary due to size limits, w/ link to the upgrade.
-    '''
-    if 'billing' in request.GET:
-        msg = '''
-            The workbook you attempted to save is too big for your current
-            plan. All your edits will be saved, but remain inaccessible until
-            you have upgraded to a larger subscription.
-            '''
-        messages.warn(request, msg)
-
-    context = {'upgrades': request.user.account.upgrade_options()}
-    return render(request, 'griddl/subscribe.htm', context)
-
-
 def index(request):
     context = {}
     return render(request, 'griddl/index.htm', context)

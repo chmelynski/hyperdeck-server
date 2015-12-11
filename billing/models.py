@@ -8,6 +8,10 @@ from django.db import models
 
 from griddl.models import Account, Plan
 
+# maybe should be in settings?
+BASE_URL = "https://sites.fastspring.com/adamchmelynski/instant/"
+API_URL = "https://api.fastspring.com/company/adamchmelynski/"
+
 
 class Subscription(models.Model):
     '''
@@ -67,7 +71,6 @@ class BillingRedirect(models.Model):
 
     def _get_url(self):
         plan_name = Plan.NAMES[self.plan.pk][1].lower()
-        base_url = "https://sites.fastspring.com/adamchmelynski/instant/"
-        return base_url + plan_name + "?referrer=" + self.referrer
+        return BASE_URL + plan_name + "?referrer=" + self.referrer
 
     url = property(_get_url)

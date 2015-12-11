@@ -265,6 +265,7 @@ LOGGING = {
     }
 }
 
+# todo: this password needs to not be in the file...
 API_CREDENTIALS = {
     'fastspring': {
         'company': 'adamchmelynski',

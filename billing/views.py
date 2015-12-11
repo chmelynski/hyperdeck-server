@@ -1,16 +1,21 @@
 import hashlib
 import json
 import logging
+from django.contrib import messages
+from django.contrib.auth.models import User
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
+from django.shortcuts import render
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.generic import View
 from django.views.decorators.csrf import csrf_exempt
 
+import requests
+
 from mysite import settings
 from griddl.models import Account, Plan
-from .models import BillingRedirect, Subscription
+from .models import BillingRedirect, Subscription, API_URL
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +31,81 @@ def billing_redirect(request, planid, userid):
                                       created=timestamp)
     redirect.save()
     return HttpResponseRedirect(redirect.url)
+
+
+def subscription_change(request, planid, userid):
+    '''
+    handle requests to upgrade or downgrade plan from user with existing sub
+    '''
+    acct = Account.objects.get(user=User.objects.get(pk=userid))
+
+    url = API_URL + "subscription/%s" % acct.subscription.reference_id
+
+    request = {}
+    request['productPath'] = "/" + Plan.NAMES[planid][1].lower()
+    request['proration'] = "true"
+
+    # NB when adding req params; prepare_xml super naive
+    payload = prepare_xml(request)
+    fs_user = settings.API_CREDENTIALS['fastspring']['login']
+    fs_pass = settings.API_CREDENTIALS['fastspring']['password']  # todo!!
+    headers = {'content-type': 'application/xml'}
+    res = requests.put(url, data=payload, headers=headers,
+                       auth=requests.HttpBasicAuth(fs_user, fs_pass))
+
+    if res.status_code == 200:
+        # woot woot!
+        if planid > acct.plan.pk:
+            which = "upgraded"
+        else:
+            which = "downgraded"
+
+        acct.plan = Plan.objects.get(pk=planid)
+        acct.save()
+        messages.success(request, "Success! Your account has been %s \
+                         to a %s, and your bill will be adjusted \
+                         accordingly." % (which, acct.plan))
+    else:
+        err = "%d: %s" % (res.status_code, res.text)
+        logger.error("fastspring subscription change error %s" % err)
+
+
+def prepare_xml(d):
+    '''
+    prepare xml object from dict for upgrade/downgrade requests
+
+    NB: SUPER NAIVE BASIC IMPLEMENTATION (if you couldn't already tell)
+    '''
+    xml = "<subscription>"
+    for k, v in d:
+        xml += "<%s>%s</%s>" % (k, v, k)
+
+    xml += "</subscription>"
+    return xml
+
+
+def subscriptions(request):
+    '''
+    either show subscription options, or explain that sub (or upgrade)
+        is necessary due to size limits, w/ link to the upgrade.
+    '''
+    plans = Plan.objects.all()
+    upgrades = []
+    if request.user.account.plan.pk <= 1:
+        endpoint = 'billing'
+    else:
+        endpoint = 'sub_change'
+    for plan in plans:
+        details = plan.details()
+        details['link'] = "/%s/%d/%d" % (endpoint, plan.id,
+                                         request.user.account.pk)
+        if plan.pk < request.user.account.plan.pk:
+            details['disabled'] = True
+        elif plan == request.user.account.plan:
+            details['current_plan'] = True
+        upgrades.append(details)
+    context = {'upgrades': upgrades}
+    return render(request, 'billing/subscribe.htm', context)
 
 
 class FastSpringNotificationView(View):

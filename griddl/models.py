@@ -141,23 +141,6 @@ class Account(models.Model):
 
     upgrade_link = property(_get_upgrade_link)
 
-    def upgrade_options(self):
-        '''
-        100% not sure if this is really a good way to build this but here it is
-        (also gosh this maybe should just be in the view, huh? idk)
-        '''
-        plans = Plan.objects.all()
-        upgrades = []
-        for plan in plans:
-            details = plan.details()
-            details['link'] = "/billing/%d/%d" % (plan.id, self.pk)
-            if plan.pk < self.plan.pk:
-                details['disabled'] = True
-            elif plan == self.plan:
-                details['current_plan'] = True
-            upgrades.append(details)
-        return upgrades
-
     def __unicode__(self):
         return self.user.username
 

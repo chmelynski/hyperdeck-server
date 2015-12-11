@@ -23,16 +23,25 @@ def workbook_locks(account):
 
     if account_size > plan_size:
         '''
-        lock workbooks in descending size order until
-        the unlocked size is under plan limit.
+        lock the smallest workbooks necessary to bring
+        the unlocked size under plan limit
         '''
         print 'oversize! locking stuff.'
+        diff = account_size - plan_size
         wbs = sorted(wbs, key=operator.attrgetter('size'))
         while account_size > plan_size:
-            biggest = wbs.pop()
-            biggest.locked = True
-            biggest.save()
-            account_size -= biggest.size
+            found = False
+            for wb in wbs:
+                if wb.size > diff:
+                    found = True
+                    wb.locked = True
+                    wb.save()
+                    account_size -= wb.size
+            if not found:
+                biggest = wbs.pop()
+                biggest.locked = True
+                biggest.save()
+                account_size -= biggest.size
     else:
         '''
         check for opposite case & unlock workbooks
