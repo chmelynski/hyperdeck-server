@@ -203,7 +203,10 @@ def save(request):
         wb.text = request.POST['text']
         try:
             wb.save()
-            return JsonResponse({'success': True, 'message': 'saved'})
+            return JsonResponse({'success': True, 'message': 'saved',
+                                 'wb_size': wb.size,
+                                 'acct_size': request.user.account.size,
+                                 'plan_size': request.user.account.plan_size})
         except AccountSizeException:
             return JsonResponse({'success': False,
                                  'message': 'This workbook is too large for\

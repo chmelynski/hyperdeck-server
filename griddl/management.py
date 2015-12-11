@@ -2,6 +2,8 @@ import operator
 
 from .models import Plan, Workbook
 
+from mysite import settings
+
 
 def workbook_locks(account):
     '''
@@ -18,15 +20,17 @@ def workbook_locks(account):
     account_size = sum([wb.size for wb in wbs])
     plan_size = account.plan_size * 1024
 
-    print "account size: %d" % account_size
-    print "plan size: %d" % plan_size
+    if settings.DEBUG:
+        print "account size: %d" % account_size
+        print "plan size: %d" % plan_size
 
     if account_size > plan_size:
         '''
         lock the smallest workbooks necessary to bring
         the unlocked size under plan limit
         '''
-        print 'oversize! locking stuff.'
+        if settings.DEBUG:
+            print 'oversize! locking stuff.'
         diff = account_size - plan_size
         wbs = sorted(wbs, key=operator.attrgetter('size'))
         while account_size > plan_size:
@@ -35,11 +39,15 @@ def workbook_locks(account):
                 if wb.size > diff:
                     found = True
                     wb.locked = True
+                    if settings.DEBUG:
+                        print "locked smallest wb: %s" % wb
                     wb.save()
                     account_size -= wb.size
             if not found:
                 biggest = wbs.pop()
                 biggest.locked = True
+                if settings.DEBUG:
+                    print "locked biggest wb: %s" % wb
                 biggest.save()
                 account_size -= biggest.size
     else:
@@ -55,6 +63,5 @@ def workbook_locks(account):
                     break
                 else:
                     wb.locked = False
-                    wb._stop_recur = True
                     wb.save()
                     account_size += wb.size

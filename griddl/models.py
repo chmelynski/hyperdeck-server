@@ -131,8 +131,13 @@ class Account(models.Model):
     plan = models.ForeignKey(Plan, default=Plan.FREE)
     subscription = models.ForeignKey('billing.Subscription', null=True)
 
+    def _get_size(self):
+        return sum([wb.size for wb in Workbook.objects.filter(owner=self)])
+
+    size = property(_get_size)
+
     def _get_plan_size(self):
-        return self.plan.size
+        return self.plan.size * 1024  # maybe not the best way for this to work
 
     plan_size = property(_get_plan_size)
 
