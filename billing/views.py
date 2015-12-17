@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.generic import View
@@ -37,23 +37,24 @@ def subscription_change(request, planid, userid):
     '''
     handle requests to upgrade or downgrade plan from user with existing sub
     '''
-    acct = Account.objects.get(user=User.objects.get(pk=userid))
+    if planid != 1:  # todo: make sure this is the right id :P
+        acct = Account.objects.get(user=User.objects.get(pk=userid))
 
-    url = API_URL + "subscription/%s" % acct.subscription.reference_id
+        url = API_URL + "subscription/%s" % acct.subscription.reference_id
 
-    request = {}
-    request['productPath'] = "/" + Plan.NAMES[planid][1].lower()
-    request['proration'] = "true"
+        req = {}
+        req['productPath'] = "/" + Plan.NAMES[int(planid)][1].lower()
+        req['proration'] = "true"
 
-    # NB when adding req params; prepare_xml super naive
-    payload = prepare_xml(request)
-    fs_user = settings.API_CREDENTIALS['fastspring']['login']
-    fs_pass = settings.API_CREDENTIALS['fastspring']['password']  # todo!!
-    headers = {'content-type': 'application/xml'}
-    res = requests.put(url, data=payload, headers=headers,
-                       auth=requests.HttpBasicAuth(fs_user, fs_pass))
+        # NB when adding req params; prepare_xml super naive
+        payload = prepare_xml(req)
+        fs_user = settings.API_CREDENTIALS['fastspring']['login']
+        fs_pass = settings.API_CREDENTIALS['fastspring']['password']  # todo!!
+        headers = {'content-type': 'application/xml'}
+        res = requests.put(url, data=payload, headers=headers,
+                           auth=requests.auth.HTTPBasicAuth(fs_user, fs_pass))
 
-    if res.status_code == 200:
+    if (res.status_code == 200 or planid == 1):
         # woot woot!
         if planid > acct.plan.pk:
             which = "upgraded"
@@ -68,6 +69,15 @@ def subscription_change(request, planid, userid):
     else:
         err = "%d: %s" % (res.status_code, res.text)
         logger.error("fastspring subscription change error %s" % err)
+        if settings.DEBUG:
+            messages.error(request, err)
+        else:
+            messages.error(request, "Sorry, we encountered an error when \
+                            attempting to update your subscription. If you \
+                            see this message repeatedly, please contact \
+                            support.")
+
+    return redirect('/%d/account' % request.user.account.pk)
 
 
 def prepare_xml(d):
@@ -77,7 +87,7 @@ def prepare_xml(d):
     NB: SUPER NAIVE BASIC IMPLEMENTATION (if you couldn't already tell)
     '''
     xml = "<subscription>"
-    for k, v in d:
+    for k, v in d.iteritems():
         xml += "<%s>%s</%s>" % (k, v, k)
 
     xml += "</subscription>"

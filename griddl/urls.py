@@ -17,10 +17,8 @@ urlpatterns = patterns(
     url(r'^f/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ %]*)/(?P<filename>[A-Za-z0-9-/ %]*)$', views.workbook),
     url(r'^d/(?P<userid>[0-9]+)/(?P<path>[A-Za-z0-9-/ ]*)$', views.directory),
 
-    url(r'^accounts/profile/$', views.profileRedirect),
-    url(r'^editProfile$', views.editProfile),
     url(r'^(?P<userid>[0-9]+)$', views.profile),
-    url(r'^(?P<userid>[0-9]+)/profile$', views.editProfile),
+    url(r'^(?P<userid>[0-9]+)/account$', views.account),
 
     # url(r'^save/(?P<bookid>[A-Za-z0-9-]+)$', views.save),
     url(r'^save$', views.save),

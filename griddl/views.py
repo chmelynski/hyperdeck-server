@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 
-from .models import Workbook, Account, DefaultWorkbook
+from .models import Workbook, Account, DefaultWorkbook, Plan
 from .models import AccountSizeException, MaxWorkbookSizeException
 
 
@@ -119,7 +119,7 @@ def ajaxregister(request):
 def profile(request, userid):
     '''
     todo: this is different from user's topmost directory, right?
-          -- maybe not currently, but probably should be
+          -- not currently, but probably should be
     '''
     if request.user.account.pk != int(userid):
         return HttpResponseRedirect("/d/" + str(request.user.account.pk) + "/")
@@ -166,12 +166,19 @@ def directory(request, userid, path):
 
 
 @login_required
-def editProfile(request, userid):
-    user = Account.objects.get(user=request.user.account.pk)
+def account(request, userid):
+    acct = Account.objects.get(user=request.user.account.pk)
+    if acct.plan.pk == Plan.SIZES[0]:
+        action = 'billing'
+    elif acct.plan.pk == Plan.SIZES[:-1]:
+        action = False
+    else:
+        action = 'sub_change'
     context = {
-        'plan': user.plan,
+        'acct': acct,
+        'action': action
         }
-    return render(request, 'griddl/editProfile.htm', context)
+    return render(request, 'griddl/account.htm', context)
 
 
 @login_required
