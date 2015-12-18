@@ -182,15 +182,13 @@ class Create(FastSpringNotificationView):
             referrer.save()
             referrer.account.plan = referrer.plan
 
-            subscription = Subscription()
-            subscription.reference_id = data['id']
-            subscription.status = 'created'
-            plan = Plan.objects.get(
-                name=getattr(Plan, data['items'][0]['productName'].upper())
-                )
-            subscription.plan = plan
-            subscription.save()
-            referrer.account.subscription = subscription
+            if not referrer.account.subscription:
+                logger.debug("no sub on acct in Create view")
+                subscription = Subscription()
+                subscription.status = 'created'
+                subscription.plan = referrer.plan
+                subscription.save()
+                referrer.account.subscription = subscription
 
             referrer.account.save()
 
@@ -204,6 +202,22 @@ class Activate(FastSpringNotificationView):
 
     def process(self, data):
         logger.debug("Activation! " + json.dumps(data))
+        with transaction.atomic():
+            referrer = BillingRedirect.objects.get(referrer=data['referrer'])
+            if not referrer.account.subscription:
+                logger.debug("no sub on acct in Activate view")
+                subscription = Subscription(status='created')
+                subscription.plan = referrer.plan
+                subscription.save()
+                referrer.account.subscription = subscription
+                referrer.account.plan = referrer.plan
+            referrer.account.subscription.reference_id = data['reference']
+            referrer.account.subscription.save()
+            referrer.account.save()
+
+            referrer.status = 1
+            referrer.save()
+
         return HttpResponse()
 
 
