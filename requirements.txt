@@ -8,3 +8,4 @@ whitenoise==1.0.6
 requests
 django-bootstrap3
 django-crispy-forms
+django-password-reset

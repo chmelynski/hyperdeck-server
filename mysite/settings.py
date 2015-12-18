@@ -179,6 +179,7 @@ INSTALLED_APPS = (
 
     'bootstrap3',  # django-bootstrap3
     'crispy_forms',
+    'password_reset',
 
     'griddl',
     'billing'
