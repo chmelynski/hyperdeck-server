@@ -152,6 +152,10 @@ TEMPLATE_DIRS = (
     # Don't forget to use absolute paths, not relative paths.
 )
 
+TEMPLATE_CONTEXT_PROCESSORS = (
+    'django.contrib.messages.context_processors.messages'
+)
+
 MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -180,11 +184,10 @@ INSTALLED_APPS = (
     'bootstrap3',  # django-bootstrap3
     'crispy_forms',
     'password_reset',
+    'stored_messages',
 
     'griddl',
     'billing'
-    #    'south',
-    #  'rest_framework'
 )
 
 # crispy_forms setting

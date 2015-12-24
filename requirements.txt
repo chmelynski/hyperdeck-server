@@ -9,3 +9,4 @@ requests
 django-bootstrap3
 django-crispy-forms
 django-password-reset
+django-stored-messages

@@ -12,6 +12,7 @@ from django.views.generic import View
 from django.views.decorators.csrf import csrf_exempt
 
 import requests
+import stored_messages
 
 from mysite import settings
 from griddl.models import Account, Plan
@@ -37,35 +38,41 @@ def subscription_change(request, planid, userid):
     '''
     handle requests to upgrade or downgrade plan from user with existing sub
     '''
-    if planid != 1:  # todo: make sure this is the right id :P
-        acct = Account.objects.get(user=User.objects.get(pk=userid))
+    acct = Account.objects.get(user=User.objects.get(pk=userid))
+    planid = int(planid)
 
-        url = API_URL + "subscription/%s" % acct.subscription.reference_id
+    url = API_URL + "subscription/%s" % acct.subscription.reference_id
+    logger.debug("sub_change url is %s" % url)
 
-        req = {}
-        req['productPath'] = "/" + Plan.NAMES[int(planid)][1].lower()
-        req['proration'] = "true"
+    req = {}
+    req['productPath'] = "/" + Plan.NAMES[int(planid)][1].lower()
+    req['proration'] = "true"
 
-        # NB when adding req params; prepare_xml super naive
-        payload = prepare_xml(req)
-        fs_user = settings.API_CREDENTIALS['fastspring']['login']
-        fs_pass = settings.API_CREDENTIALS['fastspring']['password']  # todo!!
-        headers = {'content-type': 'application/xml'}
+    # NB when adding req params; prepare_xml super naive
+    payload = prepare_xml(req)
+    fs_user = settings.API_CREDENTIALS['fastspring']['login']
+    fs_pass = settings.API_CREDENTIALS['fastspring']['password']  # todo!!
+    headers = {'content-type': 'application/xml'}
+    auth = requests.auth.HTTPBasicAuth(fs_user, fs_pass)
+    if planid is 1:
+        res = requests.delete(url, data=payload, headers=headers,
+                              auth=auth)
+    else:
         res = requests.put(url, data=payload, headers=headers,
-                           auth=requests.auth.HTTPBasicAuth(fs_user, fs_pass))
+                           auth=auth)
 
-    if (res.status_code == 200 or planid == 1):
-        # woot woot!
-        if planid > acct.plan.pk:
-            which = "upgraded"
+    if (res.status_code == 200):
+        if planid < acct.plan.pk:
+            msg = "Your plan will be downgraded at the end of the current \
+                   billing period"
+            acct.subscription.status = "downgrade pending"
+            acct.susbcription.save()
         else:
-            which = "downgraded"
-
-        acct.plan = Plan.objects.get(pk=planid)
-        acct.save()
-        messages.success(request, "Success! Your account has been %s \
-                         to a %s, and your bill will be adjusted \
-                         accordingly." % (which, acct.plan))
+            acct.plan = Plan.objects.get(pk=planid)
+            acct.save()
+            msg = "Your account has been upgraded to a %s, and your \
+                   bill will be adjusted accordingly" % acct.plan
+        messages.success(request, "Success! %s." % (msg))
     else:
         err = "%d: %s" % (res.status_code, res.text)
         logger.error("fastspring subscription change error %s" % err)
@@ -170,9 +177,12 @@ class FastSpringNotificationView(View):
 
 
 class Create(FastSpringNotificationView):
-    '''FastSpring Notifications endpoint -- Subscription Creation'''
+    '''
+    FastSpring Notifications endpoint -- Order Completed (one per product)
+    This is the notification for subscription creation.
+    '''
 
-    private_key = 'c0620c2ae55d510aa18f4db913db0bcf'
+    private_key = 'a6529f98cf8baeb6ebc0af83b910c0d7'
 
     def process(self, data):
         logger.debug("Creation! " + json.dumps(data))
@@ -182,52 +192,59 @@ class Create(FastSpringNotificationView):
             referrer.save()
             referrer.account.plan = referrer.plan
 
-            if not referrer.account.subscription:
-                logger.debug("no sub on acct in Create view")
-                subscription = Subscription()
-                subscription.status = 'created'
-                subscription.plan = referrer.plan
-                subscription.save()
-                referrer.account.subscription = subscription
-
+            subscription = Subscription()
+            subscription.status = 'created'
+            subscription.plan = referrer.plan
+            subscription.reference_id = data['id']
+            logger.debug(subscription)
+            subscription.save()
+            referrer.account.subscription = subscription
             referrer.account.save()
 
         return HttpResponse()
 
 
 class Activate(FastSpringNotificationView):
-    '''FastSpring Notifications endpoint -- Subscription Activation'''
+    '''
+    FastSpring Notifications endpoint -- Subscription Activation
+
+    -- not actually needed afaict
+    '''
 
     private_key = 'f0a75700bbcdf7e6d59284bec01b38f9'
 
     def process(self, data):
         logger.debug("Activation! " + json.dumps(data))
-        with transaction.atomic():
-            referrer = BillingRedirect.objects.get(referrer=data['referrer'])
-            if not referrer.account.subscription:
-                logger.debug("no sub on acct in Activate view")
-                subscription = Subscription(status='created')
-                subscription.plan = referrer.plan
-                subscription.save()
-                referrer.account.subscription = subscription
-                referrer.account.plan = referrer.plan
-            referrer.account.subscription.reference_id = data['reference']
-            referrer.account.subscription.save()
-            referrer.account.save()
-
-            referrer.status = 1
-            referrer.save()
-
         return HttpResponse()
 
 
 class Change(FastSpringNotificationView):
-    '''FastSpring Notifications endpoint -- Subscription Change'''
+    '''
+    FastSpring Notifications endpoint -- Subscription Change
+
+    so far, this is for downgrades i guess?
+    '''
 
     private_key = 'ff0900d231708326e5788a9fb87ba211'
 
     def process(self, data):
         logger.debug("Status change! " + json.dumps(data))
+        with transaction.atomic():
+            sub = Subscription.objects.get(reference_id=data['id'])
+            if not sub:  # weird, bail
+                return
+            plan = Plan.objects.get(name=data['plan'])
+            if plan is not sub.plan:
+                sub.plan = plan
+                sub.save()
+                acct = Account.objects.get(subscription=sub)
+                acct.plan = plan
+                acct.save()
+                msg = "Notice: Your account has been changed to a %s -- \
+                       if you believe there has been an error please \
+                       contact us."
+                stored_messages.api.add_message_for(acct.user, 'warning', msg)
+
         return HttpResponse()
 
 
@@ -239,12 +256,10 @@ class Deactivate(FastSpringNotificationView):
     def process(self, data):
         logger.debug("Deactivation! " + json.dumps(data))
         with transaction.atomic():
-            sub = Subscription.objects.get(reference_id=data.id)
+            sub = Subscription.objects.get(reference_id=data['id'])
             if not sub:  # weird, bail
                 return
-            sub.status = 'inactive'
-            sub.status_reason = 'FS Deactivate'
-            sub.save()
+            sub.delete()
 
             acct = Account.objects.get(subscription=sub)
             if not acct:  # huh? bail.
@@ -260,7 +275,6 @@ class PayFail(FastSpringNotificationView):
     FastSpring Notifications endpoint -- Subscription Payment Failure
 
     FS takes care of dunning so... maybe we set a message?
-    would require that message lib mentioned on Trello since async.
     todo: check what data is in this notification
     '''
 

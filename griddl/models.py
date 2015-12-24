@@ -129,7 +129,8 @@ class Account(models.Model):
     '''
     user = models.OneToOneField(User)
     plan = models.ForeignKey(Plan, default=Plan.FREE)
-    subscription = models.ForeignKey('billing.Subscription', null=True)
+    subscription = models.ForeignKey('billing.Subscription', null=True,
+                                     on_delete=models.SET_NULL)
 
     def _get_size(self):
         return sum([wb.size for wb in Workbook.objects.filter(owner=self)])
