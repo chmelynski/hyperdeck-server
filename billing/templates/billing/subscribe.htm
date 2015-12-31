@@ -20,7 +20,7 @@
                 </div>
                 <div class='col-sm-4'>
                     {% if not upgrade.current_plan or upgrade.disabled %}
-                        <a title='Upgrade to a {{ upgrade.name }} plan' class='btn btn-success' href='{{ upgrade.link }}'>Upgrade to {{ upgrade.name }} plan</a>
+                        <a target='_blank' title='Upgrade to a {{ upgrade.name }} plan' class='btn btn-success' href='{{ upgrade.link }}'>Upgrade to {{ upgrade.name }} plan</a>
                     {% endif %}
                 </div>
             </div>

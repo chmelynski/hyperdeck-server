@@ -28,7 +28,8 @@ class Workbook(models.Model):
     type = models.CharField(max_length=255)  # to pick a template .htm file
     text = models.TextField(blank=True)
     public = models.BooleanField()
-    parent = models.ForeignKey('self', null=True, blank=True)
+    parent = models.ForeignKey('self', null=True, blank=True,
+                               on_delete=models.SET_NULL)
     filetype = models.CharField(max_length=1, choices=FILE_TYPES,
                                 default='F')
     deleted = models.BooleanField(default=False)  # user-initiated removal

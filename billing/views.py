@@ -196,6 +196,7 @@ class Create(FastSpringNotificationView):
             subscription.status = 'created'
             subscription.plan = referrer.plan
             subscription.reference_id = data['id']
+            subscription.details_url = data['fs_url']
             logger.debug(subscription)
             subscription.save()
             referrer.account.subscription = subscription
@@ -228,7 +229,7 @@ class Change(FastSpringNotificationView):
     private_key = 'ff0900d231708326e5788a9fb87ba211'
 
     def process(self, data):
-        logger.debug("Status change! " + json.dumps(data))
+        logger.debug("Status change notification! " + json.dumps(data))
         with transaction.atomic():
             sub = Subscription.objects.get(reference_id=data['id'])
             if not sub:  # weird, bail
@@ -282,4 +283,15 @@ class PayFail(FastSpringNotificationView):
 
     def process(self, data):
         logger.debug("Payment failure! " + json.dumps(data))
+
+        sub = Subscription.objects.get(reference_id=data['id'])
+        if not sub:  # weird, bail
+            return
+
+        acct = Account.objects.get(subscription=sub)
+        msg = "Notice: It appears that your last subscription payment failed. \
+               Please <a target='_blank' href='%s'>check your payment settings\
+               </a> to avoid disruptions to your account." % sub.details_url
+        stored_messages.api.add_message_for(acct.user, 'warning', msg)
+
         return HttpResponse()
