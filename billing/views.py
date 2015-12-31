@@ -66,7 +66,7 @@ def subscription_change(request, planid, userid):
             msg = "Your plan will be downgraded at the end of the current \
                    billing period"
             acct.subscription.status = "downgrade pending"
-            acct.susbcription.save()
+            acct.subscription.save()
         else:
             acct.plan = Plan.objects.get(pk=planid)
             acct.save()
@@ -153,7 +153,6 @@ class FastSpringNotificationView(View):
         return (challenge == msg_hash)
 
     def get(self, request):
-        logger.debug(request)
         if not settings.DEBUG:
             resp = HttpResponse(405)
             resp['Allow'] = 'POST'
@@ -162,9 +161,7 @@ class FastSpringNotificationView(View):
         return self.process(request.GET)
 
     def post(self, request):
-        logger.debug(request)
         if not settings.DEBUG:
-            logger.debug('apparently not debug')
             if not self.verify_msg(self.private_key, request):
                 logger.warn('bad POST to FS notification endpoint' + request)
                 return HttpResponse(403)
@@ -244,7 +241,8 @@ class Change(FastSpringNotificationView):
                 msg = "Notice: Your account has been changed to a %s -- \
                        if you believe there has been an error please \
                        contact us."
-                stored_messages.api.add_message_for(acct.user, 'warning', msg)
+                stored_messages.api.add_message_for([acct.user],
+                                                    messages.WARNING, msg)
 
         return HttpResponse()
 
@@ -292,6 +290,6 @@ class PayFail(FastSpringNotificationView):
         msg = "Notice: It appears that your last subscription payment failed. \
                Please <a target='_blank' href='%s'>check your payment settings\
                </a> to avoid disruptions to your account." % sub.details_url
-        stored_messages.api.add_message_for(acct.user, 'warning', msg)
+        stored_messages.api.add_message_for([acct.user], messages.WARNING, msg)
 
         return HttpResponse()
