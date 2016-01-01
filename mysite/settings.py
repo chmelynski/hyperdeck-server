@@ -183,10 +183,10 @@ INSTALLED_APPS = (
     'django.contrib.admin',  # enable admin
     # 'django.contrib.admindocs', # enable admin documentation
 
+    'stored_messages',
     'bootstrap3',  # django-bootstrap3
     'crispy_forms',
     'password_reset',
-    'stored_messages',
 
     'griddl',
     'billing'
@@ -283,3 +283,7 @@ API_CREDENTIALS = {
 LOGIN_URL = '/login'
 
 MAX_WORKBOOK_SIZE = 524288000  # 500MB?
+
+# stored_messages settings:
+#  why doesn't this have a default anyway dang
+MESSAGE_STORAGE = 'stored_messages.storage.PersistentStorage'
