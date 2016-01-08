@@ -9,4 +9,4 @@ requests
 django-bootstrap3
 django-crispy-forms
 django-password-reset
-django-stored-messages
+git+https://github.com/nthall/django-stored-messages#egg=stored_messages

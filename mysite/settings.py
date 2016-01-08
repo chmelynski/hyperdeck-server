@@ -263,6 +263,11 @@ LOGGING = {
             'level': 'ERROR',
             'propagate': True,
         },
+        'griddl': {
+            'handlers': [default_handler],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
         'billing': {
             'handlers': [default_handler],
             'level': 'DEBUG',

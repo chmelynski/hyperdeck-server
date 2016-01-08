@@ -1,3 +1,5 @@
+import logging
+
 from django import forms
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
@@ -13,6 +15,8 @@ from crispy_forms.layout import Submit
 
 from .models import Workbook, Account, DefaultWorkbook, Plan
 from .models import AccountSizeException, MaxWorkbookSizeException
+
+logger = logging.getLogger(__name__)
 
 
 def logoutView(request):
