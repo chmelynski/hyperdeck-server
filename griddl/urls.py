@@ -1,4 +1,4 @@
-from django.conf.urls import patterns, url, include
+from django.conf.urls import patterns, url
 
 from griddl import views
 
@@ -36,9 +36,5 @@ urlpatterns += patterns(
     'django.contrib.auth.views',
     url(r'^password_change$', 'password_change'),
     url(r'^password_change_done$', 'password_change_done'),
-    url(r'^password_reset$', 'password_reset'),
-    url(r'^password_reset_done$', 'password_reset_done'),
-    url(r'^password_reset_confirm$', 'password_reset_confirm'),
-    url(r'^password_reset_complete$', 'password_reset_complete'),
     url(r'^login$', 'login', {'template_name': 'griddl/login.htm'})
 )

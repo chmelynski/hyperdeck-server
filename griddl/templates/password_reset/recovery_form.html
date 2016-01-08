@@ -1,0 +1,16 @@
+{% extends "password_reset/base.html" %}
+{% load i18n %}
+{% load bootstrap3 %}
+
+{% block title %}{% trans "Password recovery" %} | {{ block.super }}{% endblock %}
+
+{% block body %}
+	<form method="post" action="{{ url }}">
+		{% csrf_token %}
+		{% bootstrap_form form %}
+		{% buttons %}
+            <input class='btn btn-success' type="submit" value="{% trans "Recover my password" %}">
+            <a href='/' class='btn btn-danger'>Cancel</a>
+        {% endbuttons %}
+        </form>
+{% endblock %}

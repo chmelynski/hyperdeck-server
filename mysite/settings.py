@@ -142,7 +142,7 @@ SECRET_KEY = 'slvy^mosip%vo8atr69t)g$=vyhtmqggm8^w7#*e$_&^mj1261'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'griddl/templates')],  # override for password_reset templates
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -292,3 +292,8 @@ MAX_WORKBOOK_SIZE = 524288000  # 500MB?
 # stored_messages settings:
 #  why doesn't this have a default anyway dang
 MESSAGE_STORAGE = 'stored_messages.storage.PersistentStorage'
+
+# email settings / impt for password_reset
+# implicit default is smtp rather than console.
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

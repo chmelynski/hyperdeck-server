@@ -1,0 +1,16 @@
+{% extends "password_reset/base.html" %}{% load i18n %}
+
+{% block title %}{% trans "New password set" %} | {{ block.super }}{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+    <script type="text/javascript">
+        setTimeout(function() {
+            window.location.replace("/login");
+        }, 10000);
+    </script>
+{% endblock scripts %}
+
+{% block body %}
+	<p>{% trans "Your password has successfully been reset. You will be redirected to the login page automatically." %}</p>
+{% endblock %}
