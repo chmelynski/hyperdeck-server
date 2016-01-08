@@ -13,7 +13,12 @@
 {% block body %}
     <div class="row">
         <div class="col-xs-12">
-            <p><b>Account:</b> {{ acct.plan }}  {% if action %} <a class='btn btn-inline btn-success' href='/subscriptions'>{% if action == 'billing' %}Upgrade{% else %}Modify Subscription{% endif %}</a>{% endif %}</p>
+            <p><a href="{% url 'django.contrib.auth.views.password_change' %}" title="Change your password">Change your password</a>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-xs-12">
+            <p><b>Plan:</b> {{ acct.plan }}   {% if action %} <a class='btn btn-inline btn-success' href='/subscriptions'>{% if action == 'billing' %}Upgrade{% else %}Modify Subscription{% endif %}</a>{% endif %}</p>
         </div>
     </div>
 

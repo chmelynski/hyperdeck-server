@@ -18,7 +18,8 @@ urlpatterns = patterns(
     url(r'^d/(?P<userid>[0-9]+)/(?P<path>[A-Za-z0-9-/ ]*)$', views.directory),
 
     url(r'^(?P<userid>[0-9]+)$', views.profile),
-    url(r'^(?P<userid>[0-9]+)/account$', views.account),
+    url(r'^(?P<userid>[0-9]+)/account$', views.account, name='account'),
+    url(r'^password_change_redirect$', views.password_change_redirect, name='password_change_redirect'),
 
     # url(r'^save/(?P<bookid>[A-Za-z0-9-]+)$', views.save),
     url(r'^save$', views.save),
@@ -34,7 +35,6 @@ urlpatterns = patterns(
 # builtin auth views
 urlpatterns += patterns(
     'django.contrib.auth.views',
-    url(r'^password_change$', 'password_change'),
-    url(r'^password_change_done$', 'password_change_done'),
+    url(r'^password_change$', 'password_change', {'template_name': 'griddl/password_change.htm', 'post_change_redirect': 'password_change_redirect'}),
     url(r'^login$', 'login', {'template_name': 'griddl/login.htm'})
 )

@@ -6,6 +6,7 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.http import HttpResponseNotFound
 from django.shortcuts import render
 from django.contrib import messages
+from django.core.urlresolvers import reverse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -293,6 +294,12 @@ def create(request):
                                     "/" + request.POST['path'])
     else:
         return HttpResponse('Log in to create workbook')
+
+
+@login_required
+def password_change_redirect(request):
+    messages.success(request, "Your password has been changed.")
+    return HttpResponseRedirect(reverse('account', args=(request.user.pk,)))
 
 
 @login_required
