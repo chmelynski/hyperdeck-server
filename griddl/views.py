@@ -93,7 +93,8 @@ def register(request):
         # change to return profileRedirect(request)
         messages.success(request,
                          "Congratulations, your account has been created!")
-        return HttpResponseRedirect("/" + str(user.pk))
+        return HttpResponseRedirect(
+            reverse(profile, kwargs={'userid': user.pk}))
 
 
 def ajaxregister(request):
@@ -127,7 +128,8 @@ def profile(request, userid):
           -- not currently, but probably should be
     '''
     if request.user.account.pk != int(userid):
-        return HttpResponseRedirect("/d/" + str(request.user.account.pk) + "/")
+        return HttpResponseRedirect(reverse(profile,
+                                            args=(request.user.account.pk,)))
 
     wbs = Workbook.objects.filter(owner=request.user.account.pk)
     if saveas in request.session:  # hack for saveas for new account
@@ -150,13 +152,15 @@ def profile(request, userid):
 
 @login_required
 def profileRedirect(request):
-    return HttpResponseRedirect("/d/" + str(request.user.account.pk) + "/")
+    return HttpResponseRedirect(reverse(profile,
+                                        args=(request.user.account.pk,)))
 
 
 @login_required
 def directory(request, userid, path):
     if request.user.account.pk != int(userid):
-        return HttpResponseRedirect("/d/" + str(request.user.account.pk) + "/")
+        return HttpResponseRedirect(reverse(profile,
+                                            args=(request.user.account.pk,)))
 
     wbs = Workbook.objects.filter(owner=request.user.account.pk, path=path) \
         .order_by('filetype', 'name')
@@ -290,8 +294,9 @@ def create(request):
         wb.filetype = 'F'
         wb.path = request.POST['path']
         wb.save()
-        return HttpResponseRedirect("/d/" + str(request.user.account.pk) +
-                                    "/" + request.POST['path'])
+        return HttpResponseRedirect(
+            reverse(workbook, kwargs={'user': request.user.account.pk,
+                                      'path': wb.path}))
     else:
         return HttpResponse('Log in to create workbook')
 
@@ -314,8 +319,9 @@ def createDir(request):
     wb.filetype = 'D'
     wb.path = request.POST['path']
     wb.save()
-    return HttpResponseRedirect("/d/" + str(request.user.account.pk) +
-                                "/" + request.POST['path'])
+    return HttpResponseRedirect(
+        reverse(workbook, kwargs={'user': request.user.account.pk,
+                                  'path': wb.path}))
 
 
 @login_required
@@ -325,8 +331,9 @@ def rename(request):
         return HttpResponse('Access denied')
     wb.name = request.POST['newname']
     wb.save()
-    return HttpResponseRedirect("/d/" + str(request.user.account.pk) +
-                                "/" + request.POST['path'])
+    return HttpResponseRedirect(
+        reverse(workbook, kwargs={'user': request.user.account.pk,
+                                  'path': wb.path}))
 
 
 @login_required
@@ -335,8 +342,9 @@ def delete(request):
     if wb.owner != request.user:
         return HttpResponse('Access denied')
     wb.delete()
-    return HttpResponseRedirect("/d/" + str(request.user.account.pk) +
-                                "/" + request.POST['path'])
+    return HttpResponseRedirect(
+        reverse(workbook, kwargs={'user': request.user.account.pk,
+                                  'path': wb.path}))
 
 
 @login_required
@@ -346,8 +354,9 @@ def move(request):
         return HttpResponse('Access denied')
     wb.path = request.POST['newpath']
     wb.save()
-    return HttpResponseRedirect("/d/" + str(request.user.account.pk) +
-                                "/" + request.POST['path'])
+    return HttpResponseRedirect(
+        reverse(workbook, kwargs={'user': request.user.account.pk,
+                                  'path': wb.path}))
 
 
 def workbook(request, userid, path, filename):
