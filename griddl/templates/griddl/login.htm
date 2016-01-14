@@ -5,7 +5,7 @@
 {% block title %}Log In | {{ block.super }} {% endblock %}
 
 {% block body %}
-    <form class='form' method="post">
+    <form class='form' method="post" action="{% url 'django.contrib.auth.views.login' %}">
         {% csrf_token %}
         {% bootstrap_form form %}
         {% buttons %}

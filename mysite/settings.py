@@ -286,6 +286,7 @@ API_CREDENTIALS = {
 }
 
 LOGIN_URL = '/login'
+LOGIN_REDIRECT_URL = '/auth/success'
 
 MAX_WORKBOOK_SIZE = 524288000  # 500MB?
 

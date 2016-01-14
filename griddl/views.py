@@ -25,6 +25,11 @@ def logoutView(request):
     return HttpResponseRedirect("/")  # Redirect to a success page.
 
 
+def login_redirect(request):
+    return HttpResponseRedirect(
+        reverse(profile, kwargs={'userid': request.user.account.pk}))
+
+
 class SignupForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super(SignupForm, self).__init__(*args, **kwargs)

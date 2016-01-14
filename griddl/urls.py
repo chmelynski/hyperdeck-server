@@ -6,6 +6,7 @@ urlpatterns = patterns(
     '',
     url(r'^$', views.index, name='index'),
 
+    url(r'^auth/success$', views.login_redirect),
     url(r'^ajaxlogin$', views.ajaxlogin),
     url(r'^logout$', views.logoutView),
     url(r'^saveasForm$', views.saveasForm),
