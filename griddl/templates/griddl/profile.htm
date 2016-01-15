@@ -4,9 +4,12 @@
 {% block styles %}
   {{ block.super }}
   <style>
-    tr.workbook:hover { background-color:rgb(240,240,240); }
-    tr.selected { background-color:rgb(220,220,255); }
-    tr.selected:hover { background-color:rgb(220,220,255); }
+    tr.workbook:hover { background-color:rgb(240,240,240) !important; }
+    tr.workbook:hover td { background-color:rgba(0,0,0,0) !important; }
+    tr.selected { background-color:rgb(220,220,255) !important; }
+    tr.selected td { background-color:rgba(0,0,0,0) !important; }
+    tr.selected:hover { background-color:rgb(220,220,255) !important; }
+    tr.selected:hover td { background-color:rgba(0,0,0,0) !important; }
   </style>
 {% endblock %}
 
@@ -14,154 +17,150 @@
   {{ block.super }}
   
   <script type="text/javascript">
-      function NewDirectory() {
-          $('#newDirectoryScreen').css('display', 'block');
-          $('#newDirectoryModal').css('display', 'block');
-      }
-      function HideNewDirectory() {
-          $('#newDirectoryScreen').css('display', 'none');
-          $('#newDirectoryModal').css('display', 'none');
-      }
-      function ShowRename() {
-          $('.selected .renameForm').css('display', 'inline');
-          $('.selected .namelink').css('display', 'none');
-          
-          $('.selected .renameForm').addClass('activeRenameForm'); // clicking on the Rename button turns off the selection, so we add these hooks for HideRename to use
-          $('.selected .namelink').addClass('activeNamelink');
-          //$('#renameScreen').css('display', 'block');
-      }
-      function HideRename() {
-          $('.activeRenameForm').css('display', 'none');
-          $('.activeNamelink').css('display', 'inline');
-          $('.activeRenameForm').removeClass('activeRenameForm');
-          $('.activeNamelink').removeClass('activeNamelink');
-          //$('#renameScreen').css('display', 'block');
-      }
-      function ShowDelete() {
-          $('#deleteIdInput').attr('value', $('.selected').attr('id').substr(2)); // backbone could help with this nonsense
-          $('#deleteScreen').css('display', 'block');
-          $('#deleteModal').css('display', 'block');
-      }
-      function HideDelete() {
-          $('#deleteIdInput').attr('value', '');
-          $('#deleteScreen').css('display', 'none');
-          $('#deleteModal').css('display', 'none');
-      }
-      function ShowMove() {
-          $('#moveIdInput').attr('value', $('.selected').attr('id').substr(2)); // backbone could help with this nonsense
-          $('#moveScreen').css('display', 'block');
-          $('#moveModal').css('display', 'block');
-      }
-      function HideMove() {
-          $('#moveIdInput').attr('value', '');
-          $('#moveScreen').css('display', 'none');
-          $('#moveModal').css('display', 'none');
-      }
-      function TogglePublic(pk) {
-          
-          $.ajax({
-              type: 'GET',
-              url: '/togglepublic',
-              data: { pk : pk },
-              success: function (data) {
-              },
-              error: function(data) {
-              }
-          });
-      }
-      function Main() {
-          $('.workbook').on('click', function(e) {
-              $('.selected').removeClass('selected');
-              $(this).addClass('selected');
-              $('.workbookActionButton').attr('disabled',false);
-              $('.workbookActionButton').css('color','black');
-              e.stopPropagation();
-          });
-          
-          $('body').on('click', function(e) {
-              $('.selected').removeClass('selected');
-              $('.workbookActionButton').attr('disabled',true);
-              $('.workbookActionButton').css('color','rgb(200,200,200)');
-          });
-      }
+    function ShowRename() {
+        $('.selected .renameForm').css('display', 'inline');
+        $('.selected .namelink').css('display', 'none');
+        
+        $('.selected .renameForm').addClass('activeRenameForm'); // clicking on the Rename button turns off the selection, so we add these hooks for HideRename to use
+        $('.selected .namelink').addClass('activeNamelink');
+    }
 
+    function HideRename() {
+        $('.activeRenameForm').css('display', 'none');
+        $('.activeNamelink').css('display', 'inline');
+        $('.activeRenameForm').removeClass('activeRenameForm');
+        $('.activeNamelink').removeClass('activeNamelink');
+    }
 
-    (function($) {
-        $(document).ready(function() {
-            Main();
-
+    function TogglePublic(pk) { // todo: might ought to make this a post?
+        $.ajax({
+            type: 'GET',
+            url: '/togglepublic',
+            data: { pk : pk },
+            success: function (data) {
+            },
+            error: function(data) {
+            }
         });
-    })(jQuery);
+    }
+    
+    $(document).ready(function() {
+
+      $('#deleteModal').on('show.bs.modal', function(event) {
+        console.log('blerpshow');
+        $('#deleteIdInput').attr('value', $('tr.workbook.selected').attr('data-pk'));
+      }).on('hide.bs.modal', function() {;
+        console.log('barglehide');
+        $('#deleteIdInput').attr('value', '');
+      });
+      
+      $('#moveModal').on('show.bs.modal', function(event) {
+        $('#moveIdInput').attr('value', $('tr.workbook.selected').attr('data-pk'));
+      }).on('hide.bs.modal', function() {;
+        $('#moveIdInput').attr('value', '');
+      });
+      
+      $('.workbook').on('click', function(e) {
+        $('.selected').removeClass('selected');
+        $(this).addClass('selected');
+        $('.workbookActionButton').prop('disabled',false);
+        $('.workbookActionButton').css('color','black');
+        e.stopPropagation();
+      });
+      
+      $('body').on('click', function(e) {
+        $tgt = $(e.target);
+        if ($tgt.hasClass('workbookActionButton')) {
+          return;
+        }
+        $('.selected').removeClass('selected');
+        $('.workbookActionButton').prop('disabled',true);
+        $('.workbookActionButton').css('color','rgb(200,200,200)');
+      });
+
+    });
   </script>
 
 {% endblock %}
 
 {% block body %}
-    <div style="display:inline; margin:2em; height:10em">
-        <div style="display:inline-block; border:0px solid black; float:left; margin:1em;">
-            <a style="margin-right:1em;" class="btn btn-default" href="/d/{{ user.pk }}{{ parentdir|yesno:'/,,' }}{{ parentdir }}"><i class="fa fa-level-up fa-flip-horizontal fa-2x" style="vertical-align: middle;"></i>&nbsp;Up</a>
-            <button class='btn btn-default' id="newWorkbookButton" data-toggle="modal" data-target="#newWorkbookModal">
-                <span class="fa-stack">
-                    <i class="fa fa-stack-2x fa-file-o"></i>
-                    <i class="fa fa-stack-1x fa-plus"></i>
-                </span>
-                &nbsp;New workbook
-            </button>
-            <button class='btn btn-default' id="newDirectoryButton" onclick="NewDirectory();" style="margin-right:1em;">
-                <span class="fa-stack">
-                    <i class="fa fa-stack-2x fa-folder-o"></i>
-                    <i class="fa fa-stack-1x fa-plus"></i>
-                </span>
-                &nbsp;New directory
-            </button>
-            <button id="renameButton" class="btn btn-default workbookActionButton" disabled onclick="ShowRename();">
-                <span class="fa-stack">
-                    <i class="fa fa-stack-2x fa-file-o"></i>
-                    <i class="fa fa-stack-1x fa-i-cursor"></i>
-                </span>
-                    &nbsp;Rename
-            </button>
-            <button id="deleteButton" class="btn btn-default workbookActionButton" disabled onclick="ShowDelete();"><span class="fa fa-trash-o fa-2x" style="vertical-align: middle;"></span>&nbsp;Delete</button>
-            <button id="moveButton" class="btn btn-default workbookActionButton" disabled onclick="ShowMove();"><span class="fa fa-share fa-2x" style="vertical-align: middle;"></span>&nbsp;Move</button>
-        </div>
-        <div style="display:inline-block; border:0px solid black; float:right; margin-top:1em;">
-            <a href="/{{ user.account.pk }}/account" class="btn btn-default"><span class="fa fa-cogs fa-2x" style=vertical-align:middle;"></span>&nbsp;Account</a>
-            <a href="/logout" class="btn btn-primary"><span class="fa fa-sign-out fa-2x" style="vertical-align:middle;"></span>&nbsp;Logout</a>
-        </div>
+  <div style="display:inline; margin:2em; height:10em">
+    <div style="display:inline-block; border:0px solid black; float:left; margin:1em;">
+      <a style="margin-right:1em;" class="btn btn-default" href="/d/{{ user.pk }}{{ parentdir|yesno:'/,,' }}{{ parentdir }}"><i class="fa fa-level-up fa-flip-horizontal fa-2x" style="vertical-align: middle;"></i>&nbsp;Up</a>
+      <button class='btn btn-default' id="newWorkbookButton" data-toggle="modal" data-target="#newWorkbookModal">
+        <span class="fa-stack">
+          <i class="fa fa-stack-2x fa-file-o"></i>
+          <i class="fa fa-stack-1x fa-plus"></i>
+        </span>
+        &nbsp;New workbook
+      </button>
+      <button class='btn btn-default' id="newDirectoryButton" disabled data-toggle="modal" data-target="#newDirectoryModal">
+        <span class="fa-stack">
+          <i class="fa fa-stack-2x fa-folder-o"></i>
+          <i class="fa fa-stack-1x fa-plus"></i>
+        </span>
+        &nbsp;New directory
+      </button>
+      <button id="renameButton" class="btn btn-default workbookActionButton" disabled onclick="ShowRename();">
+        <span class="fa-stack">
+          <i class="fa fa-stack-2x fa-file-o"></i>
+          <i class="fa fa-stack-1x fa-i-cursor"></i>
+        </span>
+        &nbsp;Rename
+      </button>
+      <button id="deleteButton" class="btn btn-default workbookActionButton" disabled data-toggle="modal" data-target="#deleteModal">
+        <span class="fa fa-trash-o fa-2x" style="vertical-align: middle;"></span>
+        &nbsp;Delete
+      </button>
+      <button id="moveButton" class="btn btn-default workbookActionButton" disabled data-toggle="modal" data-target="#moveModal">
+        <span class="fa fa-share fa-2x" style="vertical-align: middle;"></span>
+        &nbsp;Move
+      </button>
     </div>
+    <div style="display:inline-block; border:0px solid black; float:right; margin-top:1em;">
+      <a href="/{{ user.account.pk }}/account" class="btn btn-default">
+        <span class="fa fa-cogs fa-2x" style=vertical-align:middle;"></span>
+        &nbsp;Account
+      </a>
+      <a href="/logout" class="btn btn-primary">
+        <span class="fa fa-sign-out fa-2x" style="vertical-align:middle;"></span>
+        &nbsp;Logout
+      </a>
+    </div>
+  </div>
 
 
-    <table class='table table-striped'>
-        <tr style="height:3em;">
-            <td style="width:3em;"></td>
-            <td style="width:20em;">Name</td>
-            <td style="width:20em;">Type</td>
-            <td style="width:3em;">Public?</td>
-        </tr>
-        {% for workbook in workbooks %}
-        <tr class="workbook" id="wb{{ workbook.pk }}">
-            <td><span class="fa fa-{% if workbook.filetype == 'F' %}file-o{% else %}folder-o{% endif %}"></span></td>
-            <td>
-                <form class="form-inline renameForm" action="/rename" method="POST" style="display:none;">
-                    {% csrf_token %}
-                    <input type="hidden" name="path" value="{{ path }}"></input>
-                    <input type="hidden" name="id" value="{{ workbook.pk }}">
-                    <label for="newname" class='sr-only' aria-hidden='true'>New Workbook Name:</label>
-                    <input class='form-control input-sm' type="text" name="newname"></input>
-                    <button class='btn btn-success btn-sm' type="submit" value="Rename">Rename</button>
-                    <button class='btn btn-danger btn-sm' type="button" value="Cancel" onclick="HideRename();">Cancel</button>
-                </form>
-                <a class="namelink" href="/{{ workbook.filetype|lower }}/{{ user.pk }}/{{ workbook.path }}{{ workbook.path|yesno:'/,,' }}{{ workbook.name }}">{{ workbook.name }}</a>
-            </td>
-            <td>
-                {{ workbook.type }}
-            </td>
-            <td>
-                <input type="checkbox" {% if workbook.public %}checked {% endif %}style="margin-left:1em;" onchange="TogglePublic({{ workbook.pk }})"></input>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
+  <table class='table table-striped'>
+    <tr style="height:3em;">
+      <th style="width:3em;"></th>
+      <th style="width:20em;">Name</th>
+      <th style="width:20em;">Type</th>
+      <th style="width:3em;">Public?</th>
+    </tr>
+    {% for workbook in workbooks %}
+      <tr class="workbook" id="wb{{ workbook.pk }}" data-pk="{{ workbook.pk }}">
+        <td><span class="fa fa-{% if workbook.filetype == 'F' %}file-o{% else %}folder-o{% endif %}"></span></td>
+        <td>
+          <form class="form-inline renameForm" action="/rename" method="POST" style="display:none;">
+            {% csrf_token %}
+            <input type="hidden" name="path" value="{{ path }}"></input>
+            <input type="hidden" name="id" value="{{ workbook.pk }}">
+            <label for="newname" class='sr-only' aria-hidden='true'>New Workbook Name:</label>
+            <input class='form-control input-sm' type="text" name="newname"></input>
+            <button class='btn btn-success btn-sm' type="submit" value="Rename">Rename</button>
+            <button class='btn btn-danger btn-sm' type="button" value="Cancel" onclick="HideRename();">Cancel</button>
+          </form>
+          <a class="namelink" href="/{{ workbook.filetype|lower }}/{{ user.pk }}/{{ workbook.path }}{{ workbook.path|yesno:'/,,' }}{{ workbook.name }}">{{ workbook.name }}</a>
+        </td>
+        <td>
+          {{ workbook.type }}
+        </td>
+        <td>
+          <input type="checkbox" {% if workbook.public %}checked {% endif %}style="margin-left:1em;" onchange="TogglePublic({{ workbook.pk }})"></input>
+        </td>
+      </tr>
+    {% endfor %}
+  </table>
 
 {% endblock %}
 
@@ -169,6 +168,10 @@
   <div class="modal fade" id="newWorkbookModal">
     <div class='modal-dialog'>
       <div class='modal-content'>
+        <div class='modal-header'>
+          <button type="button" class='close' data-dismiss='modal' aria-label="close"><span aria-hidden="true">&times;</span></button>
+          <h3 class='modal-title'>Create New Workbook</h3>
+        </div>
         <div class='modal-body'>
           <form class='form form-horizontal' action="/create" method="POST">
             {% csrf_token %}
@@ -177,14 +180,14 @@
               <div class="form-group">
                 <label class="col-sm-2 control-label" for="name">Name:</label>
                 <div class="col-sm-10">
-                  <input type="text" title="name" name="name"></input>
+                  <input class="form-control" type="text" title="name" name="name"></input>
                 </div>
               </div>
 
               <div class="form-group">
                 <label class="col-sm-2 control-label" for="type">Type:</label>
                 <div class="col-sm-10">
-                  <select name="type">
+                  <select class="form-control" name="type">
                     {% for defaultWorkbook in defaultWorkbooks %}
                       <option>{{ defaultWorkbook.name }}</option>
                     {% endfor %}
@@ -192,8 +195,14 @@
                 </div>
               </div>
 
-              <input class="btn btn-success" type="submit" value="Create"></input>
-              <input class="btn btn-danger" type="button" value="Cancel" onclick="HideNewWorkbook();"></input>
+              <div class="form-group">
+                <div class="col-sm-12">
+                  <div class="pull-right">
+                    <input class="btn btn-success" type="submit" value="Create"></input>
+                    <input class="btn btn-danger" type="button" value="Cancel" data-dismiss='modal'></input>
+                  </div>
+                </div>
+              </div>
 
           </form>
         </div>
@@ -201,61 +210,92 @@
     </div>
   </div>
 
-    <div id="newDirectoryScreen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:997; opacity:0.6; background-color:#444444;"></div>
-    <div id="newDirectoryModal" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; margin:auto; width:30%; height:40%; z-index:998; opacity:1.0; background-color:#ffffff;">
-        <form action="/createDir" method="POST">
-            <div style="position:absolute; left:0; top:0; right:0; bottom:0; margin:auto; width:60%; height:40%; z-index:999; background-color:#ffffff;">
-                {% csrf_token %}
-                <input type="hidden" name="path" value="{{ path }}"></input>
-                <div style="display:block;">
-                    <div style="display:block; margin:1em;">
-                        <label>Name:</label>
-                        <input type="text" title="name" name="name"></input>
-                    </div>
-                    <div style="display:block; margin:1em;">
-                        <input type="submit" value="Create"></input>
-                        <input type="button" value="Cancel" onclick="HideNewDirectory();"></input>
-                    </div>
-                </div>
-            </div>
-        </form>
-    </div>
+  <div class="modal fade" id="newDirectoryModal">
+    <div class='modal-dialog'>
+      <div class='modal-content'>
+        <div class='modal-header'>
+          <button type="button" class='close' data-dismiss='modal' aria-label="close"><span aria-hidden="true">&times;</span></button>
+          <h3 class='modal-title'>Create New Directory</h3>
+        </div>
 
-    <div id="moveScreen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:997; opacity:0.6; background-color:#444444;"></div>
-    <div id="moveModal" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; margin:auto; width:30%; height:40%; z-index:998; opacity:1.0; background-color:#ffffff;">
-        <form action="/move" method="POST">
-            <div style="position:absolute; left:0; top:0; right:0; bottom:0; margin:auto; width:60%; height:40%; z-index:999; background-color:#ffffff;">
-                {% csrf_token %}
-                <input id="moveIdInput" type="hidden" name="id" value=""></input>
-                <input type="hidden" name="path" value="{{ path }}"></input>
-                <div style="display:block;">
-                    <div style="display:block; margin:1em;">
-                        <label>New path:</label>
-                        <input type="text" title="newpath" name="newpath" value="{{ path }}"></input>
-                    </div>
-                    <div style="display:block; margin:1em;">
-                        <input type="submit" value="Move"></input>
-                        <input type="button" value="Cancel" onclick="HideMove();"></input>
-                    </div>
-                </div>
-            </div>
-        </form>
-    </div>
+        <div class='modal-body'>
+          <form class="form form-horizontal" action="/createDir" method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="path" value="{{ path }}"></input>
 
-    <!-- when I put the deleteModal as a child element of deleteScreen, deleteModal would be semitransparent.  as a sibling, it's opaque, as desired -->
-    <div id="deleteScreen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:997; opacity:0.6; background-color:#444444;"></div>
-    <div id="deleteModal" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; margin:auto; width:20%; height:40%; z-index:998; opacity:1.0; background-color:#ffffff;">
-        <form action="/delete" method="POST">
-        {% csrf_token %}
-        <input type="hidden" name="path" value="{{ path }}"></input>
-            <div style="position:absolute; left:0; top:0; right:0; bottom:0; margin:auto; width:60%; height:40%; z-index:999; background-color:#ffffff;">
-                <label>Delete workbook?</label>
-                <div style="display:inline-block;">
-                    <input id="deleteIdInput" type="hidden" name="id" value=""></input>
-                    <input type="submit" value="Delete"></input>
-                    <input type="button" value="Cancel" onclick="HideDelete();"></input>
-                </div>
+            <div class="form-group">
+              <label class='control-label col-sm-2' for='name'>Name:</label>
+              <div class="col-sm-10">
+                <input type="text" title="name" name="name"></input>
+              </div>
             </div>
-        </form>
+
+            <div class="form-group">
+              <div class="col-sm-12">
+                <div class="pull-right">
+                  <input class="btn btn-success" type="submit" value="Create"></input>
+                  <input class="btn btn-danger" type="button" value="Cancel" data-dismiss='modal'></input>
+                </div>
+              </div>
+            </div>
+
+          </form>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <div class="modal fade" id="moveModal">
+    <div class='modal-dialog modal-sm'>
+      <div class='modal-content'>
+        <div class='modal-header'>
+          <button type="button" class='close' data-dismiss='modal' aria-label="close"><span aria-hidden="true">&times;</span></button>
+          <h3 class='modal-title'>Move Object</h3>
+        </div>
+        <div class='modal-body'>
+          <form action="/move" method="POST">
+            {% csrf_token %}
+            <input id="moveIdInput" type="hidden" name="id" value=""></input>
+            <input type="hidden" name="path" value="{{ path }}"></input>
+            <div class="form-group">
+              <label for="newpath" class="control-label col-sm-2">New path:</label>
+              <div class="col-sm-10">
+                <input type="text" title="newpath" name="newpath" value="{{ path }}"></input>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="col-sm-12">
+                <div class="pull-right">
+                  <input class="btn btn-success" type="submit" value="Move"></input>
+                  <input class="btn btn-danger" type="button" value="Cancel" data-dismiss='modal'></input>
+                </div>
+              </div>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="deleteModal">
+    <div class='modal-dialog modal-sm'>
+      <div class='modal-content'>
+        <div class='modal-body'>
+          <button type="button" class='close' data-dismiss='modal' aria-label="close"><span aria-hidden="true">&times;</span></button>
+          <form action="/delete" method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="path" value="{{ path }}"></input>
+            <p class="label">Are you sure you want to delete this?</p>
+            <div style="display:inline-block;">
+              <input id="deleteIdInput" type="hidden" name="id" value=""></input>
+              <input type="submit" value="Delete"></input>
+              <input type="button" value="Cancel" onclick="HideDelete();"></input>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
 {% endblock footer %}

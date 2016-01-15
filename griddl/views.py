@@ -3,7 +3,7 @@ import logging
 from django import forms
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.http import HttpResponseNotFound
+from django.http import HttpResponseNotFound, HttpResponseBadRequest
 from django.shortcuts import render
 from django.contrib import messages
 from django.core.urlresolvers import reverse
@@ -328,7 +328,7 @@ def createDir(request):
 @login_required
 def rename(request):
     wb = Workbook.objects.filter(pk=request.POST['id'])[0]
-    if wb.owner != request.user:
+    if wb.owner != request.user.account:
         return HttpResponse('Access denied')
     wb.name = request.POST['newname']
     wb.save()
@@ -337,17 +337,21 @@ def rename(request):
 
 @login_required
 def delete(request):
+    pk = request.POST.get('id', False)
+    if not pk:
+        return HttpResponseBadRequest()
     wb = Workbook.objects.filter(pk=request.POST['id'])[0]
-    if wb.owner != request.user:
+    if wb.owner != request.user.account:
         return HttpResponse('Access denied')
     wb.delete()
-    return HttpResponseRedirect(wb.uri)
+    return HttpResponseRedirect(
+        reverse(profile, kwargs={'userid': request.user.account.pk}))
 
 
 @login_required
 def move(request):
     wb = Workbook.objects.filter(pk=request.POST['id'])[0]
-    if wb.owner != request.user:
+    if wb.owner != request.user.account:
         return HttpResponse('Access denied')
     wb.path = request.POST['newpath']
     wb.save()

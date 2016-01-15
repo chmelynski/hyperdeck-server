@@ -44,7 +44,7 @@ class Workbook(models.Model):
             sep = '/'
         else:
             sep = ''
-        return '/{}/{}/{}{}{}'.format(self.filetype, self.owner.pk,
+        return '/{}/{}/{}{}{}'.format(self.filetype.lower(), self.owner.pk,
                                       self.path, sep, self.name)
 
     uri = property(_build_uri)
