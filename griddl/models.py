@@ -38,6 +38,17 @@ class Workbook(models.Model):
     # path to containing directory
     path = models.CharField(max_length=2000, blank=True)
 
+    def _build_uri(self):
+        """convenience for redirects & such"""
+        if len(self.path):
+            sep = '/'
+        else:
+            sep = ''
+        return '/{}/{}/{}{}{}'.format(self.filetype, self.owner.pk,
+                                      self.path, sep, self.name)
+
+    uri = property(_build_uri)
+
     def _get_size(self):
         return len(self.text)
 
