@@ -57,7 +57,9 @@
 
 
 
-var fonts = {
+if (typeof Griddl === 'undefined') { var Griddl = {}; }
+
+Griddl.fonts = {
 "Times New Roman":
 {
 " ":{"path":null,"width":1000},
