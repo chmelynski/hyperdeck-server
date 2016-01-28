@@ -65,7 +65,8 @@ def subscription_change(request, planid, userid):
         if planid < acct.plan.pk:
             msg = "Your plan will be downgraded at the end of the current \
                    billing period"
-            acct.subscription.status = "downgrade pending"
+            acct.subscription.status = 2
+            acct.subscription.status_detail = planid
             acct.subscription.save()
         else:
             acct.plan = Plan.objects.get(pk=planid)
@@ -117,9 +118,18 @@ def subscriptions(request):
         details['link'] = "/%s/%d/%d" % (endpoint, plan.id,
                                          request.user.account.pk)
         if plan.pk < request.user.account.plan.pk:
-            details['disabled'] = True
+            details['direction'] = "Downgrade"
+            details['btn_class'] = "warning"
+        elif plan.pk > request.user.account.plan.pk:
+            details['direction'] = "Upgrade"
+            details['btn_class'] = "success"
         elif plan == request.user.account.plan:
             details['current_plan'] = True
+            details['btn_class'] = "default disabled"
+        elif (request.user.account.subscription.status == 2
+              and plan.pk == request.user.account.subscription.status_detail):
+                details['direction'] = "Downgrade Pending"
+                details['btn_class'] = "default disabled"
         upgrades.append(details)
     context = {'upgrades': upgrades}
     return render(request, 'billing/subscribe.htm', context)
@@ -190,7 +200,7 @@ class Create(FastSpringNotificationView):
             referrer.account.plan = referrer.plan
 
             subscription = Subscription()
-            subscription.status = 'created'
+            subscription.status = 1
             subscription.plan = referrer.plan
             subscription.reference_id = data['id']
             subscription.details_url = data['fs_url']

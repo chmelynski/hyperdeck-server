@@ -12,18 +12,28 @@ from griddl.models import Account, Plan
 BASE_URL = "https://sites.fastspring.com/adamchmelynski/instant/"
 API_URL = "https://api.fastspring.com/company/adamchmelynski/"
 
+SUBSCRIPTION_STATUSES = (
+    (0, "Inactive"),  # currently unused?
+    (1, "Active"),
+    (2, "Downgrade Pending"),
+    # may need more in the future, idk
+)
+
 
 class Subscription(models.Model):
     '''
     Holds current account status & external reference ID from FastSpring
+
+    Currently status_detail should only have a value if status == 2,
+    in which case it should be the id of the target plan following downgrade.
     '''
 
     reference_id = models.CharField(max_length=255,
                                     help_text="FastSpring reference ID",
                                     default=''
                                     )
-    status = models.CharField(max_length=8)  # todo: statuses
-    status_reason = models.CharField(max_length=20)
+    status = models.IntegerField(choices=SUBSCRIPTION_STATUSES, default=1)
+    status_detail = models.CharField(max_length=255, null=True)
     details_url = models.CharField(max_length=255,
                                    help_text="FastSpring details link",
                                    default=''
