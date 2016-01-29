@@ -51,7 +51,7 @@ def subscription_change(request, planid, userid):
     # NB when adding req params; prepare_xml super naive
     payload = prepare_xml(req)
     fs_user = settings.API_CREDENTIALS['fastspring']['login']
-    fs_pass = settings.API_CREDENTIALS['fastspring']['password']  # todo!!
+    fs_pass = settings.API_CREDENTIALS['fastspring']['password']
     headers = {'content-type': 'application/xml'}
     auth = requests.auth.HTTPBasicAuth(fs_user, fs_pass)
     if planid is 1:
