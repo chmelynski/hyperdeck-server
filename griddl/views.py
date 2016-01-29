@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import logging
 
 from django import forms
@@ -383,6 +385,30 @@ def workbook(request, userid, path, filename):
                 return HttpResponse('Access denied')
         else:
             return HttpResponse('Access denied')
+
+
+@login_required  # is it though?
+def export(request):
+    import StringIO
+    import zipfile
+    import datetime
+
+    workbooks = Workbook.objects.filter(owner=request.user.account)
+    mem = StringIO.StringIO()
+    with zipfile.ZipFile(mem, 'w') as archive:
+        for wb in workbooks:
+            archive.writestr(unicode(wb.name), unicode(wb.text))
+
+        for f in archive.filelist:  # this bit via internet o_O
+            f.create_system = 0
+
+    response = HttpResponse(mem.getvalue(),
+                            content_type="application/zip")
+    datestr = datetime.datetime.now().isoformat()
+    header = 'attachment; filename=archive{}.zip'.format(datestr)
+    response['Content-Disposition'] = header
+
+    return response
 
 
 def index(request):

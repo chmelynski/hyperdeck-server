@@ -31,6 +31,7 @@ urlpatterns = patterns(
     url(r'^delete$', views.delete),
     url(r'^move$', views.move),
     url(r'^togglepublic$', views.togglepublic),
+    url(r'^export$', views.export),
 )
 
 # builtin auth views

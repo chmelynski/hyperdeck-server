@@ -1,6 +1,9 @@
+from __future__ import unicode_literals
+
 import hashlib
 import json
 import logging
+
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.db import transaction

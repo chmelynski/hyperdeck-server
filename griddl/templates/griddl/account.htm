@@ -13,7 +13,12 @@
 {% block body %}
     <div class="row">
         <div class="col-xs-12">
-            <p><a href="{% url 'django.contrib.auth.views.password_change' %}" title="Change your password">Change your password</a>
+            <p><a href="{% url 'django.contrib.auth.views.password_change' %}" title="Change your password">Change your password</a></p>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-xs-12">
+          <a class="btn btn-default" title="Export" href="/export">Export data</a>
         </div>
     </div>
     <div class="row">

@@ -3,6 +3,8 @@ billing models
 NB: designed around FastSpring
 '''
 
+from __future__ import unicode_literals
+
 import hashlib
 from django.db import models
 
