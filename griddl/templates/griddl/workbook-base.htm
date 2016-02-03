@@ -130,4 +130,32 @@
         </form>
     </div>
 
+<div id="screen"></div>
+
+<div class="panel" id="documentSettingsPanel">
+<table>
+<tr><td colspan="4" style="font-weight:bold">Page dimensions</td></tr>
+<tr><td></td><td>width:</td><td><input type="text" id="pageWidth" value="8.5" style="text-align:right;width:50px"></input></td><td rowspan="2"><select id="unitSelector"><option>in</option><option>cm</option><option>mm</option><option>pt</option></select></td></tr>
+<tr><td></td><td>height:</td><td><input type="text" id="pageHeight" value="11" style="text-align:right;width:50px"></input></td></tr>
+</table>
+<hr />
+<table>
+<tr><td colspan="4" style="font-weight:bold">Resolution</td></tr>
+<tr><td></td><td><input type="text" id="pixelsPerUnit" value="72" style="text-align:center;width:50px"></input></td><td>pixels per <span id="unitResolution">in</span></td></tr>
+</table>
+<hr />
+<table>
+<tr><td colspan="4" style="font-weight:bold">User space units</td></tr>
+<tr><td></td><td><input type="text" id="usersPerUnit" value="100" style="text-align:center;width:50px"></input></td><td>user space units per <span id="unitUserspace">in</span></td></tr>
+</table>
+<hr />
+<table>
+<tr><td colspan="4" style="font-weight:bold">Snap grid</td></tr>
+<tr><td></td><td>Gridline spacing:</td><td><input type="text" id="gridlineSpacing" value="0.25" style="text-align:center;width:50px"></input></td><td><span id="unitSpacing">in</span></td></tr>
+<tr><td></td><td>Gridline highlight:</td><td><input type="text" id="gridlineHighlight" value="1.00" style="text-align:center;width:50px"></input></td><td><span id="unitHighlight">in</span></td></tr>
+</table>
+<button onclick="Griddl.UI.SaveDocumentSettings()">Save</button>
+<button onclick="Griddl.UI.CancelDocumentSettings()">Cancel</button>
+</div>
+
 {% endblock %}
