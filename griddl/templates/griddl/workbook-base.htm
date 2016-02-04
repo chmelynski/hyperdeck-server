@@ -78,6 +78,10 @@
     <div id="frce" style="display:none;">{{ workbook.text }}</div>
 
     <div id='cells'></div>
+    <div id='output'>
+        <canvas></canvas>
+        <canvas></canvas>
+    </div>
 
     <form id="saveForm" action="/save" method="POST" style="display:none;">
         {% csrf_token %}
