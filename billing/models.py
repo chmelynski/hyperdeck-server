@@ -59,7 +59,8 @@ class Subscription(models.Model):
 
     @property
     def period_end(self):
-        if self._period_end and self._period_end < datetime.date.today():
+        if not self._period_end or (self._period_end and
+                                    self._period_end < datetime.date.today()):
             self.next_period()
         return self._period_end
 
