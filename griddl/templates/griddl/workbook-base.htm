@@ -7,164 +7,219 @@
 
 
 {% block styles %}
-    {{ block.super }}
-    <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/codemirror-3.20.css' %}" />
-    <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/jquery.ui.css' %}" />
-    <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/jquery.handsontable.full.css' %}" />
-    <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/griddl.css' %}" />
+  {{ block.super }}
+  <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/codemirror-3.20.css' %}" />
+  <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/jquery.ui.css' %}" />
+  <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/jquery.handsontable.full.css' %}" />
+  <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/griddl.css' %}" />
+  <style>
+    .form-align {
+      margin-top: 1.8em !important;
+    }
+  </style>
 {% endblock %}
 
 
 {% block scripts %}
-    {{ block.super }}
-    <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-javascript.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-css.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-xml.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.mousewheel.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.handsontable.full.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/lib/jquery-ui.min.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/griddl.ui.js' %}"></script>
-   <!-- <script type='text/javascript' src="{% static 'griddl/js/griddl.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/lib/typeset.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/graphviz.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/layout.js' %}"></script> -->
-    <script type='text/javascript'>
-        owner = {{ workbook.owner.pk }};
-        $(document).ready(Griddl.Main);
-    </script>
+  {{ block.super }}
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-javascript.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-css.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-xml.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.mousewheel.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.handsontable.full.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/jquery-ui.min.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/griddl.ui.js' %}"></script>
+  <script type='text/javascript'>
+    owner = {{ workbook.owner.pk }};
+    $(document).ready(Griddl.Main);
+  </script>
 {% endblock %}
 
 
 {% block body %}
-    <input type="file" id="fileChooser" style="display:none" onchange="Griddl.IO.HandleLocalLoad(this.files)" />
+  <input type="file" id="fileChooser" style="display:none" onchange="Griddl.IO.HandleLocalLoad(this.files)" />
 
 
-    <div style="display:inline; margin-bottom:1em;">
-        <div style="display:inline-block; border:0px solid black; float:left;">
-            <a style="text-decoration:none; color:rgb(70,150,230); margin-right:1em; {% if user.is_authenticated %}{% if user == workbook.owner %}{% else %}display:none; {% endif %}{% else %}display:none; {% endif %}" href="/d/{{ user.pk }}{{ parentdir|yesno:'/,,' }}{{ parentdir }}">Parent dir</a>
+  <div class="row">
+    <div class="col-sm-12">
+      <div style="display:inline-block; float:left; margin-top: 1em;">
+        <a style="text-decoration:none; color:rgb(70,150,230); margin-right:1em; {% if user.is_authenticated %}{% if user == workbook.owner %}{% else %}display:none; {% endif %}{% else %}display:none; {% endif %}" href="/d/{{ user.pk }}{{ parentdir|yesno:'/,,' }}{{ parentdir }}">Parent dir</a>
             
-            {% if user.is_authenticated %}
-                {% if user.account == workbook.owner %}
-                    <button id="saveMenuButton" style="color:black;" onclick="$('#saveForm').submit()">Save</button>
-                    <button id="saveasMenuButton" style="color:black;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button>
-                {% else %}
-                    <button id="saveasMenuButton" style="color:black;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button>
-                {% endif %}
-            {% else %}
-                <button id="saveasMenuButton" style="color:gray;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button> <!-- or onclick="Griddl.UI.ShowLoginModal()" if you want to redirect -->
-            {% endif %}
+        {% if user.is_authenticated %}
+          {% if user.account == workbook.owner %}
+            <button class="btn btn-default" id="saveMenuButton" onclick="$('#saveForm').submit()">Save</button>
+            <button class="btn btn-default" id="saveasMenuButton" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button>
+          {% else %}
+            <button class="btn btn-default" id="saveasMenuButton" style="color:black;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button>
+          {% endif %}
+        {% else %}
+          <button class="btn btn-default" id="saveasMenuButton" style="color:gray;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button> <!-- or onclick="Griddl.UI.ShowLoginModal()" if you want to redirect -->
+        {% endif %}
             
-            {% block menuitems %}{% endblock %}
+        <div class="btn-group">    
+          <button class="btn btn-default" onclick='Griddl.UI.ComponentsOnly()'>Components Only</button>
+          <button class="btn btn-default" onclick='Griddl.UI.SplitScreen()'>Split Screen</button>
+          <button class="btn btn-default" onclick='Griddl.UI.DocumentOnly()'>Document Only</button>
         </div>
-        <div style="display:inline-block; border:0px solid black; float:right;">
-            {% if user.is_authenticated %}
-                <a id="profileLink" style="visibility:visible; text-decoration:none; color:rgb(70,150,230); margin-right:1em;" href="/d/{{ user.pk }}">Profile</a>
-            {% else %}
-                <a id="profileLink" style="visibility:hidden; text-decoration:none; color:rgb(70,150,230); margin-right:1em;" href="/d/{{ user.pk }}">Profile</a>
-            {% endif %}
-            
-            {% if user.is_authenticated %}
-                <a id="logoutLink" style="display:inline; text-decoration:none; cursor:pointer; color:rgb(70,150,230); margin-right:1em;" href="/logout">Logout</a>
-                <a id="loginLink" style="display:none; text-decoration:none; cursor:pointer; color:rgb(70,150,230); margin-right:1em;" onclick="Griddl.UI.ShowLoginModal()">Login</a>
-            {% else %}
-                <a id="logoutLink" style="display:none; text-decoration:none; cursor:pointer; color:rgb(70,150,230); margin-right:1em;" href="/logout">Logout</a>
-                <a id="loginLink" style="display:inline; text-decoration:none; cursor:pointer; color:rgb(70,150,230); margin-right:1em;" onclick="Griddl.UI.ShowLoginModal()">Login</a>
-            {% endif %}
-        </div>
-        <button onclick='Griddl.UI.ComponentsOnly()'>Components Only</button>
-        <button onclick='Griddl.UI.SplitScreen()'>Split Screen</button>
-        <button onclick='Griddl.UI.DocumentOnly()'>Document Only</button>
-        <button onclick='Griddl.UI.ShowDocumentSettingsPanel()'>Document Settings</button>
+        <button class="btn btn-default" data-toggle="modal" data-target="#documentSettings">Document Settings</button>
+      </div>
     </div>
+  </div>
 
-    <!-- use? {% autoescape off %}{% endautoescape %} -->
-    <div id="frce" style="display:none;">{{ workbook.text }}</div>
+  <div class="row">
+    <div class="col-sm-6">
 
-    <div id='cells'></div>
-    <div id='output'>
-        <canvas></canvas>
-        <canvas></canvas>
+      <!-- use? {% autoescape off %}{% endautoescape %} -->
+      <div id="frce">{{ workbook.text }}</div>
+
+      <div id='cells'></div>
     </div>
-
-    <form id="saveForm" action="/save" method="POST" style="display:none;">
-        {% csrf_token %}
-        <input type="hidden" name="id" value="{{ workbook.pk }}"></input>
-        <input id="saveFormTextInput" type="hidden" name="text" value=""></input>
-    </form>
-
-    <div id="saveAsScreen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:997; opacity:0.6; background-color:#444444;"></div>
-    <div id="saveAsDialog" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; margin:auto; width:20%; height:40%; z-index:998; opacity:1.0; background-color:#ffffff;">
-        <form id="saveasForm" action="/saveas" method="POST">
-            {% csrf_token %}
-            <div style="position:absolute; left:0; top:0; right:0; bottom:0; margin:auto; width:60%; height:40%; z-index:999; background-color:#ffffff;">
-                <label>New name:</label>
-                <div style="display:inline-block;">
-                    <input type="hidden" name="id" value="{{ workbook.pk }}"></input>
-                    <input id="saveasFormTextInput" type="hidden" name="text" value=""></input>
-                    <input type="text" name="newname"></input>
-                    <input type="submit" value="Save"></input>
-                    <input type="button" value="Cancel" onclick="Griddl.UI.HideSaveAsModal();"></input>
-                </div>
-            </div>
-        </form>
+    <div class="col-sm-6">
+      <div id='output'>
+          <canvas></canvas>
+          <canvas></canvas>
+      </div>
     </div>
+  </div>
 
-    <div id="loginScreen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:997; opacity:0.6; background-color:#444444;"></div>
-    <div id="loginDialog" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; margin:auto; width:20%; height:40%; z-index:998; opacity:1.0; background-color:#ffffff;">
-        <form id="loginForm" action="/ajaxlogin" method="POST">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="/newcsrftoken"></input>
-            <div style="position:absolute; left:0; top:0; right:0; bottom:0; margin:auto; width:60%; height:40%; z-index:999; background-color:#ffffff;">
-                <div style="display:inline-block;">
-                    <table>
-                        <tr>
-                            <td><label>Username:</label></td>
-                            <td><input id="loginFormUsername" type="text" name="username"></input></td>
-                        </tr>
-                        <tr>
-                            <td><label>Password:</label></td>
-                            <td><input id="loginFormPassword" type="password" name="password"></input></td>
-                        </tr>
-                        <tr>
-                            <td><input type="button" value="Log in" onclick="Griddl.UI.SubmitLoginForm();"></input></td>
-                            <td><input type="button" value="Sign up" onclick="Griddl.UI.SubmitSignupForm();"></input></td>
-                        </tr>
-                        <tr>
-                            <td><input type="button" value="Cancel" onclick="Griddl.UI.HideLoginModal();"></input></td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
-        </form>
-    </div>
+  <form id="saveForm" action="/save" method="POST" style="display:none;">
+    {% csrf_token %}
+    <input type="hidden" name="id" value="{{ workbook.pk }}"></input>
+    <input id="saveFormTextInput" type="hidden" name="text" value=""></input>
+  </form>
+
+  <div id="saveAsScreen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:997; opacity:0.6; background-color:#444444;"></div>
+  <div id="saveAsDialog" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; margin:auto; width:20%; height:40%; z-index:998; opacity:1.0; background-color:#ffffff;">
+      <form id="saveasForm" action="/saveas" method="POST">
+          {% csrf_token %}
+          <div style="position:absolute; left:0; top:0; right:0; bottom:0; margin:auto; width:60%; height:40%; z-index:999; background-color:#ffffff;">
+              <label>New name:</label>
+              <div style="display:inline-block;">
+                  <input type="hidden" name="id" value="{{ workbook.pk }}"></input>
+                  <input id="saveasFormTextInput" type="hidden" name="text" value=""></input>
+                  <input type="text" name="newname"></input>
+                  <input type="submit" value="Save"></input>
+                  <input type="button" value="Cancel" onclick="Griddl.UI.HideSaveAsModal();"></input>
+              </div>
+          </div>
+      </form>
+  </div>
+
+  <div id="loginScreen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:997; opacity:0.6; background-color:#444444;"></div>
+  <div id="loginDialog" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; margin:auto; width:20%; height:40%; z-index:998; opacity:1.0; background-color:#ffffff;">
+      <form id="loginForm" action="/ajaxlogin" method="POST">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="/newcsrftoken"></input>
+          <div style="position:absolute; left:0; top:0; right:0; bottom:0; margin:auto; width:60%; height:40%; z-index:999; background-color:#ffffff;">
+              <div style="display:inline-block;">
+                  <table>
+                      <tr>
+                          <td><label>Username:</label></td>
+                          <td><input id="loginFormUsername" type="text" name="username"></input></td>
+                      </tr>
+                      <tr>
+                          <td><label>Password:</label></td>
+                          <td><input id="loginFormPassword" type="password" name="password"></input></td>
+                      </tr>
+                      <tr>
+                          <td><input type="button" value="Log in" onclick="Griddl.UI.SubmitLoginForm();"></input></td>
+                          <td><input type="button" value="Sign up" onclick="Griddl.UI.SubmitSignupForm();"></input></td>
+                      </tr>
+                      <tr>
+                          <td><input type="button" value="Cancel" onclick="Griddl.UI.HideLoginModal();"></input></td>
+                      </tr>
+                  </table>
+              </div>
+          </div>
+      </form>
+  </div>
 
 <div id="screen"></div>
 
-<div class="panel" id="documentSettingsPanel">
-<table>
-<tr><td colspan="4" style="font-weight:bold">Page dimensions</td></tr>
-<tr><td></td><td>width:</td><td><input type="text" id="pageWidth" value="8.5" style="text-align:right;width:50px"></input></td><td rowspan="2"><select id="unitSelector"><option>in</option><option>cm</option><option>mm</option><option>pt</option></select></td></tr>
-<tr><td></td><td>height:</td><td><input type="text" id="pageHeight" value="11" style="text-align:right;width:50px"></input></td></tr>
-</table>
-<hr />
-<table>
-<tr><td colspan="4" style="font-weight:bold">Resolution</td></tr>
-<tr><td></td><td><input type="text" id="pixelsPerUnit" value="72" style="text-align:center;width:50px"></input></td><td>pixels per <span id="unitResolution">in</span></td></tr>
-</table>
-<hr />
-<table>
-<tr><td colspan="4" style="font-weight:bold">User space units</td></tr>
-<tr><td></td><td><input type="text" id="usersPerUnit" value="100" style="text-align:center;width:50px"></input></td><td>user space units per <span id="unitUserspace">in</span></td></tr>
-</table>
-<hr />
-<table>
-<tr><td colspan="4" style="font-weight:bold">Snap grid</td></tr>
-<tr><td></td><td>Gridline spacing:</td><td><input type="text" id="gridlineSpacing" value="0.25" style="text-align:center;width:50px"></input></td><td><span id="unitSpacing">in</span></td></tr>
-<tr><td></td><td>Gridline highlight:</td><td><input type="text" id="gridlineHighlight" value="1.00" style="text-align:center;width:50px"></input></td><td><span id="unitHighlight">in</span></td></tr>
-</table>
-<button onclick="Griddl.UI.SaveDocumentSettings()">Save</button>
-<button onclick="Griddl.UI.CancelDocumentSettings()">Cancel</button>
+{% endblock %}
+
+
+{% block footer %}
+
+<div class="modal fade" id="documentSettings">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h3>Document Settings</h3>
+      </div>
+      <div class="modal-body">
+      <form class="form-horizontal">
+
+        <div class="form-group">
+          <label class="col-sm-3 control-label form-align">Page Dimensions</label>
+          <div class="col-sm-3">
+            <label for="pageWidth" class="control-label small">Width</label>
+            <input type="number" id="pageWidth" name="pageWidth" value="8.5" class="form-control" />
+          </div>
+          <div class="col-sm-3">
+            <label for="pageHeight" class="control-label small">Height</label>
+            <input type="number" id="pageHeight" name="pageHeight" value="11" class="form-control" />
+          </div>
+          <div class="col-sm-2">
+            <label for="unitSelector" class="sr-only">Units</label>
+            <select name="unitSelector" id="unitSelector" class="form-control form-align">
+              <option>in</option>
+              <option>cm</option>
+              <option>mm</option>
+              <option>pt</option>
+            </select>
+          </div>
+        </div>
+
+        <hr />
+        <div class="form-group">
+          <label for="resolution" class="col-sm-3 control-label">Resolution</label>
+          <div class="col-sm-3">
+            <input type="number" id="resolution" name="resolution" class="form-control" value="72" aria-describedby="resolution-help" />
+          </div>
+          <div class="col-sm-6">
+            <span id="resolution-help" class="help-block">pixels per <span class="units">in</span></span>
+          </div>
+        </div>
+
+        <hr />
+        <div class="form-group">
+          <label for="usersPerUnit" class="control-label col-sm-3">User space units</labeL>
+          <div class="col-sm-3">
+            <input type="number" id="usersPerUnit" name="usersPerUnit" value="100" class="form-control" aria-describedby="usersPerUnit-help" />
+          </div>
+          <div class="col-sm-6">
+            <span id="usersPerUnit-help" class="help-block">user space units per <span class="units">in</span></span>
+          </div>
+        </div>
+
+        <hr />
+        <div class="form-group">
+          <label class="control-label col-sm-3 form-align">Snap Grid</labeL>
+          <div class="col-sm-4">
+            <label class="control-label small" for="gridlineSpacing">Gridline spacing:</label>
+            <input type="number" id="gridlineSpacing" name="gridlineSpacing" value="0.25" class="form-control" aria-describedby="gridlineSpacing-help" style="width: 75%; display: inline-block;" />
+            <span class="help-block units" id="gridlineSpacing-help" style="display: inline-block;">in</span>
+          </div>
+          <div class="col-sm-3">
+            <label class="control-label small" for="gridlineHighlight">Gridline highlight:</label>
+            <input type="number" id="gridlineHighlight" name="gridlineHighlight" value="0.25" class="form-control" aria-describedby="gridlineHighlight-help" style="width: 75%; display: inline-block;" />
+            <span class="help-block units" id="gridlineHighlight-help" style="display: inline-block;">in</span>
+          </div>
+        </div>
+
+        <hr />
+        <div class="form-group">
+          <div class="col-sm-4 col-sm-offset-8">
+            <button onclick="Griddl.UI.SaveDocumentSettings()" class="btn btn-success" id="settings-submit">Save</button>
+            <a class="btn btn-default" id="settings-cancel" onclick="Griddl.UI.CancelDocumentSettings()">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
 
-{% endblock %}
+{% endblock footer %}

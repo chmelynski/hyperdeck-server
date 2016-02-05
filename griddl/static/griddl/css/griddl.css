@@ -1,7 +1,5 @@
 
 #fileChooser { display:none; }
-#frce { display:none; }
-#cells { position:absolute; top:3em; left:2em; width:40em; height:40em; overflow:auto; }
 
 .griddl-component { margin:1em; }
 .griddl-component-head { }
@@ -28,32 +26,3 @@
 .griddl-header-button { }
 .gapRight { margin-right:1em; }
 .gapLeft { margin-left:1em; }
-
-#screen {
-	display : none;
-	position : fixed;
-	top : 0;
-	left : 0;
-	width : 100%;
-	height : 100%;
-	z-index : 997;
-	opacity : 0.6;
-	background-color : #444444;
-}
-
-.panel {
-	display : none;
-	position : fixed;
-	left : 0;
-	top : 0;
-	right : 0;
-	bottom : 0;
-	margin : auto;
-	width : 30%;
-	height : 60%;
-	overflow-y : auto;
-	z-index : 998;
-	opacity : 1.0;
-	background-color : #ffffff;
-}
-

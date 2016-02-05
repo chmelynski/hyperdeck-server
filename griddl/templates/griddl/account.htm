@@ -1,14 +1,7 @@
 {% extends 'griddl/__base.htm' %}
 {% load staticfiles %}
 
-{% block title %} Your Account | {{ block.super }} {% endblock %}
-
-{% block header %}
-  <div style="display:inline-block; border:0px solid black; float:right; margin-top:1em;">
-    <a href="/{{ acct.pk }}" style="margin-right:2em;">Profile</a>
-    <a href="/logout" style="text-decoration:none; color:rgb(70,150,230); margin-right:2em;">Sign out</a>
-  </div>
-{% endblock header %}
+{% block title %} Your Account | {{ block.super }} {% endblock title %}
 
 {% block body %}
   <div class="row">

@@ -1,0 +1,23 @@
+body {
+  padding-top: 70px;
+}
+
+.navbar-right {
+  margin-top: 1em;
+}
+
+.btn span.fa, button span.fa {
+  vertical-align: middle;
+}
+
+
+/* temporary */
+#frce {
+  display: block;
+  background-color: rgb(126,76,99);
+}
+
+#output {
+  display: block;
+  background-color: rgb(117,103,132);
+}

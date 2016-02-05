@@ -27,7 +27,7 @@ def logoutView(request):
 
 def login_redirect(request):
     return HttpResponseRedirect(
-        reverse(profile, kwargs={'userid': request.user.account.pk}))
+        reverse(directory, kwargs={'userid': request.user.account.pk}))
 
 
 class SignupForm(forms.Form):
@@ -95,11 +95,11 @@ def register(request):
 
         user = authenticate(username=username, password=password)
         login(request, user)
-        # change to return profileRedirect(request)
+        # change to return directoryRedirect(request)
         messages.success(request,
                          "Congratulations, your account has been created!")
         return HttpResponseRedirect(
-            reverse(profile, kwargs={'userid': user.pk}))
+            reverse(directory, kwargs={'userid': user.pk}))
 
 
 def ajaxregister(request):
@@ -127,16 +127,20 @@ def ajaxregister(request):
 
 
 @login_required
-def profile(request, userid):
-    '''
-    todo: this is different from user's topmost directory, right?
-          -- not currently, but probably should be
-    '''
+def directoryRedirect(request):
+    return HttpResponseRedirect(reverse(directory,
+                                        args=(request.user.account.pk,)))
+
+
+@login_required
+def directory(request, userid, path=None):
     if request.user.account.pk != int(userid):
-        return HttpResponseRedirect(reverse(profile,
+        return HttpResponseRedirect(reverse(directory,
                                             args=(request.user.account.pk,)))
 
-    wbs = Workbook.objects.filter(owner=request.user.account.pk)
+    wbs = Workbook.objects.filter(owner=request.user.account.pk, path=path) \
+        .order_by('filetype', 'name')
+
     if saveas in request.session:  # hack for saveas for new account
         with transaction.atomic():
             wbs.filter(name='My First Workbook').delete()
@@ -151,32 +155,16 @@ def profile(request, userid):
             del(request.session['saveas'])
 
     dwbs = DefaultWorkbook.objects.filter()
-    context = {"workbooks": wbs, "defaultWorkbooks": dwbs}
-    return render(request, 'griddl/profile.htm', context)
-
-
-@login_required
-def profileRedirect(request):
-    return HttpResponseRedirect(reverse(profile,
-                                        args=(request.user.account.pk,)))
-
-
-@login_required
-def directory(request, userid, path):
-    if request.user.account.pk != int(userid):
-        return HttpResponseRedirect(reverse(profile,
-                                            args=(request.user.account.pk,)))
-
-    wbs = Workbook.objects.filter(owner=request.user.account.pk, path=path) \
-        .order_by('filetype', 'name')
-    dwbs = DefaultWorkbook.objects.filter()
     context = {
         "workbooks": wbs,
         "defaultWorkbooks": dwbs,
-        "parentdir": path[:-(len(path.split('/')[-1])+1)],
-        "path": path
         }
-    return render(request, 'griddl/profile.htm', context)
+    if path:
+        context.update({
+            "parentdir": path[:-(len(path.split('/')[-1])+1)],  # todo: model
+            "path": path
+        })
+    return render(request, 'griddl/directory.htm', context)
 
 
 @login_required
@@ -345,7 +333,7 @@ def delete(request):
         return HttpResponse('Access denied')
     wb.delete()
     return HttpResponseRedirect(
-        reverse(profile, kwargs={'userid': request.user.account.pk}))
+        reverse(directory, kwargs={'userid': request.user.account.pk}))
 
 
 @login_required
