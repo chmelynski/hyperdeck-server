@@ -129,14 +129,15 @@ def ajaxregister(request):
 @login_required
 def directoryRedirect(request):
     return HttpResponseRedirect(reverse(directory,
-                                        args=(request.user.account.pk,)))
+                                        args=(request.user.account.pk, '',)))
 
 
 @login_required
 def directory(request, userid, path=None):
     if request.user.account.pk != int(userid):
         return HttpResponseRedirect(reverse(directory,
-                                            args=(request.user.account.pk,)))
+                                            args=(request.user.account.pk,
+                                                  '',)))
 
     wbs = Workbook.objects.filter(owner=request.user.account.pk, path=path) \
         .order_by('filetype', 'name')
