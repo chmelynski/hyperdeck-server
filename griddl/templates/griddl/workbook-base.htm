@@ -29,7 +29,14 @@
   <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.mousewheel.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.handsontable.full.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/jquery-ui.min.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/griddl.core.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/griddl.ui.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/griddl.io.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/griddl.components.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/griddl.canvas.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/griddl.widgets.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/griddl.pdf.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/griddl.typeset.js' %}"></script>
   <script type='text/javascript'>
     owner = {{ workbook.owner.pk }};
     $(document).ready(Griddl.Main);
