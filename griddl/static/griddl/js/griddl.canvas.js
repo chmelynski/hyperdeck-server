@@ -139,6 +139,11 @@ Griddl.Canvas = (function() {
 		this.lineWidth = 1;
 	}
 	
+	
+	function Page() {
+		
+	}
+	
 	Canvas.NewDocument = function(params) {
 		
 		// params:
@@ -146,73 +151,6 @@ Griddl.Canvas = (function() {
 		//  type - default is 'canvas'
 		//  unitsToPx - default 1
 		//  unitsToPt - default 1
-		
-		
-		
-		// GenerateDocument button should execute the first js component in the list - remove hardcoded 'draw' dependence
-		
-		// the characteristic here is that we don't know in advance how many pages will be created - we leave that up to usercode, with calls of g.NewPage()
-		
-		
-		// elt can be a <canvas>, <svg>, or <div>, or an #id string that resolves to one of those
-		// if elt is a <div>, the type argument must be 'canvas' or 'svg'
-		
-		
-		
-		//var theelt = null;
-		//
-		//if (typeof(elt) == 'string')
-		//{
-		//	theelt = $('#' + elt);
-		//}
-		//else
-		//{
-		//	theelt = elt;
-		//}
-		//
-		//var thetype = null;
-		//var thecanvas = null;
-		//
-		//if (elt.name == 'canvas')
-		//{
-		//	g.canvas == elt;
-		//	var ctx = g.canvas.getContext('2d');
-		//}
-		//else if (elt.name == 'svg')
-		//{
-		//	
-		//}
-		//else if (elt.name == 'div')
-		//{
-        //
-		//}
-		//else
-		//{
-		//	throw new Error();
-		//}
-		//
-		//if (type == 'canvas')
-		//{
-		//	var canvas = document.createElement('canvas');
-		//	canvas.width = width;
-		//	canvas.height = height;
-		//	thediv.html('');
-		//	thediv.append(canvas);
-		//	g.canvas = canvas; // canvas
-		//	
-		//	page.width = canvas.width; // canvas
-		//	page.height = canvas.height; // canvas
-		//	
-		//}
-		//else if (type == 'svg')
-		//{
-		//	page.width = width ? width : thediv.width; // svg
-		//	page.height = height ? height : thediv.height; // svg
-		//}
-		//else
-		//{
-		//	throw new Error();
-		//}
 		
 		var div = null;
 		var type = 'canvas';
@@ -237,9 +175,9 @@ Griddl.Canvas = (function() {
 		
 		if (typeof window != 'undefined')
 		{
-			//var parentDiv = CreateOutputDiv(div, Canvas.CreateButtonDivFour);
-			var parentDiv = CreateOutputDiv(div, null, params);
-			g.parentDiv = parentDiv;
+			//var parentDiv = CreateOutputDiv(div, null, params);
+			var parentDiv = document.getElementById('output');
+			g.parentDiv = $(parentDiv);
 		}
 		
 		Griddl.g = g; // this is a hook for node, used in RenderSvg
@@ -296,6 +234,7 @@ Griddl.Canvas = (function() {
 			var canvas = $(document.createElement('canvas'));
 			canvas[0].width = pxWidth;
 			canvas[0].height = pxHeight;
+			canvas.attr('tabIndex', this.pages.length.toString());
 			div.append(canvas);
 			
 			var ctx = canvas[0].getContext('2d');
@@ -346,171 +285,6 @@ Griddl.Canvas = (function() {
 		this.eltStrings = page.eltStrings;
 		this.currentPage = page;
 	};
-	
-	// helpers for the constructor functions - this is fairly specific to the particulars of the component layout
-	// which is to say, maybe it should be with the component stuff - it's typically called from a component, after all
-	function CreateOutputDiv(div, buttonDivFn, params) {
-		
-		var thediv = null;
-		
-		if (div === null || div === undefined)
-		{
-			var existing = $('#output'); // hardcoded selector
-			
-			if (existing.length == 0)
-			{
-				var divWidth = (params ? (params.divWidth ? params.divWidth : '54em') : '54em');
-				var divHeight = (params ? (params.divHeight ? params.divHeight : '40em') : '40em');
-				
-				var outputDiv = $(document.createElement('div'));
-				outputDiv.attr('id', 'output');
-				outputDiv.css('position', 'absolute');
-				outputDiv.css('top', '5em');
-				outputDiv.css('left', '45em');
-				outputDiv.css('width', divWidth);
-				outputDiv.css('height', divHeight);
-				//outputDiv.css('border', '1px solid #c3c3c3');
-				outputDiv.css('overflow', 'auto');
-				$('body').append(outputDiv);
-				
-				if (buttonDivFn) { buttonDivFn(); }
-				
-				thediv = outputDiv;
-			}
-			else
-			{
-				thediv = existing;
-			}
-		}
-		else
-		{
-			thediv = (typeof(div) == 'string') ? $(div) : div;
-		}
-		
-		thediv.html('');
-		
-		return thediv;
-	}
-	Canvas.CreateButtonDivTwo = function() {
-		
-		// #buttons {
-		// position:absolute;
-		// top:4em;
-		// left:45em;
-		// }
-		// 
-		// <button id="write" onclick="Griddl.RunCode('draw')">Generate Document</button>
-		// <button onclick="Griddl.ExportLocalPdf('draw', 'document')">Export to PDF</button>
-		
-		$('#buttons').remove();
-		
-		var buttonDiv = $(document.createElement('div'));
-		buttonDiv.attr('id', 'buttons');
-		buttonDiv.css('position', 'absolute');
-		buttonDiv.css('top', '3em');
-		buttonDiv.css('left', '46em');
-		
-		var button1 = $(document.createElement('button'));
-		var button2 = $(document.createElement('button'));
-		
-		button1.css('margin-right', '3px');
-		
-		button1.attr('id', 'write');
-		
-		button1.on('click', function() { Griddl.RunCode('draw'); });
-		button2.on('click', function() { Griddl.ExportLocalPdf('draw', 'document'); });
-		
-		button1.text('Generate Document');
-		button2.text('Export to PDF');
-		
-		buttonDiv.append(button1);
-		buttonDiv.append(button2);
-		
-		$('body').append(buttonDiv);
-	}
-	Canvas.CreateButtonDivThree = function() {
-		
-		// #buttons {
-		// position:absolute;
-		// top:3em;
-		// left:45em;
-		// }
-		// 
-		// <button onclick="Griddl.ExportLocalCanvas('document')">Export to PNG</button>
-		// <button onclick="Griddl.ExportLocalSvg('svg', 'document')">Export to SVG</button>
-		// <button onclick="Griddl.ExportLocalPdf('draw', 'document')">Export to PDF</button>
-		
-		$('#buttons').remove();
-		
-		var buttonDiv = $(document.createElement('div'));
-		buttonDiv.attr('id', 'buttons');
-		buttonDiv.css('position', 'absolute');
-		buttonDiv.css('top', '3em');
-		buttonDiv.css('left', '45em');
-		
-		var button2 = $(document.createElement('button'));
-		var button3 = $(document.createElement('button'));
-		var button4 = $(document.createElement('button'));
-		
-		button2.on('click', function() { Griddl.ExportLocalCanvas('document'); });
-		button3.on('click', function() { Griddl.ExportLocalSvg('svg', 'document'); });
-		button4.on('click', function() { Griddl.ExportLocalPdf('draw', 'document'); });
-		
-		button2.text('Export to PNG');
-		button3.text('Export to SVG');
-		button4.text('Export to PDF');
-		
-		buttonDiv.append(button2);
-		buttonDiv.append(button3);
-		buttonDiv.append(button4);
-		
-		$('body').append(buttonDiv);
-	}
-	Canvas.CreateButtonDivFour = function() {
-		
-		// #buttons {
-		// position:absolute;
-		// top:3em;
-		// left:45em;
-		// }
-		// 
-		// <button id="write" onclick="Griddl.RunCode('draw')">Generate Document</button>
-		// <button onclick="Griddl.ExportLocalCanvas('document')">Export to PNG</button>
-		// <button onclick="Griddl.ExportLocalSvg('svg', 'document')">Export to SVG</button>
-		// <button onclick="Griddl.ExportLocalPdf('draw', 'document')">Export to PDF</button>
-		
-		$('#buttons').remove();
-		
-		var buttonDiv = $(document.createElement('div'));
-		buttonDiv.attr('id', 'buttons');
-		buttonDiv.css('position', 'absolute');
-		buttonDiv.css('top', '3em');
-		buttonDiv.css('left', '45em');
-		
-		var button1 = $(document.createElement('button'));
-		var button2 = $(document.createElement('button'));
-		var button3 = $(document.createElement('button'));
-		var button4 = $(document.createElement('button'));
-		
-		button1.attr('id', 'write');
-		
-		button1.on('click', function() { Griddl.RunCode('draw'); });
-		button2.on('click', function() { Griddl.ExportLocalCanvas('document'); });
-		button3.on('click', function() { Griddl.ExportLocalSvg('svg', 'document'); });
-		button4.on('click', function() { Griddl.ExportLocalPdf('draw', 'document'); });
-		
-		button1.text('Write');
-		button2.text('Export to PNG');
-		button3.text('Export to SVG');
-		button4.text('Export to PDF');
-		
-		buttonDiv.append(button1);
-		buttonDiv.append(button2);
-		buttonDiv.append(button3);
-		buttonDiv.append(button4);
-		
-		$('body').append(buttonDiv);
-	}
 	
 	// DumpSVG -> GenerateDocument
 	// FinalizeGraphics -> GenerateDocument
@@ -2671,599 +2445,57 @@ Griddl.Canvas = (function() {
 		MathJax.Hub.Queue(["Typeset", MathJax.Hub, id]);
 	};
 	
-	Canvas.prototype.DrawParasNaive = function(params) {
+	// JSON-based content organization
+	Canvas.GenerateDocument = function(json) {
 		
-		this.SetStyle(params.style);
+		var g = Griddl.Canvas.NewDocument({type:'canvas'});
 		
-		var pitch = params.pitch ? params.pitch : 20;
-		var words = Griddl.Wordize(params.text);
+		// probably should parametrize this - store the component name in the JSON
+		g.styles = Griddl.MakeHash(Griddl.GetData(json.styles.componentName), json.styles.keyField);
 		
-		var line = '';
+		var documentWidget = new Griddl.Widgets.Document(json);
 		
-		var boxIndex = 0;
-		var currentBox = params.boxes[boxIndex];
-		var left = currentBox.left;
-		var top = currentBox.top;
-		var width = currentBox.width;
-		var height = currentBox.height;
-		
-		var y = top;
-		
-		for (var i = 0; i < words.length; i++)
+		for (var i = 0; i < json.sections.length; i++)
 		{
-			var word = words[i];
+			var sectionJson = json.sections[i];
+			var sectionWidget = new Griddl.Widgets.Section(documentWidget, sectionJson);
 			
-			var testline = line + word;
-			var lineWidth = this.savedCanvasContext.measureText(testline).width;
+			documentWidget.sections.push(sectionWidget);
 			
-			if (lineWidth > width)
+			// perhaps check that orientation is either 'portrait' or 'landscape'
+			var pageWidth = (sectionWidget.orientation == 'portrait') ? documentWidget.page.width : documentWidget.page.height;
+			var pageHeight = (sectionWidget.orientation == 'portrait') ? documentWidget.page.height : documentWidget.page.width;
+			pageWidth *= documentWidget.pixelsPerUnit;
+			pageHeight *= documentWidget.pixelsPerUnit;
+			
+			for (var j = 0; j < json.sections[i].pages.length; j++)
 			{
-				this.fillText(line, left, y);
-				line = '';
-				y += pitch;
+				var pageJson = json.sections[i].pages[j];
+				var canvasPage = g.NewPage({width:pageWidth,height:pageHeight});
+				var pageWidget = new Griddl.Widgets.Page(sectionWidget, pageJson, canvasPage);
 				
-				if (y > top + height)
-				{
-					boxIndex++;
-					
-					if (boxIndex >= params.boxes.length) { return; } // we've run out of room
-					
-					currentBox = params.boxes[boxIndex];
-					left = currentBox.left;
-					top = currentBox.top;
-					width = currentBox.width;
-					height = currentBox.height;
-					y = top;
-				}
-			}
-			
-			line += word + ' ';
-		}
-		
-		if (line.length > 0)
-		{
-			this.fillText(line, left, y);
-		}
-	};
-	Canvas.prototype.DrawParas = function(params) {
-		
-		this.SetStyle(params.style);
-		
-		var text = params.text;
-		
-		var lineWidths = [];
-		var linePoints = [];
-		
-		var type = 'justify';
-		var tolerance = 3;
-		var center = false;
-		var verticalSpacing = params.pitch;
-		
-		for (var i = 0; i < params.boxes.length; i++)
-		{
-			var box = params.boxes[i];
-			var sumHeight = 0;
-			
-			while (sumHeight < box.height)
-			{
-				lineWidths.push(box.width);
-				linePoints.push({page:box.page,left:box.left,top:box.top+sumHeight});
-				sumHeight += verticalSpacing;
-			}
-		}
-		
-		var g = this;
-		var format = null;
-		
-		if (g.savedCanvasContext)
-		{
-			//format = Typeset.formatter(function(str) { return g.savedCanvasContext.measureText(str).width; });
-			format = Typeset.formatter(function(str) { return g.measureText(str); });
-		}
-		else
-		{
-			format = Typeset.formatter(function(str) { return g.measureText(str); });
-		}
-		
-		var nodes = format[type](text);
-		var breaks = Typeset.linebreak(nodes, lineWidths, { tolerance : tolerance });
-		if (breaks.length == 0) { throw new Error('Paragraph can not be set with the given tolerance'); }
-		
-		var lines = [];
-		var lineStart = 0;
-		
-		// Iterate through the line breaks, and split the nodes at the correct point.
-		for (var i = 1; i < breaks.length; i++)
-		{
-			var point = breaks[i].position;
-			var r = breaks[i].ratio;
-			
-			for (var j = lineStart; j < nodes.length; j++)
-			{
-				// After a line break, we skip any nodes unless they are boxes or forced breaks.
-				if (nodes[j].type === 'box' || (nodes[j].type === 'penalty' && nodes[j].penalty === -Typeset.linebreak.infinity))
-				{
-					lineStart = j;
-					break;
-				}
-			}
-			
-			lines.push({ ratio : r , nodes : nodes.slice(lineStart, point + 1) , position : point });
-			lineStart = point;
-		}
-		
-		var maxLength = Math.max.apply(null, lineWidths);
-		
-		for (var i = 0; i < lines.length; i++)
-		{
-			var line = lines[i];
-			var lineLength = i < lineWidths.length ? lineWidths[i] : lineWidths[lineWidths.length - 1];
-			
-			var x = linePoints[i].left;
-			var y = linePoints[i].top;
-			this.SetActivePage(linePoints[i].page);
-			
-			if (center) { x += (maxLength - lineLength) / 2; }
-			
-			for (var k = 0; k < line.nodes.length; k++)
-			{
-				var node = line.nodes[k];
+				sectionWidget.pages.push(pageWidget);
 				
-				if (node.type === 'box')
+				for (var k = 0; k < json.sections[i].pages[j].widgets.length; k++)
 				{
-					this.fillText(node.value, x, y);
-					x += node.width;
+					// the relationship between widgets and pages:
+					// it is possible for a widget (paragraphs and tables come to mind) to extend across multiple pages
+					// as such, we will need to rethink what data gets passed in to the widget and how it deals with it
+					// the widget probably should have access to the whole page, not just the canvas
+					
+					// probably the widget should be passed the Section it belongs to
+					
+					var widgetJson = json.sections[i].pages[j].widgets[k];
+					var widget = new Griddl.Widgets[widgetJson.type](g, Griddl.GetData(widgetJson.data, null), widgetJson);
+					
+					pageWidget.widgets.push(widget);
+					widget.page = pageWidget; // this should probably be moved into the widget constructor
 				}
-				else if (node.type === 'glue')
-				{
-					x += node.width + line.ratio * (line.ratio < 0 ? node.shrink : node.stretch);
-				}
-				else if (node.type === 'penalty' && node.penalty === 100 && k === line.nodes.length - 1)
-				{
-					this.fillText('-', x, y);
-				}
+				
+				// this and the onhover() call below should probably be gathered into Document.draw()
+				pageWidget.draw();
+				pageWidget.onhover();
 			}
-		}
-	};
-	Griddl.Wordize = function(text) {
-		
-		var words = [];
-		var word = '';
-		
-		var k = 0;
-		
-		while (k < text.length)
-		{
-			var c = text[k];
-			var n = c.charCodeAt();
-			
-			if (n == 32 || n == 9 || n == 13 || n == 10)
-			{
-				words.push(word);
-				word = '';
-			}
-			else
-			{
-				word += c;
-			}
-			
-			k++;
-		}
-		
-		if (word.length > 0)
-		{
-			words.push(word);
-		}
-		
-		return words;
-	};
-	Canvas.Substitute = function(templateName, variablesName) {
-		
-		var text = Griddl.GetData(templateName);
-		var vars = Griddl.GetData(variablesName);
-		
-		for (var i = 0; i < vars.length; i++)
-		{
-			var name = vars[i].name;
-			var value = vars[i].value;
-			
-			while (text.search('@' + name) >= 0)
-			{
-				text = text.replace('@' + name, value);
-			}
-		}
-		
-		return text;
-	};
-	
-	Canvas.prototype.MakeBox = function(page) {
-		
-		var box = {};
-		
-		box.lf = 0;
-		box.cx = page.width / 2;
-		box.rg = page.width;
-		box.ww = page.width;
-		box.wr = page.width / 2;
-		
-		box.tp = 0;
-		box.cy = page.height / 2;
-		box.bt = page.height;
-		box.hh = page.height;
-		box.hr = page.height / 2;
-		
-		return box;
-	};
-	
-	// code-based content organization
-	Canvas.prototype.AddText = function(text, params) {
-		
-		this.Save(); // a big difference between AddText and the normal was of doing things is that AddText presents a stateless interface
-		
-		if (params.style) { this.SetStyle(params.style); }
-		if (params.font) { this.font = params.font; }
-		
-		if (params.fontFamily) { this.fontFamily = params.fontFamily; }
-		if (params.fontSize) { this.fontSize = params.fontSize; }
-		if (params.fontSizeUnits) { this.fontSizeUnits = params.fontSizeUnits; }
-		if (params.stroke) { this.strokeStyle = params.stroke; }
-		if (params.fill) { this.fillStyle = params.fill; }
-		if (params.lineWidth) { this.lineWidth = params.lineWidth; }
-		if (params.textAlign) { this.textAlign = params.textAlign; }
-		if (params.textBaseline) { this.textBaseline = params.textBaseline; }
-		
-		var x = null;
-		var y = null;
-		
-		if (params.left)
-		{
-			this.textAlign = 'left';
-			x = params.left;
-		}
-		else if (params.cx)
-		{
-			this.textAlign = 'center';
-			x = params.cx;
-		}
-		else if (params.right)
-		{
-			this.textAlign = 'right';
-			x = params.right;
-		}
-		//else if (params.x)
-		//{
-		//	this.textAlign = 'left';
-		//	x = params.x;
-		//}
-		else
-		{
-			//throw new Error();
-		}
-		
-		if (params.top)
-		{
-			this.textBaseline = 'top';
-			y = params.top;
-		}
-		else if (params.cy)
-		{
-			this.textBaseline = 'middle';
-			y = params.cy;
-		}
-		else if (params.bottom)
-		{
-			this.textBaseline = 'bottom';
-			y = params.bottom;
-		}
-		else
-		{
-			//throw new Error();
-			//this.textBaseline = 'alphabetic';
-		}
-		
-		var parent = this.MakeBox(this.currentPage);
-		
-		if (params.parent)
-		{
-			parent = params.parent;
-		}
-		
-		if (params.anchor)
-		{
-			var t = params.anchor.split(" ");
-			var hIntern = t[0][0];
-			var hExtern = t[0][1];
-			var hOffset = parseFloat(t[1]);
-			var vIntern = t[2][0];
-			var vExtern = t[2][1];
-			var vOffset = parseFloat(t[3]);
-			
-			if (hIntern == 'L')
-			{
-				this.textAlign = 'left';
-			}
-			else if (hIntern == 'C')
-			{
-				this.textAlign = 'center';
-			}
-			else if (hIntern == 'R')
-			{
-				this.textAlign = 'right';
-			}
-			else
-			{
-				throw new Error();
-			}
-			
-			if (hExtern == 'L')
-			{
-				x = parent.lf + hOffset;
-			}
-			else if (hExtern == 'C')
-			{
-				x = parent.cx + hOffset;
-			}
-			else if (hExtern == 'R')
-			{
-				x = parent.rg - hOffset;
-			}
-			else if (hExtern == 'S')
-			{
-				throw new Error(); // figure this out
-			}
-			else
-			{
-				throw new Error();
-			}
-			
-			if (vIntern == 'T')
-			{
-				this.textBaseline = 'top';
-			}
-			else if (vIntern == 'C')
-			{
-				this.textBaseline = 'middle';
-			}
-			else if (vIntern == 'B')
-			{
-				this.textBaseline = 'bottom';
-			}
-			else
-			{
-				throw new Error();
-			}
-			
-			if (vExtern == 'T')
-			{
-				y = parent.tp + vOffset;
-			}
-			else if (vExtern == 'C')
-			{
-				y = parent.cy + vOffset;
-			}
-			else if (vExtern == 'B')
-			{
-				y = parent.bt - vOffset;
-			}
-			else if (vExtern == 'S')
-			{
-				throw new Error(); // figure this out
-			}
-			else
-			{
-				throw new Error();
-			}
-		}
-		
-		this.fillText(text, x, y);
-		
-		this.Restore();
-	};
-	Canvas.prototype.AddImage = function(image, params) {
-		
-		if (typeof(image) == 'string') { image = Griddl.GetData(image); } // get the HTMLImageElement
-		
-		var dw = params.width ? params.width : image.width;
-		var dh = params.height ? params.height : image.height;
-		var sx = params.sx ? params.sx : 0;
-		var sy = params.sy ? params.sy : 0;
-		var sw = params.sw ? params.sw : image.width;
-		var sh = params.sh ? params.sh : image.height;
-		
-		var x = null;
-		var y = null;
-		
-		if (params.left)
-		{
-			x = params.left;
-		}
-		else if (params.cx)
-		{
-			x = params.cx - dw / 2;
-		}
-		else if (params.right)
-		{
-			x = params.right - dw;
-		}
-		else
-		{
-			throw new Error();
-		}
-		
-		if (params.top)
-		{
-			y = params.top;
-		}
-		else if (params.cy)
-		{
-			y = params.cy - dh / 2;
-		}
-		else if (params.bottom)
-		{
-			y = params.bottom - dh;
-		}
-		else
-		{
-			throw new Error();
-		}
-		
-		this.DrawImage(image, x, y, dw, dh, sx, sy, sw, sh);
-	};
-	Canvas.prototype.AddList = function(listGridName) { Griddl.Charts.DrawList(this, listGridName); };
-	Canvas.prototype.AddTable = function(params) { Griddl.Charts.DrawTable(this, params); };
-	Canvas.prototype.AddParagraphs = function(params) { Griddl.Charts.DrawParas(this, params); };
-	Canvas.prototype.AddBarChart = function(params) { Griddl.Charts.DrawChart(this, 'bar', params.params, params.data, params.key); };
-	Canvas.prototype.AddLineChart = function(params) { Griddl.Charts.DrawChart(this, 'line', params.params, params.data, params.key); };
-	Canvas.prototype.AddScatterChart = function(params) { Griddl.Charts.DrawChart(this, 'bubble', params.params, params.data, params.key); };
-	
-	// table-based content organization
-	Canvas.prototype.DrawShapes = function(shapesName) {
-		
-		var shapes = Griddl.GetData(shapesName, []);
-		
-		var parents = Griddl.MakeHash(Griddl.GetData(shapesName));
-		
-		for (var i = 0; i < shapes.length; i++)
-		{
-			var obj = shapes[i];
-			this.SetActivePage(obj.page);
-			this.SetStyle(obj.style);
-			
-			var x = parseFloat(obj.x);
-			var y = parseFloat(obj.y);
-			
-			var focus = obj;
-			
-			while (focus.parent)
-			{
-				var parent = parents[focus.parent];
-				x += parseFloat(parent.x);
-				y += parseFloat(parent.y);
-				focus = parent;
-			}
-			
-			var width = parseFloat(obj.width);
-			var height = parseFloat(obj.height);
-			
-			var type = obj.shape;
-			
-			if (type == 'text')
-			{
-				this.fillText(obj.text, x, y);
-			}
-			else if (type == 'rect')
-			{
-				// change x and y based on hAlign and vAlign
-				this.fillRect(x + 0.5, y + 0.5, width, height);
-				this.strokeRect(x, y, width, height); // x and y may need a +0.5 or something
-			}
-		}
-	};
-	Canvas.prototype.DrawTexts = function(componentName) {
-		
-		var objs = Griddl.GetData(componentName, []);
-		
-		for (var i = 0; i < objs.length; i++)
-		{
-			var obj = objs[i];
-			this.SetActivePage(obj.page);
-			
-			var color = obj.color ? obj.color : 'black';
-			var hAlign = obj.hAlign ? obj.hAlign : 'left';
-			var vAlign = obj.vAlign ? obj.vAlign : 'middle';
-			
-			this.SetStyle(obj.style);
-			
-			var x = parseFloat(obj.x);
-			var y = parseFloat(obj.y);
-			
-			this.fillText(obj.text, x, y);
-		}
-	};
-	Canvas.prototype.DrawImages = function(componentName) {
-		
-		var objs = Griddl.GetData(componentName, []);
-		
-		for (var i = 0; i < objs.length; i++)
-		{
-			var obj = objs[i];
-			this.SetActivePage(obj.page);
-			
-			var img = Griddl.GetData(obj.name);
-			
-			var x = parseFloat(obj.x);
-			var y = parseFloat(obj.y);
-			var hAlign = obj.hAlign;
-			var vAlign = obj.vAlign;
-			
-			var width = obj.width ? parseFloat(obj.width) : img.width;
-			var height = obj.height ? parseFloat(obj.height) : img.height;
-			
-			var left = null;
-			var top = null;
-			
-			if (hAlign == 'left' || hAlign == 'start') // is accepting multiple keywords a good idea?
-			{
-				left = x;
-			}
-			else if (hAlign == 'center' || hAlign == 'middle')
-			{
-				left = x - width / 2;
-			}
-			else if (hAlign == 'right' || hAlign == 'end')
-			{
-				left = x - width;
-			}
-			else
-			{
-				left = x - width / 2; // default to center - is this wise?
-			}
-			
-			if (vAlign == 'top' || vAlign == 'start') // is accepting multiple keywords a good idea?
-			{
-				top = y;
-			}
-			else if (vAlign == 'center' || vAlign == 'middle')
-			{
-				top = y - height / 2;
-			}
-			else if (vAlign == 'bottom' || vAlign == 'end')
-			{
-				top = y - height;
-			}
-			else
-			{
-				top = y - height / 2; // default to center - is this wise?
-			}
-			
-			//var left = parseFloat(obj.left);
-			//var top = parseFloat(obj.top);
-			
-			this.DrawImage(img, left, top, width, height);
-		}
-	};
-	Canvas.prototype.DrawCharts = function(componentName) {
-		
-		var objs = Griddl.GetData(componentName, []);
-		
-		for (var i = 0; i < objs.length; i++)
-		{
-			var obj = objs[i];
-			this.SetActivePage(obj.page);
-			
-			Griddl.Charts.DrawChart(this, obj.type, obj.params, obj.data, obj.key);
-		}
-	};
-	Canvas.prototype.DrawTables = function(componentName) {
-		
-		var objs = Griddl.GetData(componentName, []);
-		
-		for (var i = 0; i < objs.length; i++)
-		{
-			var obj = objs[i];
-			this.SetActivePage(obj.page);
-			
-			Griddl.Charts.DrawTable(this, obj.values, obj.styles, obj.widths, obj.heights, obj.left, obj.top);
 		}
 	};
 	
