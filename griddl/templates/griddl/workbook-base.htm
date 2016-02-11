@@ -41,6 +41,46 @@
     owner = {{ workbook.owner.pk }};
     $(document).ready(Griddl.Main);
   </script>
+  <script type="text/javascript">
+
+    (function($) {
+      $(document).ready(function() {
+        // button-group toggle for display modes
+        // todo: this is dirty in a lot of ways, and probably belongs in Griddl.UI
+        // (there's probably a more DRY way to do it but you can't use builtin bootstrap tabs afaik 
+        //    -- because of the one/other/both aspect)
+        $("#show-components").on('click', function(e) {
+            if ($(e.target).hasClass('active')) {return;}
+            console.log("cells!");
+            $(e.target).addClass('active').siblings().removeClass("active");
+            $("#cells").css('display', 'block').parent().removeClass('col-sm-6').addClass('col-sm-12');
+            $("#output").css('display', 'none');
+
+        });
+        $("#show-all").on('click', function(e) {
+            if ($(e.target).hasClass('active')) {return;}
+            console.log("all!");
+            $(e.target).addClass('active').siblings().removeClass("active");
+            $("#cells, #output").css('display', 'block').parent().removeClass("col-sm-12").addClass("col-sm-6");
+        });
+
+        $("#show-widgets").on('click', function(e) {
+            if ($(e.target).hasClass('active')) {return;}
+            console.log("widgets!");
+            $(e.target).addClass('active').siblings().removeClass("active");
+            
+            $("#output").css('display', 'block').parent().removeClass('col-sm-6').addClass('col-sm-12');
+            $("#cells").css('display', 'none');
+        });
+      });
+
+      // cancel/clear documentSettings on modal close
+      $('.modal').on('hide.bs.modal', function() {
+        Griddl.UI.CancelDocumentSettings()
+      });
+    })(jQuery)
+
+  </script>
 {% endblock %}
 
 
@@ -51,6 +91,10 @@
   <div class="row">
     <div class="col-sm-12">
       <div style="display:inline-block; float:left; margin-top: 1em;">
+        <a style="margin-right:1em;" class="btn btn-default" {{ parentdir|yesno:',disabled' }} href="{{ user.pk }}{{ parentdir|yesno:'/,,' }}{{ parentdir }}">
+          <i class="fa fa-level-up fa-flip-horizontal fa-2x" style="vertical-align: middle;"></i>
+          &nbsp;Up
+        </a>
         <a style="text-decoration:none; color:rgb(70,150,230); margin-right:1em; {% if user.is_authenticated %}{% if user == workbook.owner %}{% else %}display:none; {% endif %}{% else %}display:none; {% endif %}" href="/d/{{ user.pk }}{{ parentdir|yesno:'/,,' }}{{ parentdir }}">Parent dir</a>
             
         {% if user.is_authenticated %}
@@ -64,26 +108,27 @@
           <button class="btn btn-default" id="saveasMenuButton" style="color:gray;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button> <!-- or onclick="Griddl.UI.ShowLoginModal()" if you want to redirect -->
         {% endif %}
             
-        <div class="btn-group">    
-          <button class="btn btn-default" onclick='Griddl.UI.ComponentsOnly()'>Components Only</button>
-          <button class="btn btn-default" onclick='Griddl.UI.SplitScreen()'>Split Screen</button>
-          <button class="btn btn-default" onclick='Griddl.UI.DocumentOnly()'>Document Only</button>
+        <div class="btn-group" role="tablist" id="ui-toggle">
+          <button class="btn btn-default" id="show-components">Components Only</button>
+          <button class="btn btn-default active" id="show-all">Split Screen</button>
+          <button class="btn btn-default" id="show-widgets">Document Only</button>
         </div>
         <button class="btn btn-default" data-toggle="modal" data-target="#documentSettings">Document Settings</button>
+        <button class="btn btn-warning" onclick="Griddl.Components.txt.New('txt')">DEBUG -- Add Component</button>
       </div>
     </div>
   </div>
 
-  <div class="row">
+  <div class="row tab-content">
     <div class="col-sm-6">
 
       <!-- use? {% autoescape off %}{% endautoescape %} -->
       <div id="frce">{{ workbook.text }}</div>
 
-      <div id='cells'></div>
+      <div role="tabpanel" class="active" id='cells'></div>
     </div>
     <div class="col-sm-6">
-      <div id='output'>
+      <div role="tabpanel" class="active" id='output'>
           <canvas></canvas>
           <canvas></canvas>
       </div>
@@ -221,7 +266,7 @@
         <div class="form-group">
           <div class="col-sm-4 col-sm-offset-8">
             <button onclick="Griddl.UI.SaveDocumentSettings()" class="btn btn-success" id="settings-submit">Save</button>
-            <a class="btn btn-default" id="settings-cancel" onclick="Griddl.UI.CancelDocumentSettings()">Cancel</a>
+            <a class="btn btn-default" id="settings-cancel" data-dismiss="modal">Cancel</a>
           </div>
         </form>
       </div>

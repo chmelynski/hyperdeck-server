@@ -202,5 +202,3 @@ UI.SubmitSignupForm = function() {
 return UI;
 
 })();
-
-
