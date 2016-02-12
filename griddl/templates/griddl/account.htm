@@ -5,10 +5,8 @@
 
 {% block body %}
   <div class="row">
-    <div class="col-xs-12">
-      <p>
-        <a href="{% url 'django.contrib.auth.views.password_change' %}" title="Change your password">Change your password</a>
-      </p>
+    <div class="col-xs-12 text-center">
+      <a class="btn btn-info" style="margin: 1em;" href="{% url 'django.contrib.auth.views.password_change' %}" title="Change your password">Change your password</a>
     </div>
   </div>
 
