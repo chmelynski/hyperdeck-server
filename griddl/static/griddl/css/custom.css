@@ -62,4 +62,5 @@ body {
 #output {
   display: block;
   background-color: rgba(117,103,132, .7);
+  margin-top: 3em;
 }
