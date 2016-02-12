@@ -3,24 +3,170 @@ if (typeof Griddl === 'undefined') { var Griddl = {}; }
 
 Griddl.UI = (function() {
 
-// abstract these into ShowModal('saveAs')/HideModal('saveAs')
-function ShowSaveAsModal() {
+var UI = {};
+
+UI.ReorderComponents = function() {
+	var screen = $(document.createElement('div'));
+	screen.css('display', 'block');
+	screen.css('position', 'fixed');
+	screen.css('top', '0');
+	screen.css('left', '0');
+	screen.css('width', '100%');
+	screen.css('height', '100%');
+	screen.css('z-index', '997');
+	screen.css('opacity', '0.6');
+	screen.css('background-color', '#444444');
+	
+	var dialog = $(document.createElement('div'));
+	dialog.css('display', 'block');
+	dialog.css('position', 'fixed');
+	dialog.css('left', '0');
+	dialog.css('top', '0');
+	dialog.css('right', '0');
+	dialog.css('bottom', '0');
+	dialog.css('margin', 'auto');
+	dialog.css('width', '20%');
+	dialog.css('height', '40%');
+	dialog.css('overflow-y', 'auto');
+	dialog.css('z-index', '998');
+	dialog.css('opacity', '1.0');
+	dialog.css('background-color', '#ffffff');
+	
+	var ul = $(document.createElement('ul'));
+	ul.css('list-style-type', 'none');
+	ul.css('width', '60%');
+	dialog.append(ul);
+	
+	for (var i = 0; i < Griddl.objs.length; i++)
+	{
+		var li = $(document.createElement('li'));
+		li.addClass('ui-state-default');
+		li.css('margin', '2px');
+		li.css('cursor', 'move');
+		var span = $(document.createElement('span'));
+		span.addClass('ui-icon');
+		span.addClass('ui-icon-arrowthick-2-n-s');
+		span.css('display', 'inline-block');
+		li.append(span);
+		var span = $(document.createElement('span'));
+		span.text(Griddl.objs[i].name);
+		span.css('display', 'inline-block');
+		li.append(span);
+		ul.append(li);
+	}
+	
+	ul.sortable();
+	
+	var reorder = $(document.createElement('button'));
+	reorder.text('Reorder');
+	reorder.on('click', function() {
+		var names = [];
+		ul.children().each(function() { names.push($(this).text()); });
+		for (var i = 0; i < names.length; i++)
+		{
+			Griddl.objs[i] = Griddl.objs[names[i]];
+		}
+		var containerDivs = [];
+		for (var i = 0; i < Griddl.objs.length; i++)
+		{
+			if (Griddl.objs[i].type == 'grid' || Griddl.objs[i].type == 'matrix')
+			{
+				containerDivs.push(Griddl.objs[i].div.parent().parent());
+			}
+			else
+			{
+				containerDivs.push(Griddl.objs[i].div.parent());
+			}
+		}
+		$('#cells').children().detach(); // detach() keeps data and handlers attached to the elements
+		for (var i = 0; i < containerDivs.length; i++)
+		{
+			$('#cells').append(containerDivs[i]);
+		}
+		screen.remove();
+		dialog.remove();
+	});
+	
+	var cancel = $(document.createElement('button'));
+	cancel.text('Cancel');
+	cancel.on('click', function() {
+		screen.remove();
+		dialog.remove();
+	});
+	
+	dialog.append(reorder);
+	dialog.append(cancel);
+	
+	$('body').append(screen);
+	$('body').append(dialog);
+}
+UI.ShowDocumentSettingsPanel = function() {
+	
+	document.getElementById('screen').style.display = 'block';
+	document.getElementById('documentSettingsPanel').style.display = 'block';
+	
+	document.getElementById('unitSelector').onchange = function() {
+		document.getElementById('unitResolution').innerText = this.value;
+		document.getElementById('unitUserspace').innerText = this.value;
+		document.getElementById('unitSpacing').innerText = this.value;
+		document.getElementById('unitHighlight').innerText = this.value;
+	};
+};
+UI.SaveDocumentSettings = function() {
+	
+	document.getElementById('screen').style.display = 'none';
+	document.getElementById('documentSettingsPanel').style.display = 'none';
+	
+	var doc = JSON.parse(Griddl.GetData('document'));
+	doc.documentSettings.unit = document.getElementById('unitSelector').value;
+	doc.documentSettings.pageDimensions.width = parseFloat(document.getElementById('pageWidth').value);
+	doc.documentSettings.pageDimensions.height = parseFloat(document.getElementById('pageHeight').value);
+	doc.documentSettings.pixelsPerUnit = parseFloat(document.getElementById('pixelsPerUnit').value);
+	doc.documentSettings.usersPerUnit = parseFloat(document.getElementById('usersPerUnit').value);
+	doc.documentSettings.snapGrid.gridlineSpacing = parseFloat(document.getElementById('gridlineSpacing').value);
+	doc.documentSettings.snapGrid.gridlineHighlight = parseFloat(document.getElementById('gridlineHighlight').value);
+	Griddl.SetData('document', JSON.stringify(doc));
+};
+UI.CancelDocumentSettings = function() {
+	
+	document.getElementById('screen').style.display = 'none';
+	document.getElementById('documentSettingsPanel').style.display = 'none';
+	
+};
+UI.ShowNewComponentPanel = function() {
+	document.getElementById('screen').style.display = 'block';
+	document.getElementById('newComponentPanel').style.display = 'block';
+};
+UI.CancelNewComponent = function() {
+	document.getElementById('screen').style.display = 'none';
+	document.getElementById('newComponentPanel').style.display = 'none';
+};
+UI.ShowNewWidgetPanel = function() {
+	document.getElementById('screen').style.display = 'block';
+	document.getElementById('newWidgetPanel').style.display = 'block';
+};
+UI.CancelNewWidget = function() {
+	document.getElementById('screen').style.display = 'none';
+	document.getElementById('newWidgetPanel').style.display = 'none';
+};
+
+UI.ShowSaveAsModal = function() {
 	$('#saveAsScreen').css('display', 'block');
 	$('#saveAsDialog').css('display', 'block');
-}
-function HideSaveAsModal() {
+};
+UI.HideSaveAsModal = function() {
 	$('#saveAsScreen').css('display', 'none');
 	$('#saveAsDialog').css('display', 'none');
-}
-function ShowLoginModal() {
+};
+UI.ShowLoginModal = function() {
 	$('#loginScreen').css('display', 'block');
 	$('#loginDialog').css('display', 'block');
-}
-function HideLoginModal() {
+};
+UI.HideLoginModal = function() {
 	$('#loginScreen').css('display', 'none');
 	$('#loginDialog').css('display', 'none');
-}
-function SubmitLoginForm() {
+};
+UI.SubmitLoginForm = function() {
 	
 	var form = $('#loginForm');
 	
@@ -35,8 +181,8 @@ function SubmitLoginForm() {
 			AjaxFailure(form, data);
 		}
 	});
-}
-function SubmitSignupForm() {
+};
+UI.SubmitSignupForm = function() {
 	
 	var form = $('#loginForm');
 	
@@ -51,17 +197,8 @@ function SubmitSignupForm() {
 			AjaxFailure(form, data);
 		}
 	});
-}
+};
 
-var UI = {};
-UI.ShowSaveAsModal = ShowSaveAsModal;
-UI.HideSaveAsModal = HideSaveAsModal;
-UI.ShowLoginModal = ShowLoginModal;
-UI.HideLoginModal = HideLoginModal;
-UI.SubmitLoginForm = SubmitLoginForm;
-UI.SubmitSignupForm = SubmitSignupForm;
 return UI;
 
 })();
-
-

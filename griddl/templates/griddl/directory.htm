@@ -75,7 +75,6 @@
         }
         $('.selected').removeClass('selected');
         $('.workbookActionButton').prop('disabled',true);
-        $('.workbookActionButton').css('color','rgb(200,200,200)');
       });
 
     });
@@ -86,7 +85,10 @@
 {% block body %}
   <div style="display:inline; margin:2em; height:10em">
     <div style="display:inline-block; border:0px solid black; float:left; margin:1em;">
-      <a style="margin-right:1em;" class="btn btn-default" href="/d/{{ user.pk }}{{ parentdir|yesno:'/,,' }}{{ parentdir }}"><i class="fa fa-level-up fa-flip-horizontal fa-2x" style="vertical-align: middle;"></i>&nbsp;Up</a>
+      <a style="margin-right:1em;" class="btn btn-default" {{parentdir|yesno:',disabled' }} href="{{ user.pk }}{{ parentdir|yesno:'/,,' }}{{ parentdir }}">
+        <i class="fa fa-level-up fa-flip-horizontal fa-2x" style="vertical-align: middle;"></i>
+        &nbsp;Up
+      </a>
       <button class='btn btn-default' id="newWorkbookButton" data-toggle="modal" data-target="#newWorkbookModal">
         <span class="fa-stack">
           <i class="fa fa-stack-2x fa-file-o"></i>
@@ -116,16 +118,6 @@
         <span class="fa fa-share fa-2x" style="vertical-align: middle;"></span>
         &nbsp;Move
       </button>
-    </div>
-    <div style="display:inline-block; border:0px solid black; float:right; margin-top:1em;">
-      <a href="/{{ user.account.pk }}/account" class="btn btn-default">
-        <span class="fa fa-cogs fa-2x" style="vertical-align:middle;"></span>
-        &nbsp;Account
-      </a>
-      <a href="/logout" class="btn btn-primary">
-        <span class="fa fa-sign-out fa-2x" style="vertical-align:middle;"></span>
-        &nbsp;Logout
-      </a>
     </div>
   </div>
 

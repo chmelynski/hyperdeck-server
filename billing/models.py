@@ -5,10 +5,17 @@ NB: designed around FastSpring
 
 from __future__ import unicode_literals
 
+import datetime
 import hashlib
+import logging
+
+import requests
+
 from django.db import models
+from django.utils import timezone
 
 from griddl.models import Account, Plan
+from mysite import settings
 
 # maybe should be in settings?
 BASE_URL = "https://sites.fastspring.com/adamchmelynski/instant/"
@@ -20,6 +27,8 @@ SUBSCRIPTION_STATUSES = (
     (2, "Downgrade Pending"),
     # may need more in the future, idk
 )
+
+logger = logging.getLogger(__name__)
 
 
 class Subscription(models.Model):
@@ -44,8 +53,48 @@ class Subscription(models.Model):
                                    help_text="FS plan description, \
                                                 e.g. '$10 monthly'"
                                    )
+    created = models.DateField(default=timezone.now)
+    _period_end = models.DateField(default=None,  # note: this is error state
+                                   null=True,
+                                   db_column="period_end")
 
     plan = models.ForeignKey('griddl.Plan', to_field='name')
+
+    @property
+    def period_end(self):
+        if not self._period_end or (self._period_end and
+                                    self._period_end < datetime.date.today()):
+            self.next_period()
+        return self._period_end
+
+    @period_end.setter
+    def next_period(self):
+        ''' get next period end from FastSpring API '''
+        url = API_URL + "subscription/{}".format(self.reference_id)
+
+        fs_user = settings.API_CREDENTIALS['fastspring']['login']
+        fs_pass = settings.API_CREDENTIALS['fastspring']['password']
+        headers = {'content-type': 'application/xml'}
+        auth = requests.auth.HTTPBasicAuth(fs_user, fs_pass)
+        raw = requests.get(url, headers=headers, auth=auth)
+        print raw.body  # just to verify contents while testing
+
+        if raw.status_code == 200:
+            from xml.dom.minidom import parseString
+            dom = parseString(raw.body)
+            # in case they only have end date? idk
+            try:
+                node = dom.getElementsByTagName('nextPeriodDate')[0][:-1]
+            except:
+                node = dom.getElementsByTagName('end')[0][:-1]
+            date_str = node.data[:-1]
+            self._period_end = datetime.strptime(date_str, "%Y-%m-%d")
+            self.save()
+        else:
+            msg = "FS sub details API error: {} - {}".format(raw.status_code,
+                                                             raw.text)
+            logger.error(msg)
+            self._period_end = None
 
     def __unicode__(self):
         return "Ref#: %s (%s)" % (self.reference_id,

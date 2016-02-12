@@ -3,10 +3,12 @@ if (typeof Griddl === 'undefined') { var Griddl = {}; }
 
 Griddl.IO = (function() {
 
-function DownloadWorkbook() {
+var IO = {};
+
+IO.DownloadWorkbook = function() {
 
 	var filename = $('title').text();
-	var text = SaveToText();
+	var text = Griddl.SaveToText();
 	
 	var downloadLink = document.createElement('a');
 	var url = (window.webkitURL != null ? window.webkitURL : window.URL);
@@ -14,11 +16,8 @@ function DownloadWorkbook() {
 	downloadLink.download = filename + '.txt';
 	downloadLink.click();
 }
-function UploadWorkbook() {
-	var fileChooser = document.getElementById('fileChooser');
-	fileChooser.click();
-}
-function HandleLocalLoad(files) {
+IO.UploadWorkbook = function() { document.getElementById('fileChooser').click(); }
+IO.HandleLocalLoad = function(files) {
 	// this handles load of a new workbook
 	var fileReader = new FileReader();
 	
@@ -32,6 +31,11 @@ function HandleLocalLoad(files) {
 		
 		$('#frce').text(text);
 		Griddl.Main();
+		
+		if (Griddl.objs['document'])
+		{
+			Griddl.Canvas.GenerateDocument(JSON.parse(Griddl.GetData('document')));
+		}
 		
 		// dummy version that just diplays the workbook in a textarea
 		//$('#cells').remove();
@@ -55,14 +59,9 @@ function HandleLocalLoad(files) {
 	}
 }
 
-// $.ajax(
-// {
-// 	dataType : 'json' ,
-// 	url : url ,
-// 	error : function() { debugger; } ,
-// 	success : function(obj) { DoSomething(obj); }
-// });
+// $.ajax({ dataType : 'json' , url : url , error : function() { debugger; } , success : function(obj) { DoSomething(obj); } });
 
+// these can probably be deleted, right?
 function LoadRemote(url, callback) {
 	var xmlhttp = null;
 	
@@ -184,6 +183,96 @@ function SaveRemoteLines(url, lines) {
 }
 
 
+// is this stuff used?
+// type : 'POST' , // so, we kinda had trouble getting django to accept a POST.  so we're saving with GET.  this is bad web practice sosorry.
+function SaveRemote(workbookName) { $.ajax( { url : '/save/' + workbookName , data : { text : SaveToText() } }); }
+function SaveAjax() {
+	// we need to set the text= key of the POST data dynamically, before the form is submitted
+	
+	
+	var saveForm = $('#saveForm');
+	saveForm.submit(function() {
+		$('#saveFormTextInput').val(SaveToText());
+		$.ajax({
+			type: saveForm.attr('method'),
+			url: saveForm.attr('action'),
+			data: saveForm.serialize(),
+			success: function (data) {
+				$('#saveMenuButton').css('color', 'rgb(0, 0, 0)'); // this must match the 'on' color in MarkDirty()
+				$('#saveasMenuButton').css('color', 'rgb(0, 0, 0)');
+			},
+			error: function(data) {
+				// by virtue of the button text remaining red, we know that the save did not go through.  but we could also do an alert popup or something
+				//$("#MESSAGE-DIV").html("Something went wrong!");
+			}
+		});
+		return false;
+	});
+	
+	
+	var saveasForm = $('#saveasForm');
+	saveasForm.submit(function() {
+		$('#saveasFormTextInput').val(SaveToText());
+		$.ajax({
+			type: saveasForm.attr('method'),
+			url: saveasForm.attr('action'),
+			data: saveasForm.serialize(),
+			success: function (redirectUrl) {
+				document.location.replace(redirectUrl);
+				//$("#SOME-DIV").html(data);
+			},
+			error: function(data) {
+				//$("#MESSAGE-DIV").html("Something went wrong!");
+			}
+		});
+		return false;
+	});
+}
+function AjaxSuccess(data) {
+	HideLoginModal();
+	//$('#saveMenuButton').css('visibility', 'visible');
+	//$('#saveasMenuButton').css('visibility', 'visible');
+	
+	// the returned data is "13\t<input type='hidden' name='csrfmiddlewaretoken' value='b5uxXzLhhUx0hwp9mSvcWDhTdWP2r1Hu' />", where the pk of the logged-in user is 13
+	var loggedInUser = parseInt(data.split('\t')[0]);
+	var newcsrftoken = data.split('\t')[1].substr(55, 32); // the returned data is "<input type='hidden' name='csrfmiddlewaretoken' value='b5uxXzLhhUx0hwp9mSvcWDhTdWP2r1Hu' />"
+	$('[name=csrfmiddlewaretoken]').attr('value', newcsrftoken); // does this replace all of the tokens?
+	
+	// if the user is not the owner of the workbook, we don't want to activate the save button, only the save as button
+	
+	if (owner == loggedInUser)
+	{
+		$('#saveMenuButton').removeAttr('disabled');
+		
+		if ($('#saveMenuButton').data('color') == 'red')
+		{
+			$('#saveMenuButton').css('color', 'red');
+		}
+		else
+		{
+			$('#saveMenuButton').css('color', 'black');
+		}
+	}
+	
+	$('#saveasMenuButton').removeAttr('disabled');
+	
+	if ($('#saveasMenuButton').data('color') == 'red')
+	{
+		$('#saveasMenuButton').css('color', 'red');
+	}
+	else
+	{
+		$('#saveasMenuButton').css('color', 'black');
+	}
+	
+	$('#profileLink').css('visibility', 'visible');
+	$('#loginLink').css('display', 'none');
+	$('#logoutLink').css('display', 'inline');
+}
+function AjaxFailure(form, data) { form.append('<span style="color:red;">' + data.responseText + '</span>'); }
+
+
+
 // data URI syntax: data:[<mediatype>][;base64],<data>
 // data:[<MIME-type>][;charset=<encoding>][;base64],<data>
 // <img src="data:image/gif;base64,
@@ -219,38 +308,12 @@ function SaveRemoteLines(url, lines) {
 // "a" => ""
 
 // single character - base64 character => integer in the range 0-63
-function b64ToUint6(nChr) {
-	return nChr > 64 && nChr < 91 ?
-		nChr - 65
-	: nChr > 96 && nChr < 123 ?
-		nChr - 71
-	: nChr > 47 && nChr < 58 ?
-		nChr + 4
-	: nChr === 43 ?
-		62
-	: nChr === 47 ?
-		63
-	:
-		0;
-}
+function b64ToUint6(n) { return n>64&&n<91?n-65:n>96&&n<123?n-71:n>47&&n<58?n+4:n===43?62:n===47?63:0;}
 
 // single character - integer in the range 0-63 => base64 character
-function uint6ToB64(nUint6) {
-	return nUint6 < 26 ?
-		nUint6 + 65
-	: nUint6 < 52 ?
-		nUint6 + 71
-	: nUint6 < 62 ?
-		nUint6 - 4
-	: nUint6 === 62 ?
-		43
-	: nUint6 === 63 ?
-		47
-	:
-		65;
-}
+function uint6ToB64(n) { return n<26?n+65:n<52?n+71:n<62?n-4:n===62?43:n===63?47:65;}
 
-function Base64StringToUint8Array(str) {
+IO.Base64StringToUint8Array = function(str) {
 	
 	var nBlocksSize = 3;
 	var sB64Enc = str.replace(/[^A-Za-z0-9\+\/]/g, ""); // remove all non-eligible characters from the string
@@ -276,7 +339,7 @@ function Base64StringToUint8Array(str) {
 	
 	return taBytes;
 }
-function Uint8ArrayToBase64String(aBytes) {
+IO.Uint8ArrayToBase64String = function(aBytes) {
 	var nMod3 = '';
 	var sB64Enc = '';
 	
@@ -299,7 +362,7 @@ function Uint8ArrayToBase64String(aBytes) {
 	
 	return sB64Enc.replace(/A(?=A$|$)/g, "=");
 }
-function UTF8ByteArrayToUnicodeString(aBytes) {
+IO.UTF8ByteArrayToUnicodeString = function(aBytes) {
 	var sView = "";
 	
 	for (var nPart, nLen = aBytes.length, nIdx = 0; nIdx < nLen; nIdx++)
@@ -325,7 +388,7 @@ function UTF8ByteArrayToUnicodeString(aBytes) {
 	
 	return sView;
 }
-function UnicodeStringToUTF8ByteArray(str) {
+IO.UnicodeStringToUTF8ByteArray = function(str) {
 	var aBytes = null
 	var nChr = null;
 	var nStrLen = str.length;
@@ -397,14 +460,6 @@ function UnicodeStringToUTF8ByteArray(str) {
 	return aBytes;
 }
 
-var IO = {};
-IO.HandleLocalLoad = HandleLocalLoad;
-IO.DownloadWorkbook = DownloadWorkbook;
-IO.UploadWorkbook = UploadWorkbook;
-IO.Base64StringToUint8Array = Base64StringToUint8Array;
-IO.Uint8ArrayToBase64String = Uint8ArrayToBase64String;
-IO.UTF8ByteArrayToUnicodeString = UTF8ByteArrayToUnicodeString;
-IO.UnicodeStringToUTF8ByteArray = UnicodeStringToUTF8ByteArray;
 return IO;
 
 })();

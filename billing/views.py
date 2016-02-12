@@ -54,7 +54,7 @@ def subscription_change(request, planid, userid):
     # NB when adding req params; prepare_xml super naive
     payload = prepare_xml(req)
     fs_user = settings.API_CREDENTIALS['fastspring']['login']
-    fs_pass = settings.API_CREDENTIALS['fastspring']['password']  # todo!!
+    fs_pass = settings.API_CREDENTIALS['fastspring']['password']
     headers = {'content-type': 'application/xml'}
     auth = requests.auth.HTTPBasicAuth(fs_user, fs_pass)
     if planid is 1:
@@ -179,6 +179,7 @@ class FastSpringNotificationView(View):
                 logger.warn('bad POST to FS notification endpoint' + request)
                 return HttpResponse(403)
 
+        logger.debug("{}: {}".format(request.path, request.body))
         return self.process(json.loads(request.body))
 
     def process(self, data):
@@ -243,10 +244,15 @@ class Change(FastSpringNotificationView):
         with transaction.atomic():
             sub = Subscription.objects.get(reference_id=data['id'])
             if not sub:  # weird, bail
+                logger.error("error changing subscription: {}".format(
+                             json.loads(data)))
                 return
             plan = Plan.objects.get(name=data['plan'])
             if plan is not sub.plan:
                 sub.plan = plan
+                if data['end_date']:  # set "downgrade pending" if end date set
+                    sub.status = 2
+                    sub.status_detail = plan
                 sub.save()
                 acct = Account.objects.get(subscription=sub)
                 acct.plan = plan
@@ -270,9 +276,10 @@ class Deactivate(FastSpringNotificationView):
         with transaction.atomic():
             sub = Subscription.objects.get(reference_id=data['id'])
             if not sub:  # weird, bail
+                logger.error("error deactivating subscription: {}".format(
+                             json.loads(data)))
                 return
             sub.delete()
-
             acct = Account.objects.get(subscription=sub)
             if not acct:  # huh? bail.
                 return
