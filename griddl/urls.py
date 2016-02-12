@@ -15,9 +15,6 @@ urlpatterns = patterns(
     url(r'^register$', views.register),
     url(r'^ajaxregister$', views.ajaxregister),
 
-    url(r'^f/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ %]*)/(?P<filename>[A-Za-z0-9-/ %]*)$', views.workbook),
-    url(r'^[d/]?(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ ]*)$', views.directory),
-
     url(r'^(?P<userid>[0-9]+)/account$', views.account, name='account'),
     url(r'^password_change_redirect$', views.password_change_redirect, name='password_change_redirect'),
 
@@ -30,6 +27,9 @@ urlpatterns = patterns(
     url(r'^delete$', views.delete),
     url(r'^move$', views.move),
     url(r'^togglepublic$', views.togglepublic),
+
+    url(r'^f/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ %]*)/(?P<filename>[A-Za-z0-9-/ %]*)$', views.workbook),
+    url(r'^[d/]?(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ ]*)$', views.directory),
 )
 
 # builtin auth views

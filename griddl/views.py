@@ -27,7 +27,8 @@ def logoutView(request):
 
 def login_redirect(request):
     return HttpResponseRedirect(
-        reverse(directory, kwargs={'userid': request.user.account.pk}))
+        reverse(directory, kwargs={'userid': request.user.account.pk,
+                                   'path': ''}))
 
 
 class SignupForm(forms.Form):
@@ -99,7 +100,7 @@ def register(request):
         messages.success(request,
                          "Congratulations, your account has been created!")
         return HttpResponseRedirect(
-            reverse(directory, kwargs={'userid': user.pk}))
+            reverse(directory, kwargs={'userid': user.pk, 'path': ''}))
 
 
 def ajaxregister(request):
@@ -334,7 +335,8 @@ def delete(request):
         return HttpResponse('Access denied')
     wb.delete()
     return HttpResponseRedirect(
-        reverse(directory, kwargs={'userid': request.user.account.pk}))
+        reverse(directory, kwargs={'userid': request.user.account.pk,
+                                   'path': ''}))
 
 
 @login_required
