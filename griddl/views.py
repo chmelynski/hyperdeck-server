@@ -171,17 +171,25 @@ def directory(request, userid, path=None):
 
 @login_required
 def account(request, userid):
-    acct = Account.objects.get(user=request.user.account.pk)
-    if acct.plan.pk == Plan.SIZES[0]:
+    acct = Account.objects.select_related('plan')\
+        .select_related('subscription').get(user=request.user.account.pk)
+    plan_pk = acct.plan.pk
+    if plan_pk in Plan.SIZES[:2]:
         action = 'billing'
-    elif acct.plan.pk == Plan.SIZES[:-1]:
+    elif plan_pk == Plan.SIZES[:-1]:
         action = False
     else:
         action = 'sub_change'
+    if acct.subscription:
+        sub_end = acct.subscription.period_end
+    else:
+        sub_end = 'Never'
     context = {
         'acct': acct,
-        'action': action
+        'action': action,
+        'sub_end': sub_end
         }
+
     return render(request, 'griddl/account.htm', context)
 
 
