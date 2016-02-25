@@ -1,3 +1,4 @@
+# flake8: noqa
 from django.conf.urls import patterns, include, url
 from mysite import settings
 
@@ -12,3 +13,9 @@ urlpatterns = patterns('',
     url(r'', include('billing.urls')),
     url(r'', include('password_reset.urls')),
 )
+
+if settings.DEBUG:
+    import debug_toolbar
+    urlpatterns += patterns('',
+        url(r'^__debug__/', include(debug_toolbar.urls)),
+    )

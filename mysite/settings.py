@@ -1,3 +1,5 @@
+# flake8: noqa
+
 # we can use os.getcwd() to distinguigh between development and production
 # in development, os.getcwd() => '/cygdrive/c/Users/Adam/Desktop/frce/mysite'
 # i don't know what it is in production, but it ain't that
@@ -11,10 +13,7 @@ noahDev = os.getenv('griddlDev')
 if noahDev:
     developmentServer = False
 
-if developmentServer:
-    DEBUG = True
-    TEMPLATE_DEBUG = DEBUG
-elif noahDev:
+if developmentServer or noahDev:
     DEBUG = True
     TEMPLATE_DEBUG = DEBUG
 else:
@@ -164,6 +163,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
@@ -187,6 +187,7 @@ INSTALLED_APPS = (
     'bootstrap3',  # django-bootstrap3
     'crispy_forms',
     'password_reset',
+    'debug_toolbar',
 
     'griddl',
     'billing'
@@ -298,3 +299,7 @@ MESSAGE_STORAGE = 'stored_messages.storage.PersistentStorage'
 # implicit default is smtp rather than console.
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# debug toolbar settings
+DEBUG_TOOLBAR_PATCH_SETTINGS = False
+INTERNAL_IPS = ['127.0.0.1', '24.177.237.106']  # (not actually just for debug toolbar tho)
