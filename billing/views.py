@@ -1,6 +1,8 @@
 import hashlib
 import json
 import logging
+from datetime import datetime
+
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.db import transaction
@@ -205,6 +207,8 @@ class Create(FastSpringNotificationView):
             subscription.plan = referrer.plan
             subscription.reference_id = data['id']
             subscription.details_url = data['fs_url']
+            pd_end = datetime.strptime(data['next_period'], "%b %d, %Y")
+            subscription._period_end = pd_end.date()
             logger.debug(subscription)
             subscription.save()
             referrer.account.subscription = subscription

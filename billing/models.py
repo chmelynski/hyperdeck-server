@@ -51,14 +51,23 @@ class Subscription(models.Model):
                                                 e.g. '$10 monthly'"
                                    )
     created = models.DateField(default=timezone.now)
+
+    # hidden column managed by @property `period_end`
     _period_end = models.DateField(default=None,  # note: this is error state
                                    null=True,
                                    db_column="period_end")
 
-    plan = models.ForeignKey('griddl.Plan', to_field='name')
+    plan = models.ForeignKey('griddl.Plan', to_field='name',
+                             related_name="plan")
 
     @property
     def period_end(self):
+        '''
+        getter for period_end --
+
+        note that free plans don't (or shouldn't!) have Subscriptions
+        for others, we check FS for updates when needed.
+        '''
         if not self._period_end or (self._period_end and
                                     self._period_end < datetime.date.today()):
             self.next_period()
@@ -85,7 +94,7 @@ class Subscription(models.Model):
             except:
                 node = dom.getElementsByTagName('end')[0][:-1]
             date_str = node.data[:-1]
-            self._period_end = datetime.strptime(date_str, "%Y-%m-%d")
+            self._period_end = datetime.strptime(date_str, "%b %d, %Y").date()
             self.save()
         else:
             msg = "FS sub details API error: {} - {}".format(raw.status_code,
