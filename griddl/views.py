@@ -357,11 +357,11 @@ def move(request):
     return HttpResponseRedirect(wb.uri)
 
 
-def workbook(request, userid, path, filename):
+def workbook(request, userid, path, slug):
     try:
         user = User.objects.get(account=userid)
         wb = Workbook.objects.filter(owner=user.account,
-                                     path=path, name=filename)[0]
+                                     path=path, slug=slug)[0]
     except:
         return HttpResponse('Not found')  # todo :D
 

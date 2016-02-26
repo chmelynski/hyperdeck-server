@@ -2,6 +2,7 @@ import logging
 
 from django.db import models
 from django.contrib.auth.models import User
+from django.template.defaultfilters import slugify
 
 from mysite import settings
 
@@ -34,6 +35,7 @@ class Workbook(models.Model):
                                 default='F')
     deleted = models.BooleanField(default=False)  # user-initiated removal
     locked = models.BooleanField(default=False)  # automated/administrative
+    slug = models.SlugField()
 
     # path to containing directory
     path = models.CharField(max_length=2000, blank=True)
@@ -45,7 +47,7 @@ class Workbook(models.Model):
         else:
             sep = ''
         return '/{}/{}/{}{}{}'.format(self.filetype.lower(), self.owner.pk,
-                                      self.path, sep, self.name)
+                                      self.path, sep, self.slug)
 
     uri = property(_build_uri)
 
@@ -55,17 +57,15 @@ class Workbook(models.Model):
     size = property(_get_size)
 
     def __unicode__(self):
-        if len(self.path) > 0:
-            sep = '/'
-        else:
-            sep = ''
-        return self.owner.user.username + '/' + self.path + sep + self.name
+        return self.uri
 
     def save(self, *args, **kwargs):
         '''
         Before saving a workbook, check account size against plan size.
         If saving would break plan size limit, lock stuff as needed.
         Unresolved so far: notifications regarding account size stuff.
+
+        ALSO: convert name to slug for URI
 
         Future warning: much more complicated in python3 -- see:
         http://stackoverflow.com/questions/4013230/how-many-bytes-does-a-string-have
@@ -76,6 +76,8 @@ class Workbook(models.Model):
             raise MaxWorkbookSizeException()
         if len(self.text) >= self.owner.plan_size * 1024:
             raise AccountSizeException()
+
+        self.slug = slugify(self.name)
 
         # save before handling size restrictions other than hard nopes
         # this means everything below should be careful re: recursion?

@@ -3,14 +3,6 @@
 {% block title %} My Profile | {{ block.super }} {% endblock %}
 {% block styles %}
   {{ block.super }}
-  <style>
-    tr.workbook:hover { background-color:rgb(240,240,240) !important; }
-    tr.workbook:hover td { background-color:rgba(0,0,0,0) !important; }
-    tr.selected { background-color:rgb(220,220,255) !important; }
-    tr.selected td { background-color:rgba(0,0,0,0) !important; }
-    tr.selected:hover { background-color:rgb(220,220,255) !important; }
-    tr.selected:hover td { background-color:rgba(0,0,0,0) !important; }
-  </style>
 {% endblock %}
 
 {% block scripts %}
@@ -18,39 +10,32 @@
   
   <script type="text/javascript">
     function ShowRename() {
-        $('.selected .renameForm').css('display', 'inline');
-        $('.selected .namelink').css('display', 'none');
-        
-        $('.selected .renameForm').addClass('activeRenameForm'); // clicking on the Rename button turns off the selection, so we add these hooks for HideRename to use
-        $('.selected .namelink').addClass('activeNamelink');
+      // change display
+      $('.renameForm, .namelink', '.selected').css('display', 'inline');
+      $('.selected .namelink').css('display', 'none');
+      
+      $('.selected .renameForm').addClass('activeRenameForm'); // clicking on the Rename button turns off the selection, so we add these hooks for HideRename to use
+      $('.selected .namelink').addClass('activeNamelink');
     }
 
     function HideRename() {
-        $('.activeRenameForm').css('display', 'none');
-        $('.activeNamelink').css('display', 'inline');
-        $('.activeRenameForm').removeClass('activeRenameForm');
-        $('.activeNamelink').removeClass('activeNamelink');
+      $('.activeRenameForm').css('display', 'none');
+      $('.activeNamelink').css('display', 'inline');
+      $('.activeRenameForm').removeClass('activeRenameForm');
+      $('.activeNamelink').removeClass('activeNamelink');
     }
 
-    function TogglePublic(pk) { // todo: might ought to make this a post?
-        $.ajax({
-            type: 'GET',
-            url: '/togglepublic',
-            data: { pk : pk },
-            success: function (data) {
-            },
-            error: function(data) {
-            }
-        });
+    function TogglePublic(pk) {
+      $.post('/togglepublic',
+             { pk : pk }
+      );
     }
     
     $(document).ready(function() {
 
       $('#deleteModal').on('show.bs.modal', function(event) {
-        console.log('blerpshow');
         $('#deleteIdInput').attr('value', $('tr.workbook.selected').attr('data-pk'));
       }).on('hide.bs.modal', function() {;
-        console.log('barglehide');
         $('#deleteIdInput').attr('value', '');
       });
       

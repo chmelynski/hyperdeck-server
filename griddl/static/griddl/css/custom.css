@@ -1,5 +1,5 @@
 body {
-  padding-top: 4em;
+  padding-top: 6em;
 }
 
 .navbar-right {
@@ -67,3 +67,10 @@ body {
   background-color: rgba(117,103,132, .7);
   margin-top: 3em;
 }
+
+tr.workbook:hover { background-color:rgb(240,240,240) !important; }
+tr.workbook:hover td { background-color:rgba(0,0,0,0) !important; }
+tr.selected { background-color:rgb(220,220,255) !important; }
+tr.selected td { background-color:rgba(0,0,0,0) !important; }
+tr.selected:hover { background-color:rgb(220,220,255) !important; }
+tr.selected:hover td { background-color:rgba(0,0,0,0) !important; }
