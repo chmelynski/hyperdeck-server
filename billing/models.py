@@ -53,7 +53,7 @@ class Subscription(models.Model):
     created = models.DateField(default=timezone.now)
 
     # hidden column managed by @property `period_end`
-    _period_end = models.DateField(default=None,  # note: this is error state
+    _period_end = models.DateField(default=None,
                                    null=True,
                                    db_column="period_end")
 
@@ -63,14 +63,30 @@ class Subscription(models.Model):
     @property
     def period_end(self):
         '''
-        getter for period_end --
+        getter for period_end -- actually manages subscription state tho
+        it's highly possible that there's a better way to manage this :(
 
         note that free plans don't (or shouldn't!) have Subscriptions
         for others, we check FS for updates when needed.
         '''
-        if not self._period_end or (self._period_end and
-                                    self._period_end < datetime.date.today()):
+        if not self._period_end:
             self.next_period()
+        elif self._period_end < datetime.date.today():
+            if self.status == 2 and int(self.status_detail) > 1:
+                # not 100% sure this is safe tbh?
+                acct = self.account_set()
+                acct.plan == int(self.status_detail)
+                acct.save()
+                self.next_period()
+            elif self.status == 2 and int(self.status_detail) == 1:
+                acct = self.account_set()
+                acct.plan == 1
+                acct.save()
+                self.delete()
+                return "Never"
+            else:
+                self.next_period()
+
         return self._period_end
 
     @period_end.setter

@@ -182,7 +182,7 @@ def account(request, userid):
         action = 'sub_change'
     if acct.subscription:
         sub_end = acct.subscription.period_end
-    else:
+    else:  # no subscription -- free plan.
         sub_end = 'Never'
     context = {
         'acct': acct,
