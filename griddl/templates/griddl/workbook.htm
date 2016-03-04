@@ -91,7 +91,7 @@
   <div class="row">
     <div class="col-sm-12">
       <div style="display:inline-block; float:left; margin-top: 1em;">
-        <a style="margin-right:1em;" class="btn btn-default" {{ parentdir|yesno:',disabled' }} href="{{ user.pk }}{{ parentdir|yesno:'/,,' }}{{ parentdir }}">
+        <a style="margin-right:1em;" class="btn btn-default" href="/{{ user.pk }}{{ parentdir|yesno:'/,,' }}{{ parentdir }}">
           <i class="fa fa-level-up fa-flip-horizontal fa-2x" style="vertical-align: middle;"></i>
           &nbsp;Up
         </a>

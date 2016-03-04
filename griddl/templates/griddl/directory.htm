@@ -7,64 +7,7 @@
 
 {% block scripts %}
   {{ block.super }}
-  
-  <script type="text/javascript">
-    function ShowRename() {
-      // change display
-      $('.renameForm, .namelink', '.selected').css('display', 'inline');
-      $('.selected .namelink').css('display', 'none');
-      
-      $('.selected .renameForm').addClass('activeRenameForm'); // clicking on the Rename button turns off the selection, so we add these hooks for HideRename to use
-      $('.selected .namelink').addClass('activeNamelink');
-    }
-
-    function HideRename() {
-      $('.activeRenameForm').css('display', 'none');
-      $('.activeNamelink').css('display', 'inline');
-      $('.activeRenameForm').removeClass('activeRenameForm');
-      $('.activeNamelink').removeClass('activeNamelink');
-    }
-
-    function TogglePublic(pk) {
-      $.post('/togglepublic',
-             { pk : pk }
-      );
-    }
-    
-    $(document).ready(function() {
-
-      $('#deleteModal').on('show.bs.modal', function(event) {
-        $('#deleteIdInput').attr('value', $('tr.workbook.selected').attr('data-pk'));
-      }).on('hide.bs.modal', function() {;
-        $('#deleteIdInput').attr('value', '');
-      });
-      
-      $('#moveModal').on('show.bs.modal', function(event) {
-        $('#moveIdInput').attr('value', $('tr.workbook.selected').attr('data-pk'));
-      }).on('hide.bs.modal', function() {;
-        $('#moveIdInput').attr('value', '');
-      });
-      
-      $('.workbook').on('click', function(e) {
-        $('.selected').removeClass('selected');
-        $(this).addClass('selected');
-        $('.workbookActionButton').prop('disabled',false);
-        $('.workbookActionButton').css('color','black');
-        e.stopPropagation();
-      });
-      
-      $('body').on('click', function(e) {
-        $tgt = $(e.target);
-        if ($tgt.hasClass('workbookActionButton')) {
-          return;
-        }
-        $('.selected').removeClass('selected');
-        $('.workbookActionButton').prop('disabled',true);
-      });
-
-    });
-  </script>
-
+  <script src="{% static 'griddl/js/directory.js' %}"></script>
 {% endblock %}
 
 {% block body %}
@@ -88,18 +31,18 @@
         </span>
         &nbsp;New directory
       </button>
-      <button id="renameButton" class="btn btn-default workbookActionButton" disabled onclick="ShowRename();">
+      <button id="renameButton" class="btn btn-default workbookAction menuAction" disabled onclick="renameToggle();">
         <span class="fa-stack">
           <i class="fa fa-stack-2x fa-file-o"></i>
           <i class="fa fa-stack-1x fa-i-cursor"></i>
         </span>
         &nbsp;Rename
       </button>
-      <button id="deleteButton" class="btn btn-default workbookActionButton" disabled data-toggle="modal" data-target="#deleteModal">
+      <button id="deleteButton" class="btn btn-default workbookAction menuAction" disabled data-toggle="modal" data-target="#deleteModal">
         <span class="fa fa-trash-o fa-2x" style="vertical-align: middle;"></span>
         &nbsp;Delete
       </button>
-      <button id="moveButton" class="btn btn-default workbookActionButton" disabled data-toggle="modal" data-target="#moveModal">
+      <button id="moveButton" class="btn btn-default workbookAction menuAction" disabled data-toggle="modal" data-target="#moveModal">
         <span class="fa fa-share fa-2x" style="vertical-align: middle;"></span>
         &nbsp;Move
       </button>
@@ -125,7 +68,7 @@
             <label for="newname" class='sr-only' aria-hidden='true'>New Workbook Name:</label>
             <input class='form-control input-sm' type="text" name="newname"></input>
             <button class='btn btn-success btn-sm' type="submit" value="Rename">Rename</button>
-            <button class='btn btn-danger btn-sm' type="button" value="Cancel" onclick="HideRename();">Cancel</button>
+            <button class='btn btn-danger btn-sm' type="button" value="Cancel" onclick="renameToggle();">Cancel</button>
           </form>
           <a class="namelink" href="/{{ workbook.filetype|lower }}/{{ user.pk }}/{{ workbook.path }}{{ workbook.path|yesno:'/,,' }}{{ workbook.name }}">{{ workbook.name }}</a>
         </td>
@@ -133,7 +76,7 @@
           {{ workbook.type }}
         </td>
         <td>
-          <input type="checkbox" {% if workbook.public %}checked {% endif %}style="margin-left:1em;" onchange="TogglePublic({{ workbook.pk }})"></input>
+          <input type="checkbox" {% if workbook.public %}checked {% endif %}style="margin-left:1em;" onchange="togglePublic({{ workbook.pk }})"></input>
         </td>
       </tr>
     {% endfor %}
@@ -223,21 +166,21 @@
   </div>
 
   <div class="modal fade" id="moveModal">
-    <div class='modal-dialog modal-sm'>
+    <div class='modal-dialog modal-md'>
       <div class='modal-content'>
         <div class='modal-header'>
           <button type="button" class='close' data-dismiss='modal' aria-label="close"><span aria-hidden="true">&times;</span></button>
           <h3 class='modal-title'>Move Object</h3>
         </div>
         <div class='modal-body'>
-          <form action="/move" method="POST">
+          <form class="form-horizontal" id="moveForm" method="POST">
             {% csrf_token %}
             <input id="moveIdInput" type="hidden" name="id" value=""></input>
             <input type="hidden" name="path" value="{{ path }}"></input>
             <div class="form-group">
               <label for="newpath" class="control-label col-sm-2">New path:</label>
               <div class="col-sm-10">
-                <input type="text" title="newpath" name="newpath" value="{{ path }}"></input>
+                <input class='form-control' type="text" title="newpath" name="newpath" value="{{ path }}"></input>
               </div>
             </div>
 
@@ -247,6 +190,7 @@
                   <input class="btn btn-success" type="submit" value="Move"></input>
                   <input class="btn btn-danger" type="button" value="Cancel" data-dismiss='modal'></input>
                 </div>
+                <div class="clearfix"></div>
               </div>
             </div>
 
@@ -261,14 +205,14 @@
       <div class='modal-content'>
         <div class='modal-body'>
           <button type="button" class='close' data-dismiss='modal' aria-label="close"><span aria-hidden="true">&times;</span></button>
-          <form action="/delete" method="POST">
+          <form id="deleteForm" method="POST">
             {% csrf_token %}
             <input type="hidden" name="path" value="{{ path }}"></input>
             <p class="label">Are you sure you want to delete this?</p>
             <div style="display:inline-block;">
               <input id="deleteIdInput" type="hidden" name="id" value=""></input>
-              <input type="submit" value="Delete"></input>
-              <input type="button" value="Cancel" onclick="HideDelete();"></input>
+              <input class='btn btn-warning workbookAction' type="submit" value="Delete"></input>
+              <input class='btn btn-danger workbookAction' type="button" value="Cancel" data-dismiss="modal"></input>
             </div>
           </form>
         </div>

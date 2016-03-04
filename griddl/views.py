@@ -1,4 +1,6 @@
+import json
 import logging
+import sys
 
 from django import forms
 from django.db import transaction
@@ -6,6 +8,7 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.http import HttpResponseNotFound, HttpResponseBadRequest
 from django.shortcuts import render
 from django.contrib import messages
+from django.core import exceptions
 from django.core.urlresolvers import reverse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -325,36 +328,66 @@ def createDir(request):
 
 @login_required
 def rename(request):
-    wb = Workbook.objects.filter(pk=request.POST['id'])[0]
-    if wb.owner != request.user.account:
-        return HttpResponse('Access denied')
-    wb.name = request.POST['newname']
-    wb.save()
-    return HttpResponseRedirect(wb.uri)
+    try:
+        pk = request.POST.get('id', False)
+        if not pk:
+            raise exceptions.ValidationError()
+
+        wb = Workbook.objects.get(pk=pk)
+        if wb.owner != request.user.account:
+            raise exceptions.PermissionDenied('user is not workbook owner')
+        wb.name = request.POST['newname']
+        wb.save()
+        return JsonResponse({'success': True, 'slug': wb.slug})
+    except exceptions.PermissionDenied:
+        return JsonResponse({'success': False, 'redirect': '/login'})
+    except:  # todo: more detailed handling?
+        logger.error(sys.exc_info()[0])
+        return JsonResponse({'success': False})
 
 
 @login_required
 def delete(request):
-    pk = request.POST.get('id', False)
-    if not pk:
-        return HttpResponseBadRequest()
-    wb = Workbook.objects.filter(pk=request.POST['id'])[0]
-    if wb.owner != request.user.account:
-        return HttpResponse('Access denied')
-    wb.delete()
-    return HttpResponseRedirect(
-        reverse(directory, kwargs={'userid': request.user.account.pk,
-                                   'path': ''}))
+    try:
+        pk = request.POST.get('id', False)
+        if not pk:
+            raise exceptions.ValidationError()
+
+        wb = Workbook.objects.get(pk=pk)
+        if wb.owner != request.user.account:
+            raise exceptions.PermissionDenied('user is not workbook owner')
+        wb.delete()
+        return JsonResponse({'success': True})
+    except exceptions.PermissionDenied:
+        return JsonResponse({'success': False, 'redirect': '/login'})
+    except:  # todo: more detailed handling?
+        logger.error(sys.exc_info()[0])
+        return JsonResponse({'success': False})
 
 
 @login_required
 def move(request):
-    wb = Workbook.objects.filter(pk=request.POST['id'])[0]
-    if wb.owner != request.user.account:
-        return HttpResponse('Access denied')
-    wb.path = request.POST['newpath']
-    wb.save()
-    return HttpResponseRedirect(wb.uri)
+    try:
+        pk = request.POST.get('id', False)
+        if not pk:
+            raise exceptions.ValidationError()
+
+        wb = Workbook.objects.get(pk=pk)
+        if wb.owner != request.user.account:
+            raise exceptions.PermissionDenied('user is not workbook owner')
+
+        path = request.POST.get('newpath', False)
+        if not path:
+            raise exceptions.ValidationError()
+
+        wb.path = path
+        wb.save()
+        return JsonResponse({'success': True, 'slug': wb.slug})
+    except exceptions.PermissionDenied:
+        return JsonResponse({'success': False, 'redirect': '/login'})
+    except:  # todo: more detailed handling?
+        logger.error(sys.exc_info()[0])
+        return JsonResponse({'success': False})
 
 
 def workbook(request, userid, path, slug):
@@ -373,7 +406,7 @@ def workbook(request, userid, path, slug):
         }
 
     if wb.public:
-        return render(request, 'griddl/' + wb.type + '.htm', context)
+        return render(request, 'griddl/workbook.htm', context)
     else:
         if request.user.is_authenticated():
             if request.user.account == wb.owner:
