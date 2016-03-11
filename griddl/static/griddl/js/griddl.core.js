@@ -1,20 +1,22 @@
 
-//var Typeset = require('C:\\cygwin64\\home\\adam\\frce\\mysite\\griddl\\static\\griddl\\js\\lib\\typeset.js'); Typeset = Typeset.Typeset;
-//var GriddlFonts = require('C:\\cygwin64\\home\\adam\\frce\\mysite\\griddl\\static\\griddl\\js\\fonts.js'); GriddlFonts = GriddlFonts.fonts;
+var TheCore = (function() {
 
-var Griddl = (function() {
+var Core = {};
 
-var Griddl = {};
+// the primary purpose of Core is to deal with the objs - loading, uploading, downloading, getting, setting, etc.
 
-Griddl.objs = null; // set in Main() - not a great idea to make this a var, because there are lots of local vars named 'objs'
-Griddl.fonts = null; // set in fonts.js
-//Griddl.fonts = GriddlFonts;
+Core.objs = []; // set in Main() - not a great idea to make this a var, because there are lots of local vars named 'objs'
 
-Griddl.Main = function() {
+Core.Main = function(Components, text) {
 	
 	var blocks = [];
 	
-	var lines = $('#frce').text().trim().split('\n'); // document.getElementById('frce').innerText
+	if (typeof text == 'undefined')
+	{
+		text = $('#frce').text(); // document.getElementById('frce').innerText
+	}
+	
+	var lines = text.trim().split('\n');
 	
 	var block = [];
 	lines.forEach(function(line) {
@@ -34,21 +36,158 @@ Griddl.Main = function() {
 		}
 	});
 	
-	Griddl.objs = [];
+	Core.objs = [];
 	blocks.forEach(function(block) {
 		var header = block[0];
 		var rest = block.slice(1);
 		var type = header.split(' ')[0].substr(1);
-		var obj = new Griddl.Components[type](header.split(' '), rest);
-		Griddl.objs[obj.name] = obj;
-		Griddl.objs.push(obj);
+		var obj = new Components[type](header.split(' '), rest);
+		Core.objs[obj.name] = obj;
+		Core.objs.push(obj);
 	});
-	Griddl.objs.forEach(function(obj) { obj.add(); });
-	Griddl.objs.forEach(function(obj) { if (obj.type == 'html') { obj.invokeHtml(); } }); // do this only after all components have been added
+	
+	if (typeof window != 'undefined')
+	{
+		Core.objs.forEach(function(obj) { obj.add(); });
+		Core.objs.forEach(function(obj) { if (obj.type == 'html') { obj.invokeHtml(); } }); // do this only after all components have been added
+	}
 };
 
-// who calls this?  we have to put it in the Griddl namespace, right?
-var SaveToText = function() { return Griddl.objs.map(obj => obj.write()).join('\n'); };
+Core.UploadWorkbook = function() {
+	
+	var fileChooser = document.createElement('input');
+	fileChooser.type = 'file';
+	
+	fileChooser.onchange = function() {
+		
+		var fileReader = new FileReader();
+		
+		fileReader.onload = function(event)
+		{
+			//var x = new Uint8Array(event.target.result, 0, event.target.result.byteLength); // for readAsArrayBuffer
+			
+			$('#cells').children().remove();
+			
+			var text = event.target.result;
+			
+			Core.Main(Griddl.Components, text);
+			
+			if (Core.objs['document'])
+			{
+				Griddl.Widgets.GenerateDocument(Core, Griddl.Canvas, JSON.parse(Core.GetData('document')));
+			}
+		};
+		
+		if (fileChooser.files.length > 0)
+		{
+			var f = fileChooser.files[0];
+			$('title').text(f.name.substr(0, f.name.length - 4));
+			fileReader.readAsText(f); // when this is done, it will call fileReader.onload(event)
+			//fileReader.readAsArrayBuffer(f); // when this is done, it will call fileReader.onload(event)
+		}
+	};
+	
+	fileChooser.click();
+};
+Core.DownloadWorkbook = function() {
+
+	var filename = $('title').text();
+	var text = Griddl.Core.SaveToText();
+	
+	var downloadLink = document.createElement('a');
+	var url = (window.webkitURL != null ? window.webkitURL : window.URL);
+	downloadLink.href = url.createObjectURL(new Blob([text], {type : 'text/plain'}));
+	downloadLink.download = filename + '.txt';
+	downloadLink.click();
+};
+
+// this is called by the DownloadWorkbook button or the Save/Save As button
+var SaveToText = Core.SaveToText = function() { return Core.objs.map(obj => obj.write()).join('\n'); };
+
+// button handlers - these generate the document if a 'document' component is defined, or otherwise run the first js component
+var Generate = Core.Generate = function() {
+	
+	if (Core.objs['document']) // magic word
+	{
+		Griddl.Widgets.GenerateDocument(Core, Griddl.Canvas, JSON.parse(Core.GetData('document')));
+	}
+	else
+	{
+		for (var i = 0; i < Core.objs.length; i++)
+		{
+			var obj = Core.objs[i];
+			
+			if (obj.type == 'js')
+			{
+				obj.exec();
+				return;
+			}
+		}
+	}
+};
+Core.ExportToPdf = function() {
+	
+	var filename = document.getElementsByTagName('title')[0].innerText;
+	
+	Griddl.Canvas.drawPdf = true;
+	Generate();
+	
+	var RenderPdf = function() {
+		
+		Griddl.Canvas.drawPdf = false;
+		
+		var pdf = new Griddl.Pdf(Griddl.Canvas.griddlCanvas); // the Canvas constructor sets Griddl.griddlCanvas whenever it is invoked
+		
+		var downloadLink = document.createElement('a');
+		var url = window.URL;
+		downloadLink.href = url.createObjectURL(new Blob([pdf.text], {type : 'text/pdf'}));
+		downloadLink.download = filename + '.pdf';
+		document.body.appendChild(downloadLink); // needed for this to work in firefox
+		downloadLink.click();
+		document.body.removeChild(downloadLink); // cleans up the addition above
+	};
+	
+	if (window.MathJax) { MathJax.Hub.Queue(RenderPdf); } else { RenderPdf(); }
+};
+
+// API - these functions can be used in user code - put them in the global namespace - get, set, run
+// there is still a lot of legacy usage of GetData in my workbooks, but it's better to have the shorter name 'get'
+Core.Get = Core.GetData = function(name) { return FetchObj(name).getData(); };
+Core.Set = Core.SetData = function(name, data) { var obj = FetchObj(name); obj.setData(data); obj.refresh(); };
+Core.Run = function(name) { FetchObj(name).exec() };
+function FetchObj(name) {
+	if (!name) { throw new Error('FetchObj error: invalid name'); }
+	if (!Core.objs[name]) { throw new Error("Error: there is no object named '" + name + "'"); }
+	var obj = Core.objs[name];
+	return obj;
+}
+
+// this could remain as part of the public API, but in any case needs to be copied over to widgets so they can listen for changes
+var RunOnChange = Core.RunOnChange = function(gridName, codeName) { Core.objs[gridName].div.handsontable('getInstance').addHook('afterChange', function(changes, source) { Run(codeName); }); }; // don't add hooks more than once
+
+// these are for converting grid structures to dicts
+// MakeObj([{key:'foo',val:1},{key:'bar',val:2}], 'key', 'val') => {foo:1,bar:2}
+// MakeHash([{name:'foo',val:1},{name:'bar',val:2}], 'name') => {foo:{name:'foo',val:1},bar:{name:'bar',val:2}}
+var MakeObj = Core.MakeObj = function(objs, keyField, valField) { var obj = {}; objs.forEach(function(o) { obj[o[keyField]] = ParseStringToObj(o[valField]); }); return obj; };
+var MakeHash = Core.MakeHash = function(objs, nameField) { var obj = {}; objs.forEach(function(o) { obj[o[nameField]] = o; }); return obj; };
+var ParseStringToObj = function(str) {
+	
+	var val = null;
+	
+	var c = str[0];
+	
+	// could be replaced by a regex
+	if (c == '0' || c == '1' || c == '2' || c == '3' || c == '4' || c == '5' || c == '6' || c == '7' || c == '8' || c == '9' || c == '.' || c == '-' || c == '+')
+	{
+		val = parseFloat(str);
+	}
+	else
+	{
+		val = str;
+	}
+	
+	return val;
+};
 
 // we could permit the objects to be named, rather than numbered
 // 	a	b	c
@@ -76,98 +215,51 @@ var SaveToText = function() { return Griddl.objs.map(obj => obj.write()).join('\
 //1	40	50	60\n
 //2	70	80	90'
 
-
-
-// button handlers - these run the first js component
-var Generate = Griddl.Generate = function() {
-	
-	for (var i = 0; i < Griddl.objs.length; i++)
-	{
-		var obj = Griddl.objs[i];
-		
-		if (obj.type == 'js')
-		{
-			obj.exec();
-			return;
-		}
-	}
-};
-var ExportToPdf = Griddl.ExportToPdf = function() {
-	
-	var filename = document.getElementsByTagName('title')[0].innerText;
-	
-	Griddl.drawPdf = true;
-	Griddl.Generate();
-	
-	var RenderPdf = function() {
-		
-		Griddl.drawPdf = false;
-		
-		var pdf = new Griddl.Pdf(Griddl.griddlCanvas); // the Canvas constructor sets Griddl.griddlCanvas whenever it is invoked
-		
-		var downloadLink = document.createElement('a');
-		var url = window.URL;
-		downloadLink.href = url.createObjectURL(new Blob([pdf.text], {type : 'text/pdf'}));
-		downloadLink.download = filename + '.pdf';
-		document.body.appendChild(downloadLink); // needed for this to work in firefox
-		downloadLink.click();
-		document.body.removeChild(downloadLink); // cleans up the addition above
-	};
-	
-	if (window.MathJax) { MathJax.Hub.Queue(RenderPdf); } else { RenderPdf(); }
-};
-
-
-
-// API - these functions can be used in user code - put them in the global namespace - Get, Set, Run
-// there is still a lot of legacy usage of GetData in my workbooks, but it's better to have the shorter name 'Get'
-Griddl.Get = Griddl.GetData = function(name) { return FetchObj(name).getData(); };
-Griddl.Set = function(name, data) { var obj = FetchObj(name); obj.setData(data); obj.refresh(); };
-Griddl.Run = function(name) { FetchObj(name).exec() };
-function FetchObj(name) {
-	if (!name) { throw new Error('FetchObj error: invalid name'); }
-	if (!Griddl.objs[name]) { throw new Error("Error: there is no object named '" + name + "'"); }
-	var obj = Griddl.objs[name];
-	return obj;
-}
-
-// this could remain as part of the public API, but in any case needs to be copied over to widgets so they can listen for changes
-var RunOnChange = Griddl.RunOnChange = function(gridName, codeName) { Griddl.objs[gridName].div.handsontable('getInstance').addHook('afterChange', function(changes, source) { Run(codeName); }); }; // don't add hooks more than once
-
-// these are for converting grid structures to dicts
-// MakeObj([{key:'foo',val:1},{key:'bar',val:2}], 'key', 'val') => {foo:1,bar:2}
-// MakeHash([{name:'foo',val:1},{name:'bar',val:2}], 'name') => {foo:{name:'foo',val:1},bar:{name:'bar',val:2}}
-var MakeObj = Griddl.MakeObj = function(objs, keyField, valField) { var obj = {}; objs.forEach(function(o) { obj[o[keyField]] = ParseStringToObj(o[valField]); }); return obj; };
-var MakeHash = Griddl.MakeHash = function(objs, nameField) { var obj = {}; objs.forEach(function(o) { obj[o[nameField]] = o; }); return obj; };
-var ParseStringToObj = function(str) {
-	
-	var val = null;
-	
-	var c = str[0];
-	
-	// could be replaced by a regex
-	if (c == '0' || c == '1' || c == '2' || c == '3' || c == '4' || c == '5' || c == '6' || c == '7' || c == '8' || c == '9' || c == '.' || c == '-' || c == '+')
-	{
-		val = parseFloat(str);
-	}
-	else
-	{
-		val = str;
-	}
-	
-	return val;
-};
-
-return Griddl;
+return Core;
 
 })();
 
 
-var get = Griddl.Get;
-var set = Griddl.Set; // we can't put Set into the global namespace, because it conflicts with the built-in (mathematical) Set
-var run = Griddl.Run; // so we'll use lowercase instead
+// we use lowercase so that "set" does not conflict with the built-in (mathematical) "Set"
+var get = TheCore.Get;
+var set = TheCore.Set;
+var run = TheCore.Run; 
 
-if (typeof window == 'undefined') { exports.Griddl = Griddl; }
+if (typeof window !== 'undefined') {
+	CanvasRenderingContext2D.prototype.drawLine = function(x1, y1, x2, y2) {
+		this.beginPath();
+		this.moveTo(x1, y1);
+		this.lineTo(x2, y2);
+		this.stroke();
+	};
+	CanvasRenderingContext2D.prototype.fillCircle = function(x, y, r) {
+		this.beginPath();
+		this.arc(x, y, r, 0, Math.PI * 2, true);
+		this.fill();
+	};
+	CanvasRenderingContext2D.prototype.strokeCircle = function(x, y, r) {
+		this.beginPath();
+		this.arc(x, y, r, 0, Math.PI * 2, true);
+		this.stroke();
+	};
+	Array.prototype.sortBy = function(key) {
+		this.sort(function(a, b) {
+			if (a[key] > b[key]) { return 1; }
+			if (a[key] < b[key]) { return -1; }
+			return 0;
+		});
+	};
+}
+
+//if (typeof window == 'undefined') { exports.Griddl = Griddl; }
+
+if (typeof window !== 'undefined') {
+	if (typeof Griddl === 'undefined') { var Griddl = {}; }
+	Griddl.Core = TheCore;
+}
+else {
+	exports.Core = TheCore;
+}
 
 // Alt+2
 
