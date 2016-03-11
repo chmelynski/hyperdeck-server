@@ -631,6 +631,7 @@ Image.prototype.setArrayBuffer = function(arrayBuffer) {
 	this.b64 = 'data:image/png;base64,' + Uint8ArrayToBase64String(this.uint8array); // assumes .png for now
 	this.imageElement = document.createElement('img');
 	this.imageElement.src = this.b64;
+  this.imageElement.className = 'upload';
 	this.refresh();
 };
 Image.prototype.getData = function() {
@@ -830,16 +831,17 @@ function AddRepresentationToggle(obj) {
 	
 	for (var i = 0; i < conversions.length; i++)
 	{
+		var label = $(document.createElement('label'));
+		label.addClass('griddl-component-head-radio-label radio-inline');
+		label.text(conversions[i].label);
+
 		var radioButton = $(document.createElement('input'));
 		radioButton.addClass('griddl-component-head-radio-button');
 		radioButton.attr('type', 'radio');
 		radioButton.attr('name', radioName);
 		if (i == 0) { radioButton.attr('checked', 'true'); }
-		radioDiv.append(radioButton);
+		label.prepend(radioButton);
 		
-		var label = $(document.createElement('label'));
-		label.addClass('griddl-component-head-radio-label');
-		label.text(conversions[i].label);
 		radioDiv.append(label);
 		
 		radioButton.on('click', conversions[i].fn);
@@ -851,7 +853,7 @@ function AddInvokeButton(obj) {
 	
 	var button = $(document.createElement('button'));
 	
-	button.addClass(obj.execButtonClass);
+	button.addClass(obj.execButtonClass).addClass('btn btn-default btn-sm');
 	button.html(obj.execButtonText);
 	
 	button.on('click', function() { obj.exec(); });
@@ -868,7 +870,7 @@ function AddUploadButton(obj) {
 	// we also want drag-n-drop
 	
 	var button = $(document.createElement('button'));
-	button.addClass('griddl-component-head-upload');
+	button.addClass('griddl-component-head-upload btn btn-default btn-sm');
 	button.html('Upload');
 	
 	button.on('click', function() {
@@ -919,7 +921,7 @@ function AddDownloadButton(obj) {
 	// obj.datauri()
 	
 	var button = $(document.createElement('button'));
-	button.addClass('griddl-component-head-download');
+	button.addClass('griddl-component-head-download btn btn-default btn-sm');
 	button.html('Download');
 	
 	button.on('click', function() {
@@ -943,7 +945,7 @@ function AddNameBox(obj) {
 	var nameBox = $(document.createElement('input'));
 	nameBox.attr('type', 'text');
 	nameBox.attr('value', obj.name);
-	nameBox.addClass('griddl-component-head-name');
+	nameBox.addClass('griddl-component-head-name').addClass('form-control').addClass('input-sm');
 	
 	nameBox.on('blur', function(e) {
 		RenameObj(obj, this.value);
@@ -964,7 +966,7 @@ function AddMinimizeButton(obj) {
 	var button = $(document.createElement('input'));
 	button.attr('type', 'button');
 	button.attr('value', (obj.display == 'visible') ? '-' : '+');
-	button.addClass('griddl-component-head-minmax');
+	button.addClass('griddl-component-head-minmax btn btn-default btn-sm');
 	
 	button.on('click', function() {
 		
@@ -996,7 +998,7 @@ function AddDestroyButton(obj) {
 	var button = $(document.createElement('input'));
 	button.attr('type', 'button');
 	button.attr('value', 'x');
-	button.addClass('griddl-component-head-remove');
+	button.addClass('griddl-component-head-remove btn btn-default btn-sm');
 	
 	button.on('click', function() {
 		if (window.confirm('Delete component?')) {
@@ -1186,4 +1188,3 @@ if (typeof window !== 'undefined') {
 else {
 	exports.Components = TheComponents;
 }
-

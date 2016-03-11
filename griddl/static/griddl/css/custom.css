@@ -74,3 +74,23 @@ tr.selected { background-color:rgb(220,220,255) !important; }
 tr.selected td { background-color:rgba(0,0,0,0) !important; }
 tr.selected:hover { background-color:rgb(220,220,255) !important; }
 tr.selected:hover td { background-color:rgba(0,0,0,0) !important; }
+
+.griddl-component input[type='text'] {
+  display: inline-block;
+  width: auto;
+}
+
+.griddl-component-head :not(:first-child) {
+  margin-left: .5em;
+}
+
+.griddl-component-head-radio-container {
+  border: 1px solid lightgrey;
+  border-radius: 5px;
+  padding: 6px 10px;
+}
+
+.griddl-component img.upload {
+  width: 100%;
+  height: 100%;
+}

@@ -133,14 +133,6 @@ UI.CancelDocumentSettings = function() {
 	document.getElementById('documentSettingsPanel').style.display = 'none';
 	
 };
-UI.ShowNewComponentPanel = function() {
-	document.getElementById('screen').style.display = 'block';
-	document.getElementById('newComponentPanel').style.display = 'block';
-};
-UI.CancelNewComponent = function() {
-	document.getElementById('screen').style.display = 'none';
-	document.getElementById('newComponentPanel').style.display = 'none';
-};
 UI.ShowNewWidgetPanel = function() {
 	document.getElementById('screen').style.display = 'block';
 	document.getElementById('newWidgetPanel').style.display = 'block';

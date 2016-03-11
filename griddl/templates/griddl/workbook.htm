@@ -37,51 +37,12 @@
   <script type='text/javascript' src="{% static 'griddl/js/griddl.widgets.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/griddl.pdf.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/griddl.typeset.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/workbook.js' %}"></script>
   <script type='text/javascript'>
     owner = {{ workbook.owner.pk }};
     $(document).ready(function() {
       Griddl.Core.Main(Griddl.Components, $('#frce').text())
     });
-  </script>
-  <script type="text/javascript">
-
-    (function($) {
-      $(document).ready(function() {
-        // button-group toggle for display modes
-        // todo: this is dirty in a lot of ways, and probably belongs in Griddl.UI
-        // (there's probably a more DRY way to do it but you can't use builtin bootstrap tabs afaik 
-        //    -- because of the one/other/both aspect)
-        $("#show-components").on('click', function(e) {
-            if ($(e.target).hasClass('active')) {return;}
-            console.log("cells!");
-            $(e.target).addClass('active').siblings().removeClass("active");
-            $("#cells").css('display', 'block').parent().removeClass('col-sm-6').addClass('col-sm-12');
-            $("#output").css('display', 'none');
-
-        });
-        $("#show-all").on('click', function(e) {
-            if ($(e.target).hasClass('active')) {return;}
-            console.log("all!");
-            $(e.target).addClass('active').siblings().removeClass("active");
-            $("#cells, #output").css('display', 'block').parent().removeClass("col-sm-12").addClass("col-sm-6");
-        });
-
-        $("#show-widgets").on('click', function(e) {
-            if ($(e.target).hasClass('active')) {return;}
-            console.log("widgets!");
-            $(e.target).addClass('active').siblings().removeClass("active");
-            
-            $("#output").css('display', 'block').parent().removeClass('col-sm-6').addClass('col-sm-12');
-            $("#cells").css('display', 'none');
-        });
-      });
-
-      // cancel/clear documentSettings on modal close
-      $('.modal').on('hide.bs.modal', function() {
-        Griddl.UI.CancelDocumentSettings()
-      });
-    })(jQuery)
-
   </script>
 {% endblock %}
 
@@ -115,7 +76,21 @@
           <button class="btn btn-default" id="show-widgets">Document Only</button>
         </div>
         <button class="btn btn-default" data-toggle="modal" data-target="#documentSettings">Document Settings</button>
-        <button class="btn btn-warning" onclick="Griddl.Components.txt.New('txt')">DEBUG -- Add Component</button>
+
+        <div class="btn-group">
+          <button class="btn btn-default dropdown-toggle" data-toggle='dropdown' aria-haspopup="true" aria-expanded="false">Add Component <span class="caret"></span></button>
+            <ul class="dropdown-menu">
+              <li><a onclick="Griddl.Components.txt.New('js');">Javascript</a></li>
+              <li><a onclick="Griddl.Components.txt.New('html');">Html</a></li>
+              <li><a onclick="Griddl.Components.txt.New('css');">Css</a></li>
+              <li><a onclick="Griddl.Components.txt.New('text');">Plain Text</a></li>
+              <li><a onclick="Griddl.Components.grid.New('grid');">Grid</a></li>
+              <li><a onclick="Griddl.Components.grid.New('tsv');">TSV</a></li>
+              <li><a onclick="Griddl.Components.image.New();">Image</a></li>
+              <li><a onclick="Griddl.Components.font.New();">Font</a></li>
+              <li><a onclick="Griddl.Components.file.New();">File</a></li>
+            </ul>
+        </div>
       </div>
     </div>
   </div>
@@ -273,21 +248,4 @@
     </div>
   </div>
 </div>
-
-<div class="panel" id="newComponentPanel">
-<table>
-<tr>
-<td><button onclick="Griddl.Components.txt.New('js'); Griddl.UI.CancelNewComponent()">Javascript</button></td>
-<td><button onclick="Griddl.Components.txt.New('html'); Griddl.UI.CancelNewComponent()">Html</button></td>
-<td><button onclick="Griddl.Components.txt.New('css'); Griddl.UI.CancelNewComponent()">Css</button></td></tr><tr>
-<td><button onclick="Griddl.Components.txt.New('text'); Griddl.UI.CancelNewComponent()">Plain Text</button></td>
-<td><button onclick="Griddl.Components.grid.New('grid'); Griddl.UI.CancelNewComponent()">Grid</button></td>
-<td><button onclick="Griddl.Components.grid.New('tsv'); Griddl.UI.CancelNewComponent()">TSV</button></td></tr><tr>
-<td><button onclick="Griddl.Components.image.New(); Griddl.UI.CancelNewComponent()">Image</button></td>
-<td><button onclick="Griddl.Components.font.New(); Griddl.UI.CancelNewComponent()">Font</button></td>
-<td><button onclick="Griddl.Components.file.New(); Griddl.UI.CancelNewComponent()">File</button></td></tr>
-</table>
-<button onclick="Griddl.UI.CancelNewComponent()" style="margin-left:1em">Cancel</button>
-</div>
-
 {% endblock footer %}
