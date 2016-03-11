@@ -789,7 +789,7 @@ function CreateComponentDiv(parent, obj) {
 	{
 		headerDiv.append(AddRepresentationToggle(obj));
 	}
-	if (obj.exec)
+	if (obj.execButtonText)
 	{ 
 		headerDiv.append(AddInvokeButton(obj));
 	}
