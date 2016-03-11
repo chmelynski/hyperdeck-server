@@ -273,4 +273,20 @@
   </div>
 </div>
 
+<div class="panel" id="newComponentPanel">
+<table>
+<tr>
+<td><button onclick="Griddl.Components.txt.New('js'); Griddl.UI.CancelNewComponent()">Javascript</button></td>
+<td><button onclick="Griddl.Components.txt.New('html'); Griddl.UI.CancelNewComponent()">Html</button></td>
+<td><button onclick="Griddl.Components.txt.New('css'); Griddl.UI.CancelNewComponent()">Css</button></td></tr><tr>
+<td><button onclick="Griddl.Components.txt.New('text'); Griddl.UI.CancelNewComponent()">Plain Text</button></td>
+<td><button onclick="Griddl.Components.grid.New('grid'); Griddl.UI.CancelNewComponent()">Grid</button></td>
+<td><button onclick="Griddl.Components.grid.New('tsv'); Griddl.UI.CancelNewComponent()">TSV</button></td></tr><tr>
+<td><button onclick="Griddl.Components.image.New(); Griddl.UI.CancelNewComponent()">Image</button></td>
+<td><button onclick="Griddl.Components.font.New(); Griddl.UI.CancelNewComponent()">Font</button></td>
+<td><button onclick="Griddl.Components.file.New(); Griddl.UI.CancelNewComponent()">File</button></td></tr>
+</table>
+<button onclick="Griddl.UI.CancelNewComponent()" style="margin-left:1em">Cancel</button>
+</div>
+
 {% endblock footer %}
