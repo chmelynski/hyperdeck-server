@@ -39,7 +39,7 @@
   <script type='text/javascript' src="{% static 'griddl/js/griddl.typeset.js' %}"></script>
   <script type='text/javascript'>
     owner = {{ workbook.owner.pk }};
-    $(document).ready(Griddl.Core.Main);
+    $(document).ready(function() { Griddl.Core.Main(Griddl.Components, $('#frce').text()); });
   </script>
   <script type="text/javascript">
 
