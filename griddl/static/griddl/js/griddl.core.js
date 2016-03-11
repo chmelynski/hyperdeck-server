@@ -251,8 +251,6 @@ if (typeof window !== 'undefined') {
 	};
 }
 
-//if (typeof window == 'undefined') { exports.Griddl = Griddl; }
-
 if (typeof window !== 'undefined') {
 	if (typeof Griddl === 'undefined') { var Griddl = {}; }
 	Griddl.Core = TheCore;
@@ -260,6 +258,3 @@ if (typeof window !== 'undefined') {
 else {
 	exports.Core = TheCore;
 }
-
-// Alt+2
-

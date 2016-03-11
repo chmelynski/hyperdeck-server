@@ -39,7 +39,9 @@
   <script type='text/javascript' src="{% static 'griddl/js/griddl.typeset.js' %}"></script>
   <script type='text/javascript'>
     owner = {{ workbook.owner.pk }};
-    $(document).ready(Griddl.Core.Main);
+    $(document).ready(function() {
+      Griddl.Core.Main(Griddl.Components, $('#frce').text())
+    });
   </script>
   <script type="text/javascript">
 
@@ -104,7 +106,7 @@
             <button class="btn btn-default" id="saveasMenuButton" style="color:black;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button>
           {% endif %}
         {% else %}
-          <button class="btn btn-default" id="saveasMenuButton" style="color:gray;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button> <!-- or onclick="Griddl.UI.ShowLoginModal()" if you want to redirect -->
+          <button class="btn btn-default" id="saveasMenuButton" style="color:gray;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button> {#-- or onclick="Griddl.UI.ShowLoginModal()" if you want to redirect --#}
         {% endif %}
             
         <div class="btn-group" role="tablist" id="ui-toggle">
@@ -121,8 +123,7 @@
   <div class="row tab-content">
     <div class="col-sm-6">
 
-      <!-- use? {% autoescape off %}{% endautoescape %} -->
-      <div id="frce">{{ workbook.text }}</div>
+      <pre id="frce">{{ workbook.text }}</pre>
 
       <div role="tabpanel" class="active" id='cells'></div>
     </div>
