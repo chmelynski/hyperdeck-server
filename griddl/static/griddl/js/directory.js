@@ -69,6 +69,22 @@ $(document).ready(function() {
     );
   });
 
+  $('#newDirectoryForm').on('submit', function(event) {
+    event.preventDefault();
+    
+    $.post("/createDir",
+      $(event.target).serialize(),
+      function(response) {
+        if (response.success) {
+          $.alert("Success! You will be redirected to the new directory momentarily.", 'success');
+        } else {
+          $.alert("Sorry, something went wrong. Please try again later.");
+        }
+      },
+      "json"
+    );
+  });
+
 
   $('#moveForm').on('submit', function(event) {
     event.preventDefault();

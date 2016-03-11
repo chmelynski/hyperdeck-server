@@ -30,7 +30,7 @@ urlpatterns = patterns(
     url(r'^togglepublic$', views.togglepublic),
 
     url(r'^f/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ %]*)/(?P<slug>[A-Za-z0-9-/ %]*)$', views.workbook),
-    url(r'^[d/]?(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ ]*)$', views.directory),
+    url(r'^d/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ ]*)$', views.directory),
 )
 
 # builtin auth views

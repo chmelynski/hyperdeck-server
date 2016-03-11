@@ -26,9 +26,9 @@ class MaxWorkbookSizeException(Exception):
 class Workbook(models.Model):
     owner = models.ForeignKey("Account")
     name = models.CharField(max_length=200)
-    type = models.CharField(max_length=255)  # to pick a template .htm file
+    type = models.CharField(max_length=255, default='workbook')  # deprecated
     text = models.TextField(blank=True)
-    public = models.BooleanField()
+    public = models.BooleanField(default=False)
     parent = models.ForeignKey('self', null=True, blank=True,
                                on_delete=models.SET_NULL)
     filetype = models.CharField(max_length=1, choices=FILE_TYPES,
@@ -40,7 +40,8 @@ class Workbook(models.Model):
     # path to containing directory
     path = models.CharField(max_length=2000, blank=True)
 
-    def _build_uri(self):
+    @property
+    def uri(self):
         """convenience for redirects & such"""
         if len(self.path):
             sep = '/'
@@ -49,12 +50,9 @@ class Workbook(models.Model):
         return '/{}/{}/{}{}{}'.format(self.filetype.lower(), self.owner.pk,
                                       self.path, sep, self.slug)
 
-    uri = property(_build_uri)
-
-    def _get_size(self):
+    @property
+    def size(self):
         return len(self.text)
-
-    size = property(_get_size)
 
     def __unicode__(self):
         return self.uri

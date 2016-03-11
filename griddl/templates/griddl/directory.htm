@@ -13,7 +13,7 @@
 {% block body %}
   <div style="display:inline; margin:2em; height:10em">
     <div style="display:inline-block; border:0px solid black; float:left; margin:1em;">
-      <a style="margin-right:1em;" class="btn btn-default" {{parentdir|yesno:',disabled' }} href="{{ user.pk }}{{ parentdir|yesno:'/,,' }}{{ parentdir }}">
+      <a style="margin-right:1em;" class="btn btn-default" {{ parentdir|yesno:',disabled' }} href="{{ parentdir }}">
         <i class="fa fa-level-up fa-flip-horizontal fa-2x" style="vertical-align: middle;"></i>
         &nbsp;Up
       </a>
@@ -24,7 +24,7 @@
         </span>
         &nbsp;New workbook
       </button>
-      <button class='btn btn-default' id="newDirectoryButton" disabled data-toggle="modal" data-target="#newDirectoryModal">
+      <button class='btn btn-default' id="newDirectoryButton" data-toggle="modal" data-target="#newDirectoryModal">
         <span class="fa-stack">
           <i class="fa fa-stack-2x fa-folder-o"></i>
           <i class="fa fa-stack-1x fa-plus"></i>
@@ -139,7 +139,7 @@
         </div>
 
         <div class='modal-body'>
-          <form class="form form-horizontal" action="/createDir" method="POST">
+          <form id="newDirectoryForm" class="form form-horizontal" action="/createDir" method="POST">
             {% csrf_token %}
             <input type="hidden" name="path" value="{{ path }}"></input>
 
@@ -178,9 +178,13 @@
             <input id="moveIdInput" type="hidden" name="id" value=""></input>
             <input type="hidden" name="path" value="{{ path }}"></input>
             <div class="form-group">
-              <label for="newpath" class="control-label col-sm-2">New path:</label>
+              <label for="parent" class="control-label col-sm-2">New folder:</label>
               <div class="col-sm-10">
-                <input class='form-control' type="text" title="newpath" name="newpath" value="{{ path }}"></input>
+                <select class="form-control" name="parent">
+                  {% for dir in acctdirs %} 
+                    <option value="{{ dir.val }}">{{ dir.display }}</option>
+                  {% endfor %}
+                </select>
               </div>
             </div>
 

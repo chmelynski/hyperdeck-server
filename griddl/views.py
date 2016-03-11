@@ -1,11 +1,10 @@
-import json
 import logging
-import sys
+import traceback
 
 from django import forms
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.http import HttpResponseNotFound, HttpResponseBadRequest
+from django.http import HttpResponseNotFound, HttpResponseServerError
 from django.shortcuts import render
 from django.contrib import messages
 from django.core import exceptions
@@ -143,6 +142,10 @@ def directory(request, userid, path=None):
                                             args=(request.user.account.pk,
                                                   '',)))
 
+    # remove trailing slash for sanity's sake
+    if path:
+        path = path.strip('/')
+
     wbs = Workbook.objects.filter(owner=request.user.account.pk, path=path) \
         .order_by('filetype', 'name')
 
@@ -159,16 +162,34 @@ def directory(request, userid, path=None):
             clone.save()
             del(request.session['saveas'])
 
+    # sorry, i know this is ugly
+    if request.path == reverse(directory, args=(request.user.account.pk, '')):
+        parentdir = False
+    else:
+        try:
+            this = Workbook.objects.get(owner=request.user.account.pk,
+                                        name=request.path.split('/')[-1])
+            parentdir = this.parent.uri
+        except Exception:  # todo: more specific
+            parentdir = reverse(directory, args=(request.user.account.pk, ''))
+
+    dirs = Workbook.objects.filter(owner=request.user.account.pk, filetype='D') \
+        .order_by('path')
+
+    acctdirs = [{'val': 'root', 'display': 'Account Root'}]
+    for d in dirs:
+        display = '-- ' * len(d.path.split('/')) + d.name
+        acctdirs.append({'val': d.pk, 'display': display})
+
     dwbs = DefaultWorkbook.objects.filter()
     context = {
         "workbooks": wbs,
         "defaultWorkbooks": dwbs,
+        "parentdir": parentdir,
+        "acctdirs": acctdirs
         }
     if path:
-        context.update({
-            "parentdir": path[:-(len(path.split('/')[-1])+1)],  # todo: model
-            "path": path
-        })
+        context["path"] = path
     return render(request, 'griddl/directory.htm', context)
 
 
@@ -259,7 +280,7 @@ def saveas(request):
         wb.pk = None
         try:
             wb.save()
-        except:
+        except Exception:  # todo: more specific
             # todo: actually save wb just in case, or whatever.
             return JsonResponse({'redirect': '/subscriptions?billing=true'})
 
@@ -282,14 +303,15 @@ def saveas(request):
         return JsonResponse({'redirect': '/signup'})
 
 
+@login_required
 def create(request):
     '''
     lawd we gotta refactor this at some point. not at all DRY
     '''
-    if request.user.is_authenticated():
-        # todo: var name should be changed to something other than 'type';
-        #  - it is just a DefaultWorkbook handle
-        dwb = DefaultWorkbook.objects.filter(name=request.POST['type'])[0]
+    try:
+        # todo: kill wb.type :P
+        proto = request.POST.get('type', False)
+        dwb = DefaultWorkbook.objects.get(name=proto)
         wb = Workbook()
         wb.owner = request.user.account
         wb.name = request.POST['name']
@@ -298,11 +320,12 @@ def create(request):
         wb.public = False
         wb.parent = None  # todo: need to figure this one out
         wb.filetype = 'F'
-        wb.path = request.POST['path']
+        wb.path = request.POST.get('path', '')
         wb.save()
         return HttpResponseRedirect(wb.uri)
-    else:
-        return HttpResponse('Log in to create workbook')
+    except Exception:
+        logger.error(traceback.format_exc())
+        return HttpResponseServerError()
 
 
 @login_required
@@ -313,17 +336,35 @@ def password_change_redirect(request):
 
 @login_required
 def createDir(request):
-    wb = Workbook()
-    wb.owner = request.user
-    wb.name = request.POST['name']
-    wb.type = 'directory'
-    wb.text = ''
-    wb.public = False
-    wb.parent = None  # need to figure this one out
-    wb.filetype = 'D'
-    wb.path = request.POST['path']
-    wb.save()
-    return HttpResponseRedirect(wb.uri)
+    try:
+        # no slashes pls
+        name = request.POST.get('name', False).strip('/').replace('/', '-')
+        if not name:
+            raise exceptions.ValidationError('request missing param "name"')
+
+        if request.path == '/d/{}'.format(request.user.account.pk):
+            parent = None
+        else:
+            try:
+                parent = Workbook.objects.get(owner=request.user.account.pk,
+                                              name=request.path.split('/')[-1])
+            except Exception:  # todo: more specific
+                parent = None
+
+        wb = Workbook()
+        wb.owner = request.user.account
+        wb.name = name
+        wb.type = 'directory'
+        wb.text = ''
+        wb.parent = parent
+        wb.filetype = 'D'
+        wb.save()
+        return JsonResponse({'success': True, 'redirect': wb.uri})
+    except exceptions.ValidationError:
+        return JsonResponse({'success': False})
+    except Exception:
+        logger.error(traceback.format_exc())
+        return JsonResponse({'success': False})
 
 
 @login_required
@@ -331,18 +372,23 @@ def rename(request):
     try:
         pk = request.POST.get('id', False)
         if not pk:
-            raise exceptions.ValidationError()
+            raise exceptions.ValidationError('request missing param "id"')
 
         wb = Workbook.objects.get(pk=pk)
         if wb.owner != request.user.account:
             raise exceptions.PermissionDenied('user is not workbook owner')
-        wb.name = request.POST['newname']
+
+        wb.name = request.POST.get('newname', False) \
+            .strip('/').replace('/', '-')
+        if not wb.name:
+            raise exceptions.ValidationError('request missing param "newname"')
+
         wb.save()
         return JsonResponse({'success': True, 'slug': wb.slug})
     except exceptions.PermissionDenied:
         return JsonResponse({'success': False, 'redirect': '/login'})
-    except:  # todo: more detailed handling?
-        logger.error(sys.exc_info()[0])
+    except Exception:
+        logger.error(traceback.format_exc())
         return JsonResponse({'success': False})
 
 
@@ -351,7 +397,7 @@ def delete(request):
     try:
         pk = request.POST.get('id', False)
         if not pk:
-            raise exceptions.ValidationError()
+            raise exceptions.ValidationError('request missing param "id"')
 
         wb = Workbook.objects.get(pk=pk)
         if wb.owner != request.user.account:
@@ -360,8 +406,8 @@ def delete(request):
         return JsonResponse({'success': True})
     except exceptions.PermissionDenied:
         return JsonResponse({'success': False, 'redirect': '/login'})
-    except:  # todo: more detailed handling?
-        logger.error(sys.exc_info()[0])
+    except Exception:
+        logger.error(traceback.format_exc())
         return JsonResponse({'success': False})
 
 
@@ -370,37 +416,52 @@ def move(request):
     try:
         pk = request.POST.get('id', False)
         if not pk:
-            raise exceptions.ValidationError()
+            raise exceptions.ValidationError('request missing param "id"')
 
         wb = Workbook.objects.get(pk=pk)
         if wb.owner != request.user.account:
             raise exceptions.PermissionDenied('user is not workbook owner')
 
-        path = request.POST.get('newpath', False)
-        if not path:
-            raise exceptions.ValidationError()
+        parent = request.POST.get('parent', False)
+        if not parent:
+            raise exceptions.ValidationError('request missing param "parent"')
 
-        wb.path = path
+        if parent == 'root':  # special case, sorry
+            wb.path = ''
+            wb.parent = None
+        else:
+            parent_dir = Workbook.objects.get(pk=parent)
+            wb.parent = parent_dir
+            wb.path = '/'.join([parent_dir.path, parent_dir.name]).strip('/')
+
         wb.save()
         return JsonResponse({'success': True, 'slug': wb.slug})
     except exceptions.PermissionDenied:
         return JsonResponse({'success': False, 'redirect': '/login'})
-    except:  # todo: more detailed handling?
-        logger.error(sys.exc_info()[0])
+    except Exception:
+        logger.error(traceback.format_exc())
         return JsonResponse({'success': False})
 
 
 def workbook(request, userid, path, slug):
     try:
         user = User.objects.get(account=userid)
+        # todo: we use filter mostly bc this isn't guaranteed unique lol
         wb = Workbook.objects.filter(owner=user.account,
                                      path=path, slug=slug)[0]
-    except:
+    except Exception:  # todo: more specific
         return HttpResponse('Not found')  # todo :D
+
+    try:
+        this = Workbook.objects.get(owner=request.user.account.pk,
+                                    name=request.path.split('/')[-1])
+        parentdir = this.parent.uri
+    except Exception:  # todo: more specific
+        parentdir = reverse(directory, args=(request.user.account.pk, ''))
 
     context = {
         "workbook": wb,
-        "parentdir": path[:-(len(path.split('/')[-1])+1)],
+        "parentdir": parentdir,
         "path": path,
         "userid": userid
         }
