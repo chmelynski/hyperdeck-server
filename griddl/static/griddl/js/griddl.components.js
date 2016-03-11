@@ -1,9 +1,11 @@
 
 if (typeof Griddl === 'undefined') { var Griddl = {}; }
 
-Griddl.Components = (function() {
+var TheComponents = (function() {
 
 var Components = {};
+
+Components.Bitmap = null;
 
 var Text = Components.txt = Components.js = Components.html = Components.css = Components.json = function(header, lines) {
 	
@@ -16,6 +18,22 @@ var Text = Components.txt = Components.js = Components.html = Components.css = C
 	
 	this.text = null;
 	this.data = null; // this is the json objects for json, the function object for js, and plain text otherwise
+	
+	this.execButtonClass = null;
+	this.execButtonText = null;
+	
+	if (this.type == 'js')
+	{
+		this.execButtonClass = 'griddl-component-head-runcode';
+		this.execButtonText = 'Run code';
+	}
+	else if (this.type == 'html' || this.type == 'css')
+	{
+		this.execButtonClass = 'griddl-component-head-addtodom';
+		this.execButtonText = 'Add to DOM';
+	}
+	
+	this.uploadDownload = false;
 	
 	this.load(lines);
 };
@@ -31,10 +49,32 @@ Text.prototype.load = function(lines) {
 };
 Text.prototype.getData = function() {
 	
+	// should this be renamed getText?
+	
 	// codemirror does not propagate edits to the backing string object, so you have to pull directly from the interface
-	return this.codemirror.getDoc().getValue();
+	
+	if (this.codemirror)
+	{
+		return this.codemirror.getDoc().getValue();
+	}
+	else
+	{
+		return this.text; // not this.data, it should be noted, because the above would only return text
+	}
+};
+Text.prototype.setText = function(text) {
+	
+	// this is the same as setData - should the functions be merged?
+	
+	this.text = text;
+	this.compile();
+	this.refresh();
 };
 Text.prototype.setData = function(text) {
+	
+	
+	// now, we could say that this could be called like so: setData(json), and then do this.text = JSON.stringify(this.data)
+	// this makes the case that there should in fact be separate setText and setData functions for Text, because even here we do some object conversion
 	
 	// we get here either from load() or on blur after a user edits json or js (requiring a compilation) or from Set()
 	
@@ -85,9 +125,9 @@ Text.prototype.add = function() {
 	
 	if (this.type == 'css') { this.invokeCss(); } // why is invoke here in add for CSS, but elsewhere for HTML?
 	
-	var clientDiv = CreateComponentDiv($('#cells'), this);
+	this.div = CreateComponentDiv($('#cells'), this);
 	var textbox = $(document.createElement('textarea'));
-	clientDiv.append(textbox);
+	this.div.append(textbox);
 	
 	this.codemirror = CodeMirror.fromTextArea(textbox[0], { mode : mode , smartIndent : false , lineNumbers : true , lineWrapping : true });
 	
@@ -97,7 +137,9 @@ Text.prototype.add = function() {
 	this.codemirror.on('blur', function() { text.text = text.codemirror.getValue(); text.compile();  });
 	this.codemirror.on('change', function() { MarkDirty(); });
 };
-Text.prototype.invoke = function() {
+Text.prototype.exec = function() {
+	
+	this.data = this.text = this.codemirror.getValue();
 	
 	if (this.type == 'css')
 	{
@@ -115,55 +157,104 @@ Text.prototype.invoke = function() {
 		div.html(this.data);
 		$('body').append(div);
 	}
+	else if (this.type == 'js')
+	{
+		var fn = new Function('args', this.codemirror.getValue());
+		
+		$('#errorMessage').remove();
+		
+		fn();
+		
+		//try
+		//{
+		//	fn();
+		//}
+		//catch (e)
+		//{
+		//	var lines = e.stack.split('\n');
+		//	var evalLine = null;
+		//	for (var i = 0; i < lines.length; i++)
+		//	{
+		//		if (lines[i].trim().substr(0, 7) == 'at eval')
+		//		{
+		//			evalLine = lines[i];
+		//		}
+		//	}
+		//	var fnLineCol = evalLine.split(',')[1]; // ' <anonymous>:7:1)'
+		//	var fnLineColArray = fnLineCol.substring(1, fnLineCol.length - 1).split(':'); // [ '<anonymous' , '7' , '1' ]
+		//	var functionName = fnLineColArray[0];
+		//	var lineNumber = fnLineColArray[1] - 2; // not sure why the line number is 2 off
+		//	var colNumber = fnLineColArray[2];
+		//	obj.div.before('<span id="errorMessage" style="color:red;">Error: ' + e.message + ' (at line ' + lineNumber + ', column ' + colNumber + ')' + '</span>');
+		//}
+	}
 	else
 	{
-		throw new Error();
+		throw new Error("'" + this.name + "' is a " + this.type + ", not an executable js/css/html object");
 	}
-};
-Text.prototype.exec = function() {
-
-	// this does the same thing as RunCode, but has (currently commented) error handling
-	// it is used by the code in CreateComponentDiv to execute js
-	// we should probably merge all these exec functions
-	
-	// when we combine exec and invoke, we need to change this conditional to allow for exec of html and css
-	if (this.type != 'js') { throw new Error("'" + this.name + "' is a " + this.type + ", not an executable code object"); }
-	
-	var fn = new Function('args', this.codemirror.getValue());
-	
-	$('#errorMessage').remove();
-	
-	fn();
-	
-	//try
-	//{
-	//	fn();
-	//}
-	//catch (e)
-	//{
-	//	var lines = e.stack.split('\n');
-	//	var evalLine = null;
-	//	for (var i = 0; i < lines.length; i++)
-	//	{
-	//		if (lines[i].trim().substr(0, 7) == 'at eval')
-	//		{
-	//			evalLine = lines[i];
-	//		}
-	//	}
-	//	var fnLineCol = evalLine.split(',')[1]; // ' <anonymous>:7:1)'
-	//	var fnLineColArray = fnLineCol.substring(1, fnLineCol.length - 1).split(':'); // [ '<anonymous' , '7' , '1' ]
-	//	var functionName = fnLineColArray[0];
-	//	var lineNumber = fnLineColArray[1] - 2; // not sure why the line number is 2 off
-	//	var colNumber = fnLineColArray[2];
-	//	obj.div.before('<span id="errorMessage" style="color:red;">Error: ' + e.message + ' (at line ' + lineNumber + ', column ' + colNumber + ')' + '</span>');
-	//}
 };
 Text.New = function(type) {
 	var obj = new Text(['@'+type, UniqueName(type, 1), 'visible'], (type == 'json') ? ['{}'] : []);
 	obj.add();
 	MarkDirty();
-	Griddl.objs[obj.name] = obj;
-	Griddl.objs.push(obj);
+	AddObj(obj);
+};
+
+Components.JsonBackedRepresentationToggle = function() {
+	
+	// this deals with the codemirror half of any JSON-backed graphical component
+	
+	// interface:
+	// obj.div
+	// obj.text
+	// obj.data
+	// obj.refresh() - generates the graphical representation after obj.data has been set to the JSON object
+	// obj.representationLabel - how to label the radio button
+	
+	// Datgui.representationToggle = Components.JsonBackedRepresentationToggle;
+	// var fns = datgui.representationToggle(); // this means that 'this' will be the datgui instance in this function
+	// radioButton.onclick = fns[i] // but the sub-functions below are called on the button, so we can't use 'this' in them
+	var obj = this;
+	
+	var TextToOther = function() {
+		
+		obj.div.html('');
+		
+		// if this is to stay in Text, it could be replaced by setData:
+		//obj.setData(obj.codemirror.getDoc().getValue());
+		
+		obj.text = obj.codemirror.getDoc().getValue();
+		
+		try
+		{
+			obj.data = JSON.parse(obj.text);
+		}
+		catch (e)
+		{
+			// the parse has failed - display an error message - look at error handling code in MakeComponentsDiv to see how to display error message
+		}
+		
+		obj.refresh();
+		
+		MarkDirty();
+	};
+	
+	var OtherToText = function() {
+		
+		obj.div.html('');
+		
+		var textbox = $(document.createElement('textarea'));
+		textbox.addClass('griddl-component-body-radio-textarea');
+		obj.div.append(textbox);
+		
+		var text = JSON.stringify(obj.data);
+		codemirror = CodeMirror.fromTextArea(textbox[0], { smartIndent : false , lineNumbers : true });
+		codemirror.getDoc().setValue(text);
+		
+		MarkDirty();
+	};
+	
+	return [ { label : obj.representationLabel , fn : TextToOther } , { label : 'Text' , fn : OtherToText } ];
 };
 
 var Grid = Components.grid = Components.table = Components.matrix = Components.tsv = function(header, lines) {
@@ -177,12 +268,20 @@ var Grid = Components.grid = Components.table = Components.matrix = Components.t
 	this.display = header[2]; // visible or hidden
 	
 	this.div = null;
+	this.tableDiv = null; // for unknown reasons we pass a sub div to Handsontable / add the <table> or <pre> to the sub div
 	this.handsontable = null;
 	
 	this.matrix = null;
 	this.data = null;
 	
+	this.uploadDownload = false;
+	
 	this.load(lines);
+};
+Grid.prototype.setText = function(text) {
+	this.matrix = TsvToMatrix(text);
+	this.matrixToData();
+	this.refresh();
 };
 Grid.prototype.load = function(lines) {
 	
@@ -191,15 +290,12 @@ Grid.prototype.load = function(lines) {
 	// paste -> load -> setData
 	// upload -> load -> setData
 	
-	this.matrix = [];
+	this.matrix = LinesToMatrixPadded(lines);
+	this.matrixToData();
 	
-	var len = lines[0].split('\t').length;
-	for (var i = 0; i < lines.length; i++)
-	{
-		var cols = lines[i].split('\t');
-		for (var k = cols.length; k < len; k++) { cols.push(''); } // so that we don't have to fill in nulls across the board for grids with a grid formula
-		this.matrix.push(cols);
-	}
+	// refresh?
+};
+Grid.prototype.matrixToData = function() {
 	
 	// here we deal with [ {} ] vs [ [] ]
 	if (this.type == 'grid' || this.type == 'table' || this.type == 'tsv')
@@ -214,8 +310,6 @@ Grid.prototype.load = function(lines) {
 	{
 		throw new Error();
 	}
-	
-	// refresh?
 };
 Grid.prototype.getData = function() {
 	return this.data;
@@ -230,6 +324,8 @@ Grid.prototype.write = function() {
 	
 };
 Grid.prototype.toTsv = function() {
+	
+	// this should be renamed getText
 	
 	if (this.type == 'matrix')
 	{
@@ -262,8 +358,7 @@ Grid.prototype.refresh = function() {
 		// we need this because the afterChange event fires after the table is first created - we don't want MarkDirty() to be called on init
 		this.firstChange = true;
 		
-		this.div.handsontable(
-		{
+		var options = {
 			data : this.data ,
 			rowHeaders : rowHeaders ,
 			colHeaders : colHeaders ,
@@ -281,7 +376,9 @@ Grid.prototype.refresh = function() {
 			}
 			//colWidths : DetermineColWidths(this.$, '11pt Calibri', [ 5 , 23 , 5 ]) // expand widths to accomodate text length
 			//colWidths : [ 10 , 30 , 10 ].map(function(elt) { return elt * TextWidth('m', '11pt Calibri'); }) // fixed widths, regardless of text length
-		});
+		};
+		
+		this.handsontable = new Handsontable(this.tableDiv[0], options);
 	}
 	else if (this.type == 'table')
 	{
@@ -326,14 +423,11 @@ Grid.prototype.refresh = function() {
 			table.append(tr);
 		}
 		
-		this.div.append(table);
+		this.tableDiv.append(table);
 	}
 	else if (this.type == 'tsv')
 	{
-		clientDiv[0].innerHTML = '<pre>' + this.text + '</pre>'; // this works for both the initial add as well as refreshes
-		//var pre = $(document.createElement('pre'));
-		//clientDiv.append(pre);
-		//pre.html(this.text);
+		this.tableDiv[0].innerHTML = '<pre>' + this.matrix.map(row => row.join('\t')).join('\n') + '</pre>'; // this works for both the initial add as well as refreshes
 	}
 	else
 	{
@@ -342,11 +436,11 @@ Grid.prototype.refresh = function() {
 };
 Grid.prototype.add = function() {
 	
-	var clientDiv = CreateComponentDiv($('#cells'), this);
+	this.div = CreateComponentDiv($('#cells'), this);
 	
 	var tableDiv = $(document.createElement('div'));
-	clientDiv.append(tableDiv);
-	this.div = tableDiv; // this overwrites the default obj.div = clientDiv from CreateComponentDiv
+	this.div.append(tableDiv);
+	this.tableDiv = tableDiv;
 	
 	this.refresh();
 };
@@ -354,8 +448,55 @@ Grid.New = function(type) {
 	var obj = new Grid(['@'+type, UniqueName(type, 1), 'visible'], [ '\tA\tB\tC', '0\t\t\t', '1\t\t\t', '2\t\t\t' ]);
 	obj.add();
 	MarkDirty();
-	Griddl.objs[obj.name] = obj;
-	Griddl.objs.push(obj);
+	AddObj(obj);
+};
+Grid.prototype.representationToggle = function() {
+	
+	var obj = this;
+	var codemirror = null;
+	
+	var TextToGrid = function() {
+		
+		var text = codemirror.getDoc().getValue();
+		
+		obj.div.html('');
+		
+		// because we destroy the tableDiv to add the codemirror, we need to create a new tableDiv here
+		var tableDiv = $(document.createElement('div'));
+		obj.div.append(tableDiv);
+		obj.tableDiv = tableDiv;
+		
+		obj.setText(text); // so if we define a getText/setText interface, we could abstract the representationToggle so that the same generic function could be used for both JSON and grid objects
+		
+		MarkDirty();
+	};
+	
+	var GridToText = function() {
+		
+		if (obj.type == 'grid' || obj.type == 'matrix')
+		{
+			obj.handsontable.destroy();
+		}
+		
+		obj.div.html('');
+		
+		var textbox = $(document.createElement('textarea'));
+		textbox.addClass('griddl-component-body-radio-textarea');
+		obj.div.append(textbox);
+		
+		var text = null;
+		
+		if (obj.type == 'grid') { text = ObjsToJoinedLines(obj.data); }
+		else if (obj.type == 'matrix') { text = MatrixToJoinedLines(obj.data); }
+		else if (obj.type == 'table') { text = ObjsToJoinedLines(obj.data); }
+		
+		codemirror = CodeMirror.fromTextArea(textbox[0], { smartIndent : false , lineNumbers : true });
+		codemirror.getDoc().setValue(text);
+		
+		MarkDirty();
+	};
+	
+	return [ { label : 'Grid' , fn : TextToGrid } , { label : 'Text' , fn : GridToText } ];
 };
 
 var Font = Components.font = function(header, lines) {
@@ -373,8 +514,26 @@ var Font = Components.font = function(header, lines) {
 	
 	this.b64 = null;
 	this.uint8array = null;
+	this.font = null;
+	
+	this.uploadDownload = true;
+	
+	this.canvas = null;
 	
 	if (lines.length > 0) { this.load(lines); } // the test is because we have no default b64 string in Font.New
+};
+Font.prototype.datauri = function() {
+	return this.b64;
+};
+Font.prototype.setArrayBuffer = function(arrayBuffer) {
+	
+	this.uint8array = new Uint8Array(arrayBuffer); // this probably isn't necessary - do we even use the uint8array anywhere?
+	this.b64 = 'data:font/otf;base64,' + Uint8ArrayToBase64String(this.uint8array); // this *is* necessary, though, because we need the b64 to write to file
+	this.font = opentype.parse(arrayBuffer);
+	
+	Griddl.Canvas.fontDict[this.name] = this.font;
+	
+	this.refresh();
 };
 Font.prototype.load = function(lines) {
 	
@@ -383,33 +542,66 @@ Font.prototype.load = function(lines) {
 	// upload -> load -> setData
 	
 	this.b64 = lines[0];
-	this.uint8array = Griddl.IO.Base64StringToUint8Array(lines[0].substr(lines[0].indexOf(','))); // data:application/binary;base64,
+	
+	// data:font/ttf;base64, or data:font/otf;base64,
+	var slashIndex = this.b64.indexOf('/');
+	var semicolonIndex = this.b64.indexOf(';');
+	var commaIndex = this.b64.indexOf(',');
+	var prefix = this.b64.substr(0, commaIndex);
+	var type = prefix.substring(slashIndex + 1, semicolonIndex);
+	var data = this.b64.substr(commaIndex);
+	
+	this.ext = '.' + type;
+	
+	this.uint8array = Base64StringToUint8Array(data);
+	this.font = opentype.parse(this.uint8array.buffer);
+	
+	Griddl.Canvas.fontDict[this.name] = this.font;
+};
+Font.prototype.refresh = function() {
+	
+	if (this.font)
+	{
+		var size = 24;
+		var ctx = this.canvas.getContext('2d');
+		this.font.draw(ctx, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 20, 30, size);
+		this.font.draw(ctx, 'abcdefghijklmnopqrstuvwxyz', 20, 60, size);
+		this.font.draw(ctx, '01234567890', 20, 90, size);
+		//this.font.draw(ctx, '!@#$%^&*()', 20, 120, size);
+	}
 };
 Font.prototype.write = function() {
-	return '@' + this.type + ' ' + this.name + ' ' + this.display + '\n' + this.b64() + '\n@end\n';
+	return '@' + this.type + ' ' + this.name + ' ' + this.display + '\n' + this.b64 + '\n@end\n';
 };
 Font.prototype.add = function() {
 	
-	var clientDiv = CreateComponentDiv($('#cells'), this);
+	this.div = CreateComponentDiv($('#cells'), this);
 	
-	if (this.uint8array == null) { return; } // again, new fonts are blank
+	var canvas = $(document.createElement('canvas'));
+	//canvas.css('width', '30em');
+	//canvas.css('height', '20em');
 	
-	var canvas = $(document.createElement('div'));
-	canvas.css('width', '50em');
-	canvas.css('height', '100em');
-	canvas.css('border', '1px solid gray');
-	clientDiv.append(canvas);
+	// okay, so if we change these numbers from 320px-160px, the drawing will stretch - i have no idea why
+	//canvas.css('width', '320px');
+	//canvas.css('height', '160px');
+	//canvas.css('border', '1px solid gray');
+	//this.div.append(canvas);
 	
-	var ctx = canvas[0].getContext('2d');
+	var canvas = document.createElement('canvas');
+	canvas.width = 320 * 1.4;
+	canvas.height = 160 * 1.4;
+	canvas.style.border = '1px solid gray';
+	this.div[0].appendChild(canvas);
 	
-	// draw glyphs
+	this.canvas = canvas;
+	
+	this.refresh();
 };
 Font.New = function() {
 	var obj = new Font(['@font', UniqueName('font', 1), 'visible'], []);
 	obj.add();
 	MarkDirty();
-	Griddl.objs[obj.name] = obj;
-	Griddl.objs.push(obj);
+	AddObj(obj);
 };
 
 var Image = Components.image = function(header, lines) {
@@ -422,17 +614,31 @@ var Image = Components.image = function(header, lines) {
 	
 	this.div = null;
 	
+	this.ext = null;
 	this.b64 = null;
 	this.uint8array = null;
 	this.imageElement = null;
 	
+	this.uploadDownload = true;
+	
 	this.load(lines);
+};
+Image.prototype.datauri = function() {
+	return this.b64;
+};
+Image.prototype.setArrayBuffer = function(arrayBuffer) {
+	this.uint8array = new Uint8Array(arrayBuffer);
+	this.b64 = 'data:image/png;base64,' + Uint8ArrayToBase64String(this.uint8array); // assumes .png for now
+	this.imageElement = document.createElement('img');
+	this.imageElement.src = this.b64;
+	this.refresh();
 };
 Image.prototype.getData = function() {
 	return this.imageElement;
 };
 Image.prototype.setData = function(imageElement) {
 	this.imageElement = imageElement;
+	// this.b64 = ??
 	this.refresh();
 };
 Image.prototype.load = function(lines) {
@@ -442,9 +648,34 @@ Image.prototype.load = function(lines) {
 	// upload -> load -> setData
 	
 	this.b64 = lines[0];
-	this.uint8array = Griddl.IO.Base64StringToUint8Array(lines[0].substr(lines[0].indexOf(','))); // data:image/png;base64,
-	this.imageElement = document.createElement('img');
-	this.imageElement.src = this.b64;
+	
+	var slashIndex = this.b64.indexOf('/');
+	var semicolonIndex = this.b64.indexOf(';');
+	var commaIndex = this.b64.indexOf(',');
+	var prefix = this.b64.substr(0, commaIndex); // data:image/png;base64,
+	var type = prefix.substring(slashIndex + 1, semicolonIndex);
+	var data = this.b64.substr(commaIndex);
+	
+	this.ext = '.' + type;
+	
+	this.uint8array = Base64StringToUint8Array(data);
+	
+	if (typeof window != 'undefined')
+	{
+		this.imageElement = document.createElement('img');
+		this.imageElement.src = this.b64;
+	}
+	else
+	{
+		if (type == 'bmp')
+		{
+			this.imageElement = Components.Bitmap.Read(this.uint8array);
+		}
+		else
+		{
+			this.imageElement = null;
+		}
+	}
 };
 Image.prototype.write = function() {
 	return '@' + this.type + ' ' + this.name + ' ' + this.display + ' ' + this.width + ' ' + this.height + '\n' + this.b64 + '\n@end\n';
@@ -457,15 +688,14 @@ Image.prototype.refresh = function() {
 	this.div.append($(this.imageElement));
 };
 Image.prototype.add = function() {
-	var clientDiv = CreateComponentDiv($('#cells'), this);
+	this.div = CreateComponentDiv($('#cells'), this);
 	this.refresh();
 };
 Image.New = function() {
 	var obj = new Image(['@image', UniqueName('image', 1), 'visible', '20', '20'], [ 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAIAAAAC64paAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAERJREFUOE9j3LJlCwMMeHt7w9lbt24lKM4A1AwH/5EAMeIDqJlUpyKrZxiimomJElxeG8CoosjZQzSqKHI2RQE2NDUDAEVWy5NpqgO1AAAAAElFTkSuQmCC' ]);
 	obj.add();
 	MarkDirty();
-	Griddl.objs[obj.name] = obj;
-	Griddl.objs.push(obj);
+	AddObj(obj);
 };
 
 var File = Components.file = function(header, lines) {
@@ -479,13 +709,23 @@ var File = Components.file = function(header, lines) {
 	this.b64 = null;
 	this.uint8array = null;
 	
+	this.ext = '';
+	this.uploadDownload = true;
+	
 	this.load(lines);
+};
+File.prototype.datauri = function() {
+	return this.b64;
 };
 File.prototype.getData = function() {
 	return this.uint8array;
 };
+File.prototype.setArrayBuffer = function(arrayBuffer) {
+	this.setData(new Uint8Array(arrayBuffer));
+};
 File.prototype.setData = function(uint8array) {
 	this.uint8array = uint8array;
+	this.b64 = 'data:text/plain;base64,' + Uint8ArrayToBase64String(this.uint8array);
 	this.refresh();
 };
 File.prototype.load = function(lines) {
@@ -495,7 +735,7 @@ File.prototype.load = function(lines) {
 	// upload -> load -> setData
 	
 	this.b64 = lines[0];
-	this.uint8array = Griddl.IO.Base64StringToUint8Array(lines[0].substr(lines[0].indexOf(','))); // data:application/binary;base64,
+	this.uint8array = Base64StringToUint8Array(lines[0].substr(lines[0].indexOf(','))); // data:application/binary;base64,
 };
 File.prototype.write = function() {
 	return '@' + this.type + ' ' + this.name + ' ' + this.display + '\n' + this.b64 + '\n@end\n';
@@ -505,19 +745,323 @@ File.prototype.refresh = function() {
 	this.div.text(this.uint8array.length); // or we could do a hexdump or something
 };
 File.prototype.add = function() {
-	var clientDiv = CreateComponentDiv($('#cells'), this);
+	this.div = CreateComponentDiv($('#cells'), this);
 	this.refreshDiv();
 };
 File.New = function() {
 	var obj = new File(['@file', UniqueName('file', 1), 'visible'], [ 'data:text/plain;base64,AAAA' ]);
 	obj.add();
 	MarkDirty();
-	Griddl.objs[obj.name] = obj;
-	Griddl.objs.push(obj);
+	AddObj(obj);
 };
 
+function CreateComponentDiv(parent, obj) {
+	
+	var div = $(document.createElement('div'));
+	var headerDiv = $(document.createElement('div'));
+	var clientDiv = $(document.createElement('div'));
+	
+	div.addClass('griddl-component');
+	headerDiv.addClass('griddl-component-head');
+	clientDiv.addClass('griddl-component-body');
+	
+	// we'll put a modified id on the clientDiv, so that we can refer to it from CSS components
+	// we can't tag the component client div with the bare obj.name, because if it is an HTML component, the created div will have id = obj.name
+	clientDiv.attr('id', obj.name + 'Component'); 
+	if (obj.display == 'hidden') { clientDiv.addClass('griddl-component-body-hidden'); }
+	
+	// 1. toggle between representations (right now for grids and guis, but could be extended to other types)
+	//  a. Handsontable/<table>/<pre>/Codemirror (TSV)
+	//  b. gui/Codemirror (JSON)
+	//  c. Codemirror (JSON)/tree representation of that JSON
+	// 2. exec/invoke html/css/js
+	// 3. upload/download/dragndrop file - this should be universal
+	
+	// 1 and 2 are going to be mutually exclusive - there is no alternate representation for html/css/js text, and there is no way that grids or guis can be invoked.  this means that their buttons can take up the same overlapping space
+	
+	// upload/download should be square buttons with icons, and thus can be put in every header
+	// can the upload button also be a dragndrop target?  if not, should there be another square for it?
+	
+	//headerDiv.append(AddReorderHandle(obj));
+	headerDiv.append(AddTypeLabel(obj));
+	headerDiv.append(AddNameBox(obj));
+	if (obj.representationToggle)
+	{
+		headerDiv.append(AddRepresentationToggle(obj));
+	}
+	if (obj.exec)
+	{ 
+		headerDiv.append(AddInvokeButton(obj));
+	}
+	if (obj.uploadDownload)
+	{
+		headerDiv.append(AddUploadButton(obj));
+		headerDiv.append(AddDownloadButton(obj));
+	}
+	headerDiv.append(AddMinimizeButton(obj));
+	headerDiv.append(AddDestroyButton(obj));
+	
+	div.append(headerDiv);
+	div.append(clientDiv);
+	parent.append(div);
+	
+	return clientDiv;
+}
+function AddReorderHandle(obj) {
+	
+	// we want a handle that you can drag to reorder the components
+}
+function AddRepresentationToggle(obj) {
+	
+	var radioDiv = $(document.createElement('div'));
+	radioDiv.addClass('griddl-component-head-radio-container');
+	
+	var radioName = '';
+	
+	// we create a 12-letter random name to link the radio buttons into a group.  collisions are possible but unlikely
+	for (var i = 0; i < 12; i++)
+	{
+		var c = Math.floor(Math.random() * 52, 1);
+		if (c < 26) { radioName += String.fromCharCode(65 + c); }
+		else { radioName += String.fromCharCode(97 + (c - 26)); }
+	}
+	
+	var conversions = obj.representationToggle();
+	
+	for (var i = 0; i < conversions.length; i++)
+	{
+		var radioButton = $(document.createElement('input'));
+		radioButton.addClass('griddl-component-head-radio-button');
+		radioButton.attr('type', 'radio');
+		radioButton.attr('name', radioName);
+		if (i == 0) { radioButton.attr('checked', 'true'); }
+		radioDiv.append(radioButton);
+		
+		var label = $(document.createElement('label'));
+		label.addClass('griddl-component-head-radio-label');
+		label.text(conversions[i].label);
+		radioDiv.append(label);
+		
+		radioButton.on('click', conversions[i].fn);
+	}
+	
+	return radioDiv;
+}
+function AddInvokeButton(obj) {
+	
+	var button = $(document.createElement('button'));
+	
+	button.addClass(obj.execButtonClass);
+	button.html(obj.execButtonText);
+	
+	button.on('click', function() { obj.exec(); });
+	
+	return button;
+}
+function AddUploadButton(obj) {
+	
+	// interface required:
+	//  obj.setArrayBuffer
+	//    OR
+	//  obj.setText
+	
+	// we also want drag-n-drop
+	
+	var button = $(document.createElement('button'));
+	button.addClass('griddl-component-head-upload');
+	button.html('Upload');
+	
+	button.on('click', function() {
+		
+		var fileChooser = $(document.createElement('input'));
+		fileChooser.attr('type', 'file');
+		
+		fileChooser.on('change', function() {
+			
+			var fileReader = new FileReader();
+			
+			fileReader.onload = function(event)
+			{
+				if (obj.setArrayBuffer)
+				{
+					obj.setArrayBuffer(event.target.result);
+				}
+				else if (obj.setText)
+				{
+					obj.setText(event.target.result);
+				}
+			};
+			
+			if (fileChooser[0].files.length > 0)
+			{
+				var f = fileChooser[0].files[0];
+				
+				if (obj.setArrayBuffer)
+				{
+					fileReader.readAsArrayBuffer(f);
+				}
+				else if (obj.setText)
+				{
+					fileReader.readAsText(f);
+				}
+			}
+		});
+		
+		fileChooser.click();
+	});
+	
+	return button;
+}
+function AddDownloadButton(obj) {
+	
+	// obj.name
+	// obj.ext
+	// obj.datauri()
+	
+	var button = $(document.createElement('button'));
+	button.addClass('griddl-component-head-download');
+	button.html('Download');
+	
+	button.on('click', function() {
+		var a = document.createElement('a');
+		a.href = obj.datauri();
+		a.download = obj.name + obj.ext;
+		a.click();
+	});
+	
+	return button;
+}
+function AddTypeLabel(obj) {
+	
+	var typeLabel = $(document.createElement('label'));
+	typeLabel.addClass('griddl-component-head-type');
+	typeLabel.html(obj.type);
+	return typeLabel;
+}
+function AddNameBox(obj) {
+	
+	var nameBox = $(document.createElement('input'));
+	nameBox.attr('type', 'text');
+	nameBox.attr('value', obj.name);
+	nameBox.addClass('griddl-component-head-name');
+	
+	nameBox.on('blur', function(e) {
+		RenameObj(obj, this.value);
+		obj.div.parent().attr('id', obj.name + 'Component');
+		MarkDirty();
+	});
+	
+	return nameBox;
+}
+function AddMinimizeButton(obj) {
+	
+	// a couple proposed changes:
+	// 1. obj.display = 'hidden'/'visible' should be changed to obj.visible = true/false
+	
+	// instead of just setting display:none, perhaps this should remove the clientDiv from the DOM altogether
+	// this will save DOM resources
+	
+	var button = $(document.createElement('input'));
+	button.attr('type', 'button');
+	button.attr('value', (obj.display == 'visible') ? '-' : '+');
+	button.addClass('griddl-component-head-minmax');
+	
+	button.on('click', function() {
+		
+		// surely this should be based off of obj, not the button
+		//$(this).parent().parent().children().last().toggleClass('griddl-component-body-hidden');
+		obj.div.toggleClass('griddl-component-body-hidden');
+		
+		if (obj.display == 'visible')
+		{
+			$(this).attr('value', '+');
+			obj.display = 'hidden';
+		}
+		else
+		{
+			$(this).attr('value', '-');
+			obj.display = 'visible';
+			
+			// this fixes this bug: when a component containing a codemirror was initially hidden, and then we maximized, the text would not appear
+			if (obj.codemirror) { obj.codemirror.refresh(); }
+		}
+		
+		MarkDirty();
+	});
+	
+	return button;
+}
+function AddDestroyButton(obj) {
+	
+	var button = $(document.createElement('input'));
+	button.attr('type', 'button');
+	button.attr('value', 'x');
+	button.addClass('griddl-component-head-remove');
+	
+	button.on('click', function() {
+		if (window.confirm('Delete component?')) {
+			DeleteObj(obj);
+			obj.div.parent().remove();
+			MarkDirty();
+		}
+	});
+	
+	return button;
+}
+
+// all references to Griddl.Core.objs are collected here, in case we want to move objs to some other place
+function AddObj(obj) { Griddl.Core.objs[obj.name] = obj; Griddl.Core.objs.push(obj); }
+function RenameObj(obj, newname) { 
+	delete Griddl.Core.objs[obj.name];
+	while (Griddl.Core.objs[newname]) { newname += ' - copy'; } // if there is a conflict, just add suffixes until there isn't
+	obj.name = newname;
+	Griddl.Core.objs[obj.name] = obj;
+}
+function DeleteObj(obj) {
+	delete Griddl.Core.objs[obj.name];
+	var i = Griddl.Core.objs.indexOf(obj);
+	Griddl.Core.objs.splice(i, 1);
+}
+function UniqueName(type, n) { while (Griddl.Core.objs[type + n.toString()]) { n++; } return type + n.toString(); }
+function MarkDirty() {
+	
+	if ($('#saveMenuButton').css('color') == 'rgb(0, 0, 0)')
+	{
+		$('#saveMenuButton').css('color', 'red');
+	}
+	else
+	{
+		$('#saveMenuButton').data('color', 'red'); // save the marking for later, when the user logs in
+	}
+	
+	if ($('#saveasMenuButton').css('color') == 'rgb(0, 0, 0)')
+	{
+		$('#saveasMenuButton').css('color', 'red');
+	}
+	else
+	{
+		$('#saveasMenuButton').data('color', 'red'); // save the marking for later, when the user logs in
+	}
+}
+
 var TsvToObjs = Griddl.TsvToObjs = function(text) { return MatrixToObjs(TsvToMatrix(text)); }
-var TsvToMatrix = Griddl.TsvToMatrix = function(text) { return text.trim().split('\n').map(line => line.trim().split('\t')); };
+var TsvToMatrix = Griddl.TsvToMatrix = function(text) { return LinesToMatrixPadded(text.split('\n')); };
+var LinesToMatrix = function(lines) { return lines.map(line => line.split('\t')); };
+var LinesToMatrixPadded = function(lines) {
+	
+	var matrix = [];
+	
+	var len = lines[0].split('\t').length;
+	
+	for (var i = 0; i < lines.length; i++)
+	{
+		var cols = lines[i].split('\t');
+		for (var k = cols.length; k < len; k++) { cols.push(''); } // so that we don't have to fill in nulls across the board for grids with a grid formula
+		matrix.push(cols);
+	}
+	
+	return matrix;
+};
 var MatrixToJoinedLines = function(matrix) { return matrix.map(row => row.map(entry => (entry === null) ? '' : entry.toString()).join('\t')).join('\n'); };
 var MatrixToObjs = Griddl.MatrixToObjs = function(matrix) {
 	
@@ -577,454 +1121,69 @@ var ObjsToJoinedLines = Griddl.ObjsToJoinedLines = function(objects) {
 	return lines.join('\n');
 }
 
-function CreateComponentDiv(parent, obj) {
+function Base64StringToUint8Array(str) {
 	
-	var div = $(document.createElement('div'));
-	var headerDiv = $(document.createElement('div'));
-	var clientDiv = $(document.createElement('div'));
+	function b64ToUint6(n) { return n>64&&n<91?n-65:n>96&&n<123?n-71:n>47&&n<58?n+4:n===43?62:n===47?63:0;}
 	
-	div.addClass('griddl-component');
-	headerDiv.addClass('griddl-component-head');
-	clientDiv.addClass('griddl-component-body');
+	var nBlocksSize = 3;
+	var sB64Enc = str.replace(/[^A-Za-z0-9\+\/]/g, ""); // remove all non-eligible characters from the string
+	var nInLen = sB64Enc.length;
+	var nOutLen = nBlocksSize ? Math.ceil((nInLen * 3 + 1 >> 2) / nBlocksSize) * nBlocksSize : nInLen * 3 + 1 >> 2;
+	var taBytes = new Uint8Array(nOutLen);
 	
-	// we'll put a modified id on the clientDiv, so that we can refer to it from CSS components
-	// we can't tag the component client div with the bare obj.name, because if it is an HTML component, the created div will have id = obj.name
-	clientDiv.attr('id', obj.name + 'Component'); 
-	if (obj.display == 'hidden') { clientDiv.addClass('griddl-component-body-hidden'); }
-	
-	obj.div = clientDiv;
-	
-	// 1. toggle between representations (right now for grids and guis, but could be extended to other types)
-	//  a. Handsontable/<table>/<pre>/Codemirror (TSV)
-	//  b. gui/Codemirror (JSON)
-	//  c. Codemirror (JSON)/tree representation of that JSON
-	// 2. exec/invoke html/css/js
-	// 3. upload/download/dragndrop file - this should be universal
-	
-	// 1 and 2 are going to be mutually exclusive - there is no alternate representation for html/css/js text, and there is no way that grids or guis can be invoked.  this means that their buttons can take up the same overlapping space
-	
-	// upload/download should be square buttons with icons, and thus can be put in every header
-	// can the upload button also be a dragndrop target?  if not, should there be another square for it?
-	
-	AddReorderHandle(headerDiv, obj);
-	AddTypeAndName(headerDiv, obj);
-	if (obj.type == 'grid' || obj.type == 'matrix' || obj.type == 'table' || obj.type == 'datgui') { AddRepresentationToggle(headerDiv, clientDiv, obj); }
-	if (obj.type == 'js' || obj.type == 'html' || obj.type == 'css') {  AddInvokeButton(headerDiv, obj); }
-	if (obj.type == 'image' || obj.type == 'audio' || obj.type == 'binary' || obj.type == 'tsv' || obj.type == 'json' || obj.type == 'font') { AddUploadDownload(headerDiv, obj); }
-	AddMinimizeAndDestroyButtons(div, headerDiv, obj);
-	
-	div.append(headerDiv);
-	div.append(clientDiv);
-	parent.append(div);
-	
-	return clientDiv;
-}
-function AddReorderHandle(headerDiv, obj) {
-	
-}
-function AddRepresentationToggle(headerDiv, clientDiv, obj) {
-	
-	// although we don't use the official datgui anymore, datgui is just a stand-in for any gui component with a JSON representation
-	// any such custom component would benefit from being able to toggle between text and graphical representations
-	
-	var radioName = '';
-	
-	// we create a 12-letter random name to link the radio buttons into a group.  collisions are possible but unlikely
-	for (var i = 0; i < 12; i++)
+	for (var nMod3, nMod4, nUint24 = 0, nOutIdx = 0, nInIdx = 0; nInIdx < nInLen; nInIdx++)
 	{
-		var c = Math.floor(Math.random() * 52, 1);
-		if (c < 26) { radioName += String.fromCharCode(65 + c); }
-		else { radioName += String.fromCharCode(97 + c); }
-	}
-	
-	var radioDiv = $(document.createElement('div'));
-	radioDiv.addClass('griddl-component-head-radio-container');
-	
-	var radioButton0 = $(document.createElement('input'));
-	radioButton0.addClass('griddl-component-head-radio-button');
-	radioButton0.attr('type', 'radio');
-	radioButton0.attr('name', radioName);
-	radioButton0.attr('checked', 'true');
-	radioDiv.append(radioButton0);
-	
-	var label0 = $(document.createElement('label'));
-	label0.addClass('griddl-component-head-radio-label');
-	label0.text('grid');
-	radioDiv.append(label0);
-	
-	var radioButton1 = $(document.createElement('input'));
-	radioButton1.addClass('griddl-component-head-radio-button');
-	radioButton1.attr('type', 'radio');
-	radioButton1.attr('name', radioName);
-	radioDiv.append(radioButton1);
-	
-	var label1 = $(document.createElement('label'));
-	label1.addClass('griddl-component-head-radio-label');
-	label1.text('text');
-	radioDiv.append(label1);
-	
-	headerDiv.append(radioDiv);
-	
-	var textbox = null;
-	var codemirror = null;
-	
-	// text -> grid
-	radioButton0.on('click', function() {
+		nMod4 = nInIdx & 3;
+		nUint24 |= b64ToUint6(sB64Enc.charCodeAt(nInIdx)) << 18 - 6 * nMod4;
 		
-		if (obj.type == 'grid' || obj.type == 'matrix')
+		if (nMod4 === 3 || nInLen - nInIdx === 1)
 		{
-			clientDiv.children().first().html('');
-		}
-		else if (obj.type == 'table')
-		{
-			clientDiv.html('');
-		}
-		else if (obj.type == 'datgui')
-		{
-			clientDiv.html('');
-		}
-		
-		var text = codemirror.getDoc().getValue();
-		//var text = textbox[0].value;
-		
-		if (obj.type == 'grid')
-		{
-			obj.matrix = TsvToMatrix(text);
-			obj.$ = MatrixToObjs(obj.matrix);
-			RefreshObjGrid(obj);
-		}
-		else if (obj.type == 'matrix')
-		{
-			obj.matrix = TsvToMatrix(text);
-			obj.$ = obj.matrix;
-			RefreshGrid(obj, false, false);
-		}
-		else if (obj.type == 'table')
-		{
-			obj.matrix = TsvToMatrix(text);
-			obj.$ = MatrixToObjs(obj.matrix);
-			RefreshObjTable(obj);
-		}
-		else if (obj.type == 'datgui')
-		{
-			obj.text = text;
-			
-			try
+			for (nMod3 = 0; nMod3 < 3 && nOutIdx < nOutLen; nMod3++, nOutIdx++)
 			{
-				obj.$ = JSON.parse(obj.text);
-			}
-			catch (e)
-			{
-				// the parse has failed - display an error message - look at error handling code in MakeComponentsDiv to see how to display error message
+				taBytes[nOutIdx] = nUint24 >>> (16 >>> nMod3 & 24) & 255;
 			}
 			
-			RefreshDatgui(obj);
+			nUint24 = 0;
 		}
-		
-		MarkDirty();
-	});
+	}
 	
-	// grid -> text
-	radioButton1.on('click', function() {
-		
-		var divToClear = null;
-		
-		if (obj.type == 'grid' || obj.type == 'matrix')
-		{
-			divToClear = clientDiv.children().first();
-			var ht = divToClear.data('handsontable');
-			ht.destroy();
-			divToClear.html('');
-		}
-		else if (obj.type == 'table')
-		{
-			divToClear = clientDiv;
-		}
-		else if (obj.type == 'datgui')
-		{
-			divToClear = clientDiv;
-		}
-		
-		divToClear.html('');
-		
-		textbox = $(document.createElement('textarea'));
-		textbox.addClass('griddl-component-body-radio-textarea');
-		divToClear.append(textbox);
-		
-		var text = null;
-		
-		if (obj.type == 'grid') { text = ObjsToJoinedLines(obj.$); }
-		else if (obj.type == 'matrix') { text = MatrixToJoinedLines(obj.$); }
-		else if (obj.type == 'table') { text = ObjsToJoinedLines(obj.$); }
-		else if (obj.type == 'datgui') { text = JSON.stringify(obj.$); }
-		
-		codemirror = CodeMirror.fromTextArea(textbox[0], { smartIndent : false , lineNumbers : true });
-		codemirror.getDoc().setValue(text);
-		
-		//textbox[0].value = text;
-		
-		MarkDirty();
-	});
+	return taBytes;
 }
-function AddInvokeButton(headerDiv, obj) {
+function Uint8ArrayToBase64String(uint8array) {
+	var nMod3 = '';
+	var sB64Enc = '';
 	
-	var actionButton = $(document.createElement('button'));
+	function uint6ToB64(n) { return n<26?n+65:n<52?n+71:n<62?n-4:n===62?43:n===63?47:65;}
 	
-	// this suggests that Text.exec() and Text.invoke() should be merged
-	
-	if (obj.type == 'js')
+	for (var nLen = uint8array.length, nUint24 = 0, nIdx = 0; nIdx < nLen; nIdx++)
 	{
-		actionButton.addClass('griddl-component-head-runcode');
-		actionButton.html('Run code');
-		actionButton.on('click', function() { obj.exec(); });
-	}
-	else if (obj.type == 'html' || obj.tyoe == 'css')
-	{
-		actionButton.addClass('griddl-component-head-addtodom');
-		actionButton.html('Add to DOM');
-		actionButton.on('click', function() { obj.data = obj.text = obj.codemirror.getValue(); obj.invoke(); });
-	}
-	
-	headerDiv.append(actionButton);
-}
-function AddUploadDownload(headerDiv, obj) {
-	// uploading and downloading should be possible for all components, as well as drag-n-drop
-	
-	var uploadButton = $(document.createElement('button'));
-	uploadButton.addClass('griddl-component-head-upload');
-	uploadButton.html('Upload');
-	
-	var dwloadButton = $(document.createElement('button'));
-	dwloadButton.addClass('griddl-component-head-download');
-	dwloadButton.html('Download');
-	
-	var extensions = {};
-	extensions['image'] = '.png';
-	extensions['audio'] = '.wav';
-	extensions['binary'] = '';
-	extensions['tsv'] = '.tsv';
-	extensions['json'] = '.json';
-	extensions['font'] = '.otf'; // or .ttf?
-	
-	// this is for image only - need to do audio separately
-	uploadButton.on('click', function() {
-		var fileChooser = $(document.createElement('input'));
-		fileChooser.attr('type', 'file');
-		fileChooser.on('change', function() {
-			var fileReader = new FileReader();
-			
-			fileReader.onload = function(event)
-			{
-				var x = null;
-				var b64 = null;
-				
-				// this could definitely be a refresh or setData or whatever
-				if (obj.type == 'image' || obj.type == 'audio' || obj.type == 'binary' || obj.type == 'font')
-				{
-					x = new Uint8Array(event.target.result, 0, event.target.result.byteLength); // for readAsArrayBuffer
-					b64 = Griddl.IO.Uint8ArrayToBase64String(x);
-				}
-				else if (obj.type == 'tsv' || obj.type == 'json')
-				{
-					x = event.target.result;
-				}
-				
-				if (obj.type == 'image')
-				{
-					obj.b64 = 'data:image/png;base64,' + b64;
-					RefreshImage(obj);
-				}
-				else if (obj.type == 'audio')
-				{
-					obj.b64 = 'data:audio/wav;base64,' + b64;
-					RefreshAudioPcmsFromText(obj);
-					RefreshAudioDomElement(obj);
-				}
-				else if (obj.type == 'binary')
-				{
-					obj.b64 = 'data:text/plain;base64,' + b64;
-					obj.uint8array = x;
-				}
-				else if (obj.type == 'font')
-				{
-					obj.b64 = 'data:text/plain;base64,' + b64;
-					obj.uint8array = x;
-				}
-				else if (obj.type == 'tsv')
-				{
-					obj.text = x;
-					obj.$ = MatrixToObjs(TsvToMatrix(x));
-					RefreshTsv(obj);
-				}
-				else if (obj.type == 'json')
-				{
-					obj.text = x;
-					
-					try
-					{
-						obj.$ = JSON.parse(obj.text);
-					}
-					catch (e)
-					{
-						// the parse has failed - display an error message - look at error handling code in MakeComponentsDiv to see how to display error message
-					}
-					
-					RefreshJson(obj);
-				}
-			};
-			
-			if (fileChooser[0].files.length > 0)
-			{
-				var f = fileChooser[0].files[0];
-				
-				if (obj.type == 'image' || obj.type == 'audio' || obj.type == 'binary' || obj.type == 'font')
-				{
-					fileReader.readAsArrayBuffer(f); // when this is done, it will call fileReader.onload(event)
-				}
-				else if (obj.type == 'tsv' || obj.type == 'json')
-				{
-					fileReader.readAsText(f); // when this is done, it will call fileReader.onload(event)
-				}
-			}
-		});
-		fileChooser.click();
-	});
-	
-	dwloadButton.on('click', function() {
-		var filename = obj.name + extensions[obj.type];
-		var downloadLink = document.createElement('a');
-		var url = window.URL;
+		nMod3 = nIdx % 3;
+		//if (nIdx > 0 && (nIdx * 4 / 3) % 76 === 0) { sB64Enc += "\r\n"; }
+		nUint24 |= uint8array[nIdx] << (16 >>> nMod3 & 24);
 		
-		if (obj.type == 'tsv' || obj.type == 'json')
+		if (nMod3 === 2 || uint8array.length - nIdx === 1)
 		{
-			downloadLink.href = 'data:text/plain;' + encodeURIComponent(obj.text);
+			var a = uint6ToB64(nUint24 >>> 18 & 63);
+			var b = uint6ToB64(nUint24 >>> 12 & 63);
+			var c = uint6ToB64(nUint24 >>> 06 & 63);
+			var d = uint6ToB64(nUint24 >>> 00 & 63);
+			sB64Enc += String.fromCharCode(a, b, c, d);
+			nUint24 = 0;
 		}
-		else
-		{
-			downloadLink.href = obj.text;
-		}
-		
-		downloadLink.download = filename;
-		downloadLink.click();
-	});
-	
-	headerDiv.append(uploadButton);
-	headerDiv.append(dwloadButton);
-}
-function AddTypeAndName(headerDiv, obj) {
-	
-	var typeLabel = $(document.createElement('label'));
-	typeLabel.addClass('griddl-component-head-type');
-	typeLabel.html(obj.type);
-	headerDiv.append(typeLabel);
-	
-	var nameBox = $(document.createElement('input'));
-	nameBox.addClass('griddl-component-head-name');
-	nameBox.attr('type', 'text');
-	nameBox.attr('value', obj.name);
-	nameBox.on('blur', function(e) {
-		
-		delete Griddl.objs[obj.name];
-		var newname = this.value;
-		while (Griddl.objs[newname]) { newname += ' - copy'; } // if there is a conflict, just add suffixes until there isn't
-		obj.name = newname;
-		Griddl.objs[obj.name] = obj;
-		obj.div.parent().attr('id', obj.name + 'Component');
-		MarkDirty();
-	});
-	headerDiv.append(nameBox);
-}
-function AddMinimizeAndDestroyButtons(div, headerDiv, obj) {
-	
-	var minimizeButton = $(document.createElement('input'));
-	minimizeButton.addClass('griddl-component-head-minmax');
-	//minimizeButton.css('font-family', 'monospace');
-	//minimizeButton.css('position', 'relative');
-	//minimizeButton.css('top', '-1px');
-	minimizeButton.attr('type', 'button');
-	minimizeButton.attr('value', ((obj.display == 'hidden') ? '+' : '-'));
-	headerDiv.append(minimizeButton);
-	
-	var destroyButton = $(document.createElement('input'));
-	destroyButton.addClass('griddl-component-head-remove');
-	//destroyButton.css('font-family', 'monospace');
-	//destroyButton.css('position', 'relative');
-	//destroyButton.css('top', '-1px');
-	destroyButton.attr('type', 'button');
-	destroyButton.attr('value', 'x');
-	headerDiv.append(destroyButton);
-	
-	minimizeButton.on('click', function() {
-		
-		$(this).parent().parent().children().last().toggleClass('griddl-component-body-hidden');
-		
-		if ($(this).attr('value') == '-')
-		{
-			//$(this).parent().parent().children().last().css('display', 'none'); // $(this).parent().next().css('display', 'none');
-			
-			if (obj.type == 'datgui')
-			{
-				obj.div.parent().css('margin-bottom', '1em'); // datgui crowds the bottom if the margin is just 1em, so we change it to 2em when visible
-			}
-			
-			$(this).attr('value', '+');
-			obj.display = 'hidden';
-		}
-		else
-		{
-			//$(this).parent().parent().children().last().css('display', 'block');
-			$(this).attr('value', '-');
-			obj.display = 'visible';
-			
-			if (obj.type == 'datgui')
-			{
-				obj.div.parent().css('margin-bottom', '2em'); // datgui crowds the bottom if the margin is just 1em, so we change it to 2em when visible
-			}
-			
-			if (obj.codemirror)
-			{
-				// this fixes this bug: when a component containing a codemirror was initially hidden, and then we maximized, the text would not appear
-				obj.codemirror.refresh();
-			}
-		}
-		
-		MarkDirty();
-	});
-	
-	destroyButton.on('click', function() {
-		if (window.confirm('Delete component?')) { 
-			delete Griddl.objs[obj.name];
-			var i = Griddl.objs.indexOf(obj);
-			Griddl.objs.splice(i, 1);
-			div.remove();
-			MarkDirty();
-		}
-	});
-}
-
-function UniqueName(type, n) { while (Griddl.objs[type + n.toString()]) { n++; } return type + n.toString(); }
-function MarkDirty() {
-	
-	if ($('#saveMenuButton').css('color') == 'rgb(0, 0, 0)')
-	{
-		$('#saveMenuButton').css('color', 'red');
-	}
-	else
-	{
-		$('#saveMenuButton').data('color', 'red'); // save the marking for later, when the user logs in
 	}
 	
-	if ($('#saveasMenuButton').css('color') == 'rgb(0, 0, 0)')
-	{
-		$('#saveasMenuButton').css('color', 'red');
-	}
-	else
-	{
-		$('#saveasMenuButton').data('color', 'red'); // save the marking for later, when the user logs in
-	}
+	return sB64Enc.replace(/A(?=A$|$)/g, "=");
 }
 
 return Components;
 
 })();
+
+if (typeof window !== 'undefined') {
+	//if (typeof Griddl === 'undefined') { var Griddl = {}; } // Griddl must be defined before this module is loaded
+	Griddl.Components = TheComponents;
+}
+else {
+	exports.Components = TheComponents;
+}
 
