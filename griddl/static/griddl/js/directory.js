@@ -27,12 +27,26 @@ function togglePublic(pk) {
   );
 }
 
+function validateInput(str) {
+  // don't allow names with forward slashes.
+  if (str.indexOf("/") == -1) {
+    return true;
+  } else {
+    $.alert('Sorry, "/" (forward-slash) is not allowed in file or folder names.');
+    return false;
+  }
+}
+
 $(document).ready(function() {
 
   $('.renameForm').on('submit', function(event) {
     event.preventDefault();
     $tgt = $(event.target);
     name = $tgt.find('[name="newname"]').val();
+
+    if (!validateInput(name)) {
+      return false;
+    }
 
     $.post("/rename",
       $tgt.serialize(),
@@ -71,7 +85,13 @@ $(document).ready(function() {
 
   $('#newDirectoryForm').on('submit', function(event) {
     event.preventDefault();
+
+    name = $('[name="name"]', event.target).val();
     
+    if (!validateInput(name)) {
+      return false;
+    }
+
     $.post("/createDir",
       $(event.target).serialize(),
       function(response) {
@@ -89,15 +109,15 @@ $(document).ready(function() {
   $('#moveForm').on('submit', function(event) {
     event.preventDefault();
     
+    dest = $('select', event.target).val();
     $.post("/move",
       $(event.target).serialize(),
       function(response) {
-        // todo: this success handler is not done yet, pending fixing other issues w/ move & dirs
         if (response.success) { 
           $sel = $('.selected');
           name = $sel.find('.namelink').text();
           $sel.remove();
-          $.alert("Workbook " + name + " was moved.", 'success');
+          $.alert("Workbook '" + name + "' was moved to '" + dest + "' folder.", 'success');
         } else {
           $.alert("Sorry, something went wrong. Please try again later.");
         }
