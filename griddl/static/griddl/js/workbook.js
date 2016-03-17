@@ -22,15 +22,14 @@ $(document).ready(function() {
   });
 
   // cancel/clear documentSettings on modal close
-  $('.modal').on('hide.bs.modal', function() {
+  $('#documentSettings').on('hide.bs.modal', function() {
     Griddl.UI.CancelDocumentSettings()
   });
 
   $('#saveMenuButton').on('click', function(event) {
     event.preventDefault();
-    text = $("#frce").text();
     $form = $('#saveForm');
-    $form.find("#saveFormTextInput").val(text);
+    $form.find("#saveFormTextInput").val(Griddl.Core.SaveToText());
     $.post("/save",
            $form.serialize(),
            function(response) {

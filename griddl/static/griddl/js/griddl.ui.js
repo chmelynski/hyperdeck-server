@@ -142,22 +142,6 @@ UI.CancelNewWidget = function() {
 	document.getElementById('newWidgetPanel').style.display = 'none';
 };
 
-UI.ShowSaveAsModal = function() {
-	$('#saveAsScreen').css('display', 'block');
-	$('#saveAsDialog').css('display', 'block');
-};
-UI.HideSaveAsModal = function() {
-	$('#saveAsScreen').css('display', 'none');
-	$('#saveAsDialog').css('display', 'none');
-};
-UI.ShowLoginModal = function() {
-	$('#loginScreen').css('display', 'block');
-	$('#loginDialog').css('display', 'block');
-};
-UI.HideLoginModal = function() {
-	$('#loginScreen').css('display', 'none');
-	$('#loginDialog').css('display', 'none');
-};
 UI.SubmitLoginForm = function() {
 	
 	var form = $('#loginForm');

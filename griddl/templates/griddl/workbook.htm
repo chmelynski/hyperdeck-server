@@ -62,7 +62,7 @@
         {% if user.is_authenticated %}
           {% if user.account == workbook.owner %}
             <button class="btn btn-default" id="saveMenuButton">Save</button>
-            <button class="btn btn-default" id="saveasMenuButton" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button>
+            <button class="btn btn-default" id="saveasMenuButton" data-toggle="modal" data-target='#saveAsModal'>Save As</button>
           {% else %}
             <button class="btn btn-default" id="saveasMenuButton" style="color:black;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button>
           {% endif %}
@@ -116,21 +116,28 @@
     <input id="saveFormTextInput" type="hidden" name="text" value=""></input>
   </form>
 
-  <div id="saveAsScreen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:997; opacity:0.6; background-color:#444444;"></div>
-  <div id="saveAsDialog" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; margin:auto; width:20%; height:40%; z-index:998; opacity:1.0; background-color:#ffffff;">
-      <form id="saveasForm" action="/saveas" method="POST">
-          {% csrf_token %}
-          <div style="position:absolute; left:0; top:0; right:0; bottom:0; margin:auto; width:60%; height:40%; z-index:999; background-color:#ffffff;">
-              <label>New name:</label>
-              <div style="display:inline-block;">
-                  <input type="hidden" name="id" value="{{ workbook.pk }}"></input>
-                  <input id="saveasFormTextInput" type="hidden" name="text" value=""></input>
-                  <input type="text" name="newname"></input>
-                  <input type="submit" value="Save"></input>
-                  <input type="button" value="Cancel" onclick="Griddl.UI.HideSaveAsModal();"></input>
+  <div id="saveAsModal" class="modal fade">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-body">
+          <form class='form-horizontal' id="saveasForm" action="/saveas" method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="id" value="{{ workbook.pk }}"></input>
+            <input id="saveasFormTextInput" type="hidden" name="text" value=""></input>
+            <div class="form-group">
+              <label class='col-sm-3 form-label'>New name:</label>
+              <div class='col-sm-9'>
+                <input class="form-control" type="text" name="newname"></input>
               </div>
-          </div>
-      </form>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button id="saveAsSubmit" class="btn btn-success" type="submit" value="Save">Save</input>
+          <button class="btn btn-danger" type="button" value="Cancel" data-dismiss="modal">Cancel</input>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="loginScreen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:997; opacity:0.6; background-color:#444444;"></div>

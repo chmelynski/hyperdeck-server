@@ -37,17 +37,6 @@ IO.HandleLocalLoad = function(files) {
 			Griddl.Canvas.GenerateDocument(JSON.parse(Griddl.GetData('document')));
 		}
 		
-		// dummy version that just diplays the workbook in a textarea
-		//$('#cells').remove();
-		//var textarea = $(document.createElement('textarea'));
-		//textarea.text(text);
-		//$('#frce').append(textarea);
-		//$('#frce').css('display', 'block');
-		//$('#frce').css('position', 'absolute');
-		//$('#frce').css('left', '3em');
-		//$('#frce').css('top', '5em');
-		//textarea.css('width', '40em');
-		//textarea.css('height', '50em');
 	};
 	
 	if (files.length > 0)
@@ -59,7 +48,6 @@ IO.HandleLocalLoad = function(files) {
 	}
 }
 
-// $.ajax({ dataType : 'json' , url : url , error : function() { debugger; } , success : function(obj) { DoSomething(obj); } });
 
 // these can probably be deleted, right?
 function LoadRemote(url, callback) {
@@ -270,8 +258,6 @@ function AjaxSuccess(data) {
 	$('#logoutLink').css('display', 'inline');
 }
 function AjaxFailure(form, data) { form.append('<span style="color:red;">' + data.responseText + '</span>'); }
-
-
 
 // data URI syntax: data:[<mediatype>][;base64],<data>
 // data:[<MIME-type>][;charset=<encoding>][;base64],<data>

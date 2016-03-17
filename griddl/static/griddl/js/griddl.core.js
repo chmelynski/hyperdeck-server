@@ -13,7 +13,7 @@ Core.Main = function(Components, text) {
 	
 	if (typeof text == 'undefined')
 	{
-		text = $('#frce').text(); // document.getElementById('frce').innerText
+		text = $('#frce').text();
 	}
 	
 	var lines = text.trim().split('\n');
