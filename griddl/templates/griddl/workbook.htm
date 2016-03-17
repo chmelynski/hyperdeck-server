@@ -61,7 +61,7 @@
             
         {% if user.is_authenticated %}
           {% if user.account == workbook.owner %}
-            <button class="btn btn-default" id="saveMenuButton" onclick="$('#saveForm').submit()">Save</button>
+            <button class="btn btn-default" id="saveMenuButton">Save</button>
             <button class="btn btn-default" id="saveasMenuButton" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button>
           {% else %}
             <button class="btn btn-default" id="saveasMenuButton" style="color:black;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button>
