@@ -74,12 +74,12 @@ class Subscription(models.Model):
         elif self._period_end < datetime.date.today():
             if self.status == 2 and int(self.status_detail) > 1:
                 # not 100% sure this is safe tbh?
-                acct = self.account_set()
+                acct = self.account_set.get()
                 acct.plan == int(self.status_detail)
                 acct.save()
                 self.next_period()
             elif self.status == 2 and int(self.status_detail) == 1:
-                acct = self.account_set()
+                acct = self.account_set.get()
                 acct.plan == 1
                 acct.save()
                 self.delete()
