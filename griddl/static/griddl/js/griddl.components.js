@@ -123,7 +123,7 @@ Text.prototype.add = function() {
 	var modeDict = {text:'plain',js:'javascript',css:'css',html:'xml',json:'javascript'};
 	var mode = modeDict[this.type];
 	
-	if (this.type == 'css') { this.invokeCss(); } // why is invoke here in add for CSS, but elsewhere for HTML?
+	if (this.type == 'css') { this.exec(); } // why is invoke here in add for CSS, but elsewhere for HTML?
 	
 	this.div = CreateComponentDiv($('#cells'), this);
 	var textbox = $(document.createElement('textarea'));
