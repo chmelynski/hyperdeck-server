@@ -228,6 +228,8 @@ def togglepublic(request):
 
 
 def save(request):
+    # todo: this comment does not match the current behavior :(
+    #       - actually not even close, would take some effort.
     # if user is looking at a workbook belonging to another user:
     #   if user is logged in:
     #     redirect to create_new_workbook, prompt for a name
@@ -240,11 +242,17 @@ def save(request):
     #     save (note: until we have some sort of version control,
     #     this involves overwriting the old data.
     if request.user.is_authenticated():
-        wb = Workbook.objects.filter(pk=request.POST['id'])[0]
-        if wb.owner != request.user.account:
-            return JsonResponse({'success': False, 'message': 'Access denied'})
-        wb.text = request.POST['text']
         try:
+            pk = request.POST.get('id', False)
+            logger.debug(request.POST)
+            if not pk:
+                raise exceptions.ValidationError('bad request')
+
+            wb = Workbook.objects.get(pk=pk)
+            if wb.owner != request.user.account:
+                return JsonResponse({'success': False,
+                                     'message': 'Access denied'})
+            wb.text = request.POST.get('text', '')  # todo: is this ok?
             wb.save()
             return JsonResponse({'success': True, 'message': 'saved',
                                  'wb_size': wb.size,
@@ -260,6 +268,12 @@ def save(request):
                                  })
         except MaxWorkbookSizeException:
             msg = "Sorry, your workbook is too large and cannot be saved."
+            return JsonResponse({'success': False, 'message': msg})
+        except exceptions.ValidationError as e:
+            return JsonResponse({'success': False, 'message': e.msg})
+        except Exception:
+            logger.error(traceback.format_exc())
+            msg = "An error occurred. Please try again."
             return JsonResponse({'success': False, 'message': msg})
     else:
         return JsonResponse({'success': False, 'message': 'Access denied'})
