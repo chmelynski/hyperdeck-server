@@ -50,6 +50,13 @@
 {% block body %}
   <input type="file" id="fileChooser" style="display:none" onchange="Griddl.IO.HandleLocalLoad(this.files)" />
 
+  
+  <div class="row">
+    <div class="col-sm-12">
+      <h3 id="workbookName">{{ workbook.name }}</h3>
+    </div>
+  </div>
+
 
   <div class="row">
     <div class="col-sm-12">
@@ -120,7 +127,7 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-body">
-          <form class='form-horizontal' id="saveasForm" action="/saveas" method="POST">
+          <form class='form-horizontal' id="saveAsForm" action="/saveas" method="POST">
             {% csrf_token %}
             <input type="hidden" name="id" value="{{ workbook.pk }}"></input>
             <input id="saveasFormTextInput" type="hidden" name="text" value=""></input>

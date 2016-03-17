@@ -43,4 +43,29 @@ $(document).ready(function() {
            );
   });
 
+  $('#saveAsSubmit').on('click', save_as);
+  $('#saveAsForm').on('submit', save_as);
+
 });
+
+function save_as() {
+  $form = $('#saveAsForm');
+  newname = $form.find("[name='newname']").val();
+  $.post('/rename',
+         $form.serialize(),
+         function(response) {
+           if (response.success) {
+             $('#workbookName').text(newname);
+             path = window.location.pathname
+             newpath = path.slice(0, path.lastIndexOf('/')+1) + newname;
+             history.replaceState('workbook-rename', 'Renamed workbook', newpath);
+             $.alert('Workbook renamed to ' + newname + '.', 'success');
+             $('.modal').modal('hide');
+           } else {
+             $.alert('Something went wrong. Please try again later.');
+             $('.modal').modal('hide');
+           }
+         },
+         'json'
+        );
+}
