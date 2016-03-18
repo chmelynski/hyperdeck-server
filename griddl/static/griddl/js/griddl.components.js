@@ -977,7 +977,11 @@ function AddMinimizeButton(obj) {
 	var button = $(document.createElement('input'));
 	button.attr('type', 'button');
 	button.attr('value', (obj.display == 'visible') ? '-' : '+');
+  button.attr('data-toggle', 'tooltip');
+  button.attr('data-placement', 'top');
+  button.attr('title', 'Expand/Collapse');
 	button.addClass('griddl-component-head-minmax btn btn-default btn-sm');
+  button.tooltip();
 	
 	button.on('click', function() {
 		
@@ -1009,9 +1013,13 @@ function AddDestroyButton(obj) {
 	var button = $(document.createElement('input'));
 	button.attr('type', 'button');
 	button.attr('value', 'x');
+  button.attr('data-toggle', 'tooltip');
+  button.attr('data-placement', 'top');
+  button.attr('title', 'Delete Component');
 	button.addClass('griddl-component-head-remove btn btn-default btn-sm');
 	
 	button.on('click', null, obj, confirmDelete);
+  button.tooltip();
 	
 	return button;
 }

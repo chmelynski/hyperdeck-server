@@ -13,3 +13,13 @@ $(document).ajaxComplete(function(event, xhr, settings) {
     document.location.href = response.redirect;
   }
 });
+
+function validateName(str) {
+  // don't allow names with forward slashes. ever.
+  if (str.indexOf("/") == -1) {
+    return true;
+  } else {
+    $.alert('Sorry, "/" (forward-slash) is not allowed in file or folder names.');
+    return false;
+  }
+}

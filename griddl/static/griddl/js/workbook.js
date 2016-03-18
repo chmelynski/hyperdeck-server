@@ -53,6 +53,11 @@ $(document).ready(function() {
 function save_as() {
   $form = $('#saveAsForm');
   newname = $form.find("[name='newname']").val();
+
+  if (!validateName(newname)) {
+    return false;
+  }
+
   $.post('/rename',
          $form.serialize(),
          function(response) {
