@@ -21,10 +21,12 @@ $(document).ready(function() {
       $("#cells").css('display', 'none');
   });
 
+/*
   // cancel/clear documentSettings on modal close
   $('#documentSettings').on('hide.bs.modal', function() {
     Griddl.UI.CancelDocumentSettings()
   });
+  */
 
   $('#saveMenuButton').on('click', function(event) {
     event.preventDefault();

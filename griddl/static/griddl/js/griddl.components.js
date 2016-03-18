@@ -434,6 +434,8 @@ Grid.prototype.refresh = function() {
 		throw new Error();
 	}
 };
+
+
 Grid.prototype.add = function() {
 	
 	this.div = CreateComponentDiv($('#cells'), this);
@@ -444,18 +446,24 @@ Grid.prototype.add = function() {
 	
 	this.refresh();
 };
+
+
 Grid.New = function(type) {
 	var obj = new Grid(['@'+type, UniqueName(type, 1), 'visible'], [ '\tA\tB\tC', '0\t\t\t', '1\t\t\t', '2\t\t\t' ]);
 	obj.add();
 	MarkDirty();
 	AddObj(obj);
 };
+
+
 Grid.prototype.representationToggle = function() {
 	
 	var obj = this;
 	var codemirror = null;
 	
 	var TextToGrid = function() {
+    $(this).button('reset');
+    $($(this).siblings()[0]).button('toggle');
 		
 		var text = codemirror.getDoc().getValue();
 		
@@ -472,6 +480,8 @@ Grid.prototype.representationToggle = function() {
 	};
 	
 	var GridToText = function() {
+    $(this).button('reset');
+    $($(this).siblings()[0]).button('toggle');
 		
 		if (obj.type == 'grid' || obj.type == 'matrix')
 		{
@@ -799,8 +809,9 @@ function CreateComponentDiv(parent, obj) {
 		headerDiv.append(AddUploadButton(obj));
 		headerDiv.append(AddDownloadButton(obj));
 	}
-	headerDiv.append(AddMinimizeButton(obj));
+  // add these in reverse order because float: right;
 	headerDiv.append(AddDestroyButton(obj));
+	headerDiv.append(AddMinimizeButton(obj));
 	
 	div.append(headerDiv);
 	div.append(clientDiv);
@@ -808,14 +819,19 @@ function CreateComponentDiv(parent, obj) {
 	
 	return clientDiv;
 }
+
+
 function AddReorderHandle(obj) {
-	
-	// we want a handle that you can drag to reorder the components
+	// todo: we want a handle that you can drag to reorder the components
 }
+
+
 function AddRepresentationToggle(obj) {
 	
 	var radioDiv = $(document.createElement('div'));
-	radioDiv.addClass('griddl-component-head-radio-container');
+	radioDiv.addClass('griddl-component-head-btngrp-container btn-group btn-group-sm');
+  radioDiv.attr('role', 'group');
+  radioDiv.attr('data-toggle', 'buttons');
 	
 	var radioName = '';
 	
@@ -831,18 +847,13 @@ function AddRepresentationToggle(obj) {
 	
 	for (var i = 0; i < conversions.length; i++)
 	{
-		var label = $(document.createElement('label'));
-		label.addClass('griddl-component-head-radio-label radio-inline');
-		label.text(conversions[i].label);
-
-		var radioButton = $(document.createElement('input'));
-		radioButton.addClass('griddl-component-head-radio-button');
-		radioButton.attr('type', 'radio');
+		var radioButton = $(document.createElement('button'));
+    radioButton.text(conversions[i].label);
+		radioButton.addClass('griddl-component-head-btngrp-button btn btn-default');
+		radioButton.attr('type', 'button');
 		radioButton.attr('name', radioName);
-		if (i == 0) { radioButton.attr('checked', 'true'); }
-		label.prepend(radioButton);
-		
-		radioDiv.append(label);
+		if (i == 0) { radioButton.addClass('active'); }
+		radioDiv.append(radioButton);
 		
 		radioButton.on('click', conversions[i].fn);
 	}
@@ -1000,15 +1011,25 @@ function AddDestroyButton(obj) {
 	button.attr('value', 'x');
 	button.addClass('griddl-component-head-remove btn btn-default btn-sm');
 	
-	button.on('click', function() {
-		if (window.confirm('Delete component?')) {
-			DeleteObj(obj);
-			obj.div.parent().remove();
-			MarkDirty();
-		}
-	});
+	button.on('click', null, obj, confirmDelete);
 	
 	return button;
+}
+
+function confirmDelete(event) {
+  var obj = event.data;
+  var modal = $("<div class='modal'><div class='modal-dialog modal-sm'><div class='modal-content'><div class='modal-header text-center'><h3></h3><button class='btn btn-success'>Confirm</button><button data-dismiss='modal' class='btn btn-danger'>Cancel</button></div></div></div></div>");
+  $('h3', modal).text("Delete " + obj.name + "?");
+  $('body').append(modal);
+
+  $('.btn-success', modal).on('click', function(event) {
+    DeleteObj(obj);
+    obj.div.parent().remove();
+    MarkDirty(obj);
+    $('.modal').modal('hide');
+  });
+
+  modal.modal('show');
 }
 
 // all references to Griddl.Core.objs are collected here, in case we want to move objs to some other place

@@ -128,10 +128,8 @@ UI.SaveDocumentSettings = function() {
 	Griddl.SetData('document', JSON.stringify(doc));
 };
 UI.CancelDocumentSettings = function() {
-	
 	document.getElementById('screen').style.display = 'none';
 	document.getElementById('documentSettingsPanel').style.display = 'none';
-	
 };
 UI.ShowNewWidgetPanel = function() {
 	document.getElementById('screen').style.display = 'block';

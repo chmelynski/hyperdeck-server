@@ -84,13 +84,29 @@ tr.selected:hover td { background-color:rgba(0,0,0,0) !important; }
   margin-left: .5em;
 }
 
-.griddl-component-head-radio-container {
-  border: 1px solid lightgrey;
-  border-radius: 5px;
-  padding: 6px 10px;
-}
-
 .griddl-component img.upload {
   width: 100%;
   height: 100%;
+}
+
+.griddl-component-head-minmax {
+  float: right;
+}
+
+.griddl-component-head-remove {
+  float: right;
+}
+
+.griddl-component-head-minmax::after,
+.griddl-component-head-remove::after {
+  clear: both;
+}
+
+.griddl-component-head-btngrp-container {
+  margin-top: -2px;
+}
+
+button + button,
+a.button + a.button {
+  margin-left: 1em;
 }
