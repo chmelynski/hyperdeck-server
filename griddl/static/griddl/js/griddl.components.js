@@ -822,7 +822,11 @@ function CreateComponentDiv(parent, obj) {
 
 
 function AddReorderHandle(obj) {
-	// todo: we want a handle that you can drag to reorder the components
+	var img = $(document.createElement('img'));
+	img.addClass('reorder-handle');
+	img.css('cursor', 'move');
+	img[0].src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAIAAAAC64paAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAERJREFUOE9j3LJlCwMMeHt7w9lbt24lKM4A1AwH/5EAMeIDqJlUpyKrZxiimomJElxeG8CoosjZQzSqKHI2RQE2NDUDAEVWy5NpqgO1AAAAAElFTkSuQmCC';
+	return img;
 }
 
 
@@ -1041,7 +1045,7 @@ function confirmDelete(event) {
 }
 
 // all references to Griddl.Core.objs are collected here, in case we want to move objs to some other place
-function AddObj(obj) { Griddl.Core.objs[obj.name] = obj; Griddl.Core.objs.push(obj); }
+function AddObj(obj) { Griddl.Core.objs[obj.name] = obj; Griddl.Core.objs.push(obj); MakeSortable(); }
 function RenameObj(obj, newname) { 
 	delete Griddl.Core.objs[obj.name];
 	while (Griddl.Core.objs[newname]) { newname += ' - copy'; } // if there is a conflict, just add suffixes until there isn't
@@ -1074,6 +1078,14 @@ function MarkDirty() {
 		$('#saveasMenuButton').data('color', 'red'); // save the marking for later, when the user logs in
 	}
 }
+var MakeSortable = Components.MakeSortable = function() {
+	$('#cells').sortable({handle:'.reorder-handle',stop:function(event, ui) {
+		$(this).children().each(function(index, elt) {
+			var id = $(elt).children().eq(1).attr('id');
+			Griddl.Core.objs[index] = Griddl.Core.objs[id.substr(0, id.length - 'Component'.length)];
+		});
+	}});
+};
 
 var TsvToObjs = Griddl.TsvToObjs = function(text) { return MatrixToObjs(TsvToMatrix(text)); }
 var TsvToMatrix = Griddl.TsvToMatrix = function(text) { return LinesToMatrixPadded(text.split('\n')); };
