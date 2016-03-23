@@ -51,6 +51,8 @@ Core.Main = function(Components, text) {
 		Core.objs.forEach(function(obj) { obj.add(); });
 		Core.objs.forEach(function(obj) { if (obj.type == 'html') { obj.invokeHtml(); } }); // do this only after all components have been added
 	}
+	
+	Components.MakeSortable();
 };
 
 Core.UploadWorkbook = function() {
