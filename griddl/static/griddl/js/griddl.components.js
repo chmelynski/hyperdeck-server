@@ -278,13 +278,14 @@ var Grid = Components.grid = Components.table = Components.matrix = Components.t
 	
 	this.load(lines);
 };
+
 Grid.prototype.setText = function(text) {
 	this.matrix = TsvToMatrix(text);
 	this.matrixToData();
 	this.refresh();
 };
+
 Grid.prototype.load = function(lines) {
-	
 	// new -> constructor -> load -> setData
 	// init -> constructor -> load -> setData
 	// paste -> load -> setData
@@ -295,8 +296,8 @@ Grid.prototype.load = function(lines) {
 	
 	// refresh?
 };
+
 Grid.prototype.matrixToData = function() {
-	
 	// here we deal with [ {} ] vs [ [] ]
 	if (this.type == 'grid' || this.type == 'table' || this.type == 'tsv')
 	{
@@ -311,39 +312,38 @@ Grid.prototype.matrixToData = function() {
 		throw new Error();
 	}
 };
+
 Grid.prototype.getData = function() {
 	return this.data;
 };
+
 Grid.prototype.setData = function(data) {
-	
 	this.data = data;
 	this.refresh();
 };
+
 Grid.prototype.write = function() {
 	return '@' + this.type + ' ' + this.name + ' ' + this.display + '\n' + this.toTsv() + '\n@end\n';
-	
 };
+
 Grid.prototype.toTsv = function() {
-	
 	// this should be renamed getText
-	
 	if (this.type == 'matrix')
 	{
-		MatrixToJoinedLines(this.data)
+		return MatrixToJoinedLines(this.data)
 	}
 	else if (this.type == 'grid' || this.type == 'tsv' || this.type == 'table')
 	{
-		ObjsToJoinedLines(this.data)
+		return ObjsToJoinedLines(this.data)
 	}
 	else
 	{
 		throw new Error();
 	}
 };
+
 Grid.prototype.refresh = function() {
-	
 	// here we deal with Handsontable vs <table> vs <pre>
-	
 	if (this.type == 'grid' || this.type == 'matrix')
 	{
 		var rowHeaders = false;
@@ -445,6 +445,8 @@ Grid.prototype.add = function() {
 	this.tableDiv = tableDiv;
 	
 	this.refresh();
+
+  //todo: update data on blur
 };
 
 
@@ -462,9 +464,6 @@ Grid.prototype.representationToggle = function() {
 	var codemirror = null;
 	
 	var TextToGrid = function() {
-    $(this).button('reset');
-    $($(this).siblings()[0]).button('toggle');
-		
 		var text = codemirror.getDoc().getValue();
 		
 		obj.div.html('');
@@ -480,9 +479,6 @@ Grid.prototype.representationToggle = function() {
 	};
 	
 	var GridToText = function() {
-    $(this).button('reset');
-    $($(this).siblings()[0]).button('toggle');
-		
 		if (obj.type == 'grid' || obj.type == 'matrix')
 		{
 			obj.handsontable.destroy();
@@ -793,7 +789,7 @@ function CreateComponentDiv(parent, obj) {
 	// upload/download should be square buttons with icons, and thus can be put in every header
 	// can the upload button also be a dragndrop target?  if not, should there be another square for it?
 	
-	//headerDiv.append(AddReorderHandle(obj));
+	headerDiv.append(AddReorderHandle(obj));
 	headerDiv.append(AddTypeLabel(obj));
 	headerDiv.append(AddNameBox(obj));
 	if (obj.representationToggle)
@@ -822,11 +818,19 @@ function CreateComponentDiv(parent, obj) {
 
 
 function AddReorderHandle(obj) {
-	var img = $(document.createElement('img'));
-	img.addClass('reorder-handle');
-	img.css('cursor', 'move');
-	img[0].src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAIAAAAC64paAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAERJREFUOE9j3LJlCwMMeHt7w9lbt24lKM4A1AwH/5EAMeIDqJlUpyKrZxiimomJElxeG8CoosjZQzSqKHI2RQE2NDUDAEVWy5NpqgO1AAAAAElFTkSuQmCC';
-	return img;
+	var div = $(document.createElement('a'));
+	div.addClass('reorder-handle btn btn-default btn-sm');
+  div.append($('<i class="fa fa-exchange fa-rotate-90"></i>'));
+	return div;
+}
+
+function AddTooltip(el, text) {
+  // assumes a jQuery object representing a DOM element
+  el.attr('data-toggle', 'tooltip');
+  el.attr('data-placement', 'top');
+  el.attr('title', text);
+  el.tooltip();
+  return el;
 }
 
 
@@ -851,15 +855,16 @@ function AddRepresentationToggle(obj) {
 	
 	for (var i = 0; i < conversions.length; i++)
 	{
-		var radioButton = $(document.createElement('button'));
-    radioButton.text(conversions[i].label);
-		radioButton.addClass('griddl-component-head-btngrp-button btn btn-default');
-		radioButton.attr('type', 'button');
+    var wrap = $("<label class='griddl-component-head-btngrp-button btn btn-default'></label>");
+		var radioButton = $(document.createElement('input'));
+    wrap.text(conversions[i].label);
+		radioButton.attr('type', 'radio');
 		radioButton.attr('name', radioName);
-		if (i == 0) { radioButton.addClass('active'); }
-		radioDiv.append(radioButton);
+		if (i == 0) { wrap.addClass('active'); }
+    wrap.prepend(radioButton);
+		radioDiv.append(wrap);
 		
-		radioButton.on('click', conversions[i].fn);
+		wrap.on('click', conversions[i].fn);
 	}
 	
 	return radioDiv;
@@ -981,11 +986,8 @@ function AddMinimizeButton(obj) {
 	var button = $(document.createElement('input'));
 	button.attr('type', 'button');
 	button.attr('value', (obj.display == 'visible') ? '-' : '+');
-  button.attr('data-toggle', 'tooltip');
-  button.attr('data-placement', 'top');
-  button.attr('title', 'Expand/Collapse');
+  button = AddTooltip(button, 'Expand/Collapse');
 	button.addClass('griddl-component-head-minmax btn btn-default btn-sm');
-  button.tooltip();
 	
 	button.on('click', function() {
 		
@@ -1017,13 +1019,10 @@ function AddDestroyButton(obj) {
 	var button = $(document.createElement('input'));
 	button.attr('type', 'button');
 	button.attr('value', 'x');
-  button.attr('data-toggle', 'tooltip');
-  button.attr('data-placement', 'top');
-  button.attr('title', 'Delete Component');
+  button = AddTooltip(button, 'Delete Component');
 	button.addClass('griddl-component-head-remove btn btn-default btn-sm');
 	
 	button.on('click', null, obj, confirmDelete);
-  button.tooltip();
 	
 	return button;
 }

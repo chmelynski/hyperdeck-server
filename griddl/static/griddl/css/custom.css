@@ -110,3 +110,8 @@ button + button,
 a.button + a.button {
   margin-left: 1em;
 }
+
+.reorder-handle {
+  display: inline-block;
+  cursor: move;
+}
