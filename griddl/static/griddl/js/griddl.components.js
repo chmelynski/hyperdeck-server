@@ -270,6 +270,7 @@ var Grid = Components.grid = Components.table = Components.matrix = Components.t
 	this.div = null;
 	this.tableDiv = null; // for unknown reasons we pass a sub div to Handsontable / add the <table> or <pre> to the sub div
 	this.handsontable = null;
+	this.codemirror = null;
 	
 	this.matrix = null;
 	this.data = null;
@@ -327,8 +328,14 @@ Grid.prototype.write = function() {
 };
 
 Grid.prototype.toTsv = function() {
+	
 	// this should be renamed getText
-	if (this.type == 'matrix')
+	
+	if (this.codemirror)
+	{
+		return this.codemirror.getValue();
+	}
+	else if (this.type == 'matrix')
 	{
 		return MatrixToJoinedLines(this.data)
 	}
@@ -461,12 +468,12 @@ Grid.New = function(type) {
 Grid.prototype.representationToggle = function() {
 	
 	var obj = this;
-	var codemirror = null;
 	
 	var TextToGrid = function() {
 		var text = codemirror.getDoc().getValue();
 		
 		obj.div.html('');
+		obj.codemirror = null;
 		
 		// because we destroy the tableDiv to add the codemirror, we need to create a new tableDiv here
 		var tableDiv = $(document.createElement('div'));
@@ -496,8 +503,8 @@ Grid.prototype.representationToggle = function() {
 		else if (obj.type == 'matrix') { text = MatrixToJoinedLines(obj.data); }
 		else if (obj.type == 'table') { text = ObjsToJoinedLines(obj.data); }
 		
-		codemirror = CodeMirror.fromTextArea(textbox[0], { smartIndent : false , lineNumbers : true });
-		codemirror.getDoc().setValue(text);
+		obj.codemirror = CodeMirror.fromTextArea(textbox[0], { smartIndent : false , lineNumbers : true });
+		obj.codemirror.getDoc().setValue(text);
 		
 		MarkDirty();
 	};
