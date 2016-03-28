@@ -1087,6 +1087,8 @@ var TsvToMatrix = Griddl.TsvToMatrix = function(text) { return LinesToMatrixPadd
 var LinesToMatrix = function(lines) { return lines.map(line => line.split('\t')); };
 var LinesToMatrixPadded = function(lines) {
 	
+	if (lines.length == 0) { return []; }
+	
 	var matrix = [];
 	
 	var len = lines[0].split('\t').length;
@@ -1118,6 +1120,8 @@ var MatrixToObjs = Griddl.MatrixToObjs = function(matrix) {
 	// row headers or not: the signal is whether matrix[0][0] is the empty string or contains a value
 	// if there are row headers, we set start to 1 so as to skip them.  if not, set start to 0
 	
+	if (matrix.length == 0) { return []; }
+	
 	var start = (matrix[0][0] == '') ? 1 : 0;
 	
 	var keys = []; for (var j = start; j < matrix[0].length; j++) { keys.push(matrix[0][j]); }
@@ -1134,6 +1138,8 @@ var MatrixToObjs = Griddl.MatrixToObjs = function(matrix) {
 	return objects;
 };
 var ObjsToJoinedLines = Griddl.ObjsToJoinedLines = function(objects) {
+	
+	if (objects.length == 0) { return ''; }
 	
 	var lines = [];
 	
