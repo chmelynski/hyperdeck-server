@@ -322,12 +322,10 @@ Grid.prototype.setData = function(data) {
 };
 
 Grid.prototype.write = function() {
-	return '@' + this.type + ' ' + this.name + ' ' + this.display + '\n' + this.toTsv() + '\n@end\n';
+	return '@' + this.type + ' ' + this.name + ' ' + this.display + '\n' + this.getText() + '\n@end\n';
 };
 
-Grid.prototype.toTsv = function() {
-	
-	// this should be renamed getText
+Grid.prototype.getText = function() {
 	
 	if (this.codemirror)
 	{
@@ -484,22 +482,15 @@ Grid.prototype.representationToggle = function() {
 	};
 	
 	var GridToText = function() {
-		if (obj.type == 'grid' || obj.type == 'matrix')
-		{
-			obj.handsontable.destroy();
-		}
 		
+		if (obj.type == 'grid' || obj.type == 'matrix') { obj.handsontable.destroy(); }
 		obj.div.html('');
 		
 		var textbox = $(document.createElement('textarea'));
 		textbox.addClass('griddl-component-body-radio-textarea');
 		obj.div.append(textbox);
 		
-		var text = null;
-		
-		if (obj.type == 'grid') { text = ObjsToJoinedLines(obj.data); }
-		else if (obj.type == 'matrix') { text = MatrixToJoinedLines(obj.data); }
-		else if (obj.type == 'table') { text = ObjsToJoinedLines(obj.data); }
+		var text = obj.getText();
 		
 		obj.codemirror = CodeMirror.fromTextArea(textbox[0], { smartIndent : false , lineNumbers : true });
 		obj.codemirror.getDoc().setValue(text);
