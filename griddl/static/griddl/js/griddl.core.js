@@ -49,7 +49,7 @@ Core.Main = function(Components, text) {
 	if (typeof window != 'undefined')
 	{
 		Core.objs.forEach(function(obj) { obj.add(); });
-		Core.objs.forEach(function(obj) { if (obj.type == 'html') { obj.invokeHtml(); } }); // do this only after all components have been added
+		Core.objs.forEach(function(obj) { if (obj.type == 'html' || obj.type == 'css') { obj.exec(); } }); // do this only after all components have been added
 	}
 	
 	Components.MakeSortable();
