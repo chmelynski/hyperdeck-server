@@ -466,7 +466,7 @@ Grid.prototype.representationToggle = function() {
 	var obj = this;
 	
 	var TextToGrid = function() {
-		var text = codemirror.getDoc().getValue();
+		var text = obj.codemirror.getDoc().getValue();
 		
 		obj.div.html('');
 		obj.codemirror = null;
