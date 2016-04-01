@@ -106,7 +106,7 @@ Save</button>
       <div class="btn-group">
         <button class="btn btn-default dropdown-toggle" data-toggle='dropdown' aria-haspopup="true" aria-expanded="false">
           <i class="fa fa-cube fa-2x"></i>
-          Add Component 
+          Add<span class="hidden-xs"> Component</span>
           <span class="caret"></span>
         </button>
           <ul class="dropdown-menu">
@@ -161,17 +161,17 @@ Save</button>
     <div class="col-sm-9">
             
       <div class="btn-group" role="tablist" id="ui-toggle">
-        <button class="btn btn-default" id="show-components">
+        <button class="btn btn-default" id="show-components" data-toggle="tooltip" data-placement="top" title="View Components Only">
           <i class="fa fa-cubes fa-2x"></i>
-          Components Only
+          <span class="hidden-xs hidden-sm">Components Only</span>
         </button>
-        <button class="btn btn-default active" id="show-all">
+        <button class="btn btn-default active" id="show-all" data-toggle="tooltip" data-placement="top" title="View Split Screen">
           <i class="fa fa-columns fa-2x"></i>
-          Split Screen
+          <span class="hidden-xs hidden-sm">Split Screen</span>
         </button>
-        <button class="btn btn-default" id="show-widgets">
+        <button class="btn btn-default" id="show-widgets" data-toggle="tooltip" data-placement="top" title="View Document Only">
           <i class="fa fa-file-text-o fa-2x"></i>
-          Document Only
+          <span class="hidden-xs hidden-sm">Document Only</span>
         </button>
       </div>
       <button class="btn btn-default" data-toggle="modal" data-target="#documentSettings">
@@ -179,7 +179,7 @@ Save</button>
           <i class="fa fa-stack-2x fa-file-o"></i>
           <i class="fa fa-stack-1x fa-gears"></i>
         </span>
-        Document Settings
+        <span class="hidden-xs">Document</span> Settings
       </button>
 
     </div>

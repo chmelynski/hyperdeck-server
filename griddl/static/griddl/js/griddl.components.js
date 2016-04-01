@@ -590,7 +590,7 @@ Font.prototype.add = function() {
 	//this.div.append(canvas);
 	
 	var canvas = document.createElement('canvas');
-	canvas.width = 320 * 1.4;
+	canvas.width = $('#cells').width() - 30; // 14px *2 for margins, 1px *2 for border
 	canvas.height = 160 * 1.4;
 	canvas.style.border = '1px solid gray';
 	this.div[0].appendChild(canvas);
@@ -785,26 +785,39 @@ function CreateComponentDiv(parent, obj) {
 	
 	// upload/download should be square buttons with icons, and thus can be put in every header
 	// can the upload button also be a dragndrop target?  if not, should there be another square for it?
+
+
+  // note from Noah - adding the bootstrap rows/cols on this is a little verbose and i'm sorry
+  headerDiv.append($("<div class='row'></div>"));
+
+  headerLeft = $("<div class='col-sm-6'></div>");
+  headerRight = $("<div class='col-sm-6'></div>");
 	
-	headerDiv.append(AddReorderHandle(obj));
-	headerDiv.append(AddTypeLabel(obj));
-	headerDiv.append(AddNameBox(obj));
+	headerLeft.append(AddReorderHandle(obj));
+	headerLeft.append(AddTypeLabel(obj));
+	headerLeft.append(AddNameBox(obj));
+
+  floatRight = $('<div class="pull-right"></div>');
 	if (obj.representationToggle)
 	{
-		headerDiv.append(AddRepresentationToggle(obj));
+		floatRight.append(AddRepresentationToggle(obj));
 	}
 	if (obj.execButtonText)
 	{ 
-		headerDiv.append(AddInvokeButton(obj));
+		floatRight.append(AddInvokeButton(obj));
 	}
 	if (obj.uploadDownload)
 	{
-		headerDiv.append(AddUploadButton(obj));
-		headerDiv.append(AddDownloadButton(obj));
+		floatRight.append(AddUploadButton(obj));
+		floatRight.append(AddDownloadButton(obj));
 	}
-  // add these in reverse order because float: right;
-	headerDiv.append(AddDestroyButton(obj));
-	headerDiv.append(AddMinimizeButton(obj));
+  
+	floatRight.append(AddMinimizeButton(obj));
+  floatRight.append(AddDestroyButton(obj));
+  headerRight.append(floatRight);
+
+  $('.row', headerDiv).append(headerLeft);
+  $('.row', headerDiv).append(headerRight);
 	
 	div.append(headerDiv);
 	div.append(clientDiv);

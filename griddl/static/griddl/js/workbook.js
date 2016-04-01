@@ -48,6 +48,7 @@ $(document).ready(function() {
   $('#saveAsSubmit').on('click', save_as);
   $('#saveAsForm').on('submit', save_as);
 
+  $('[data-toggle="tooltip"]').tooltip();
 });
 
 function save_as() {

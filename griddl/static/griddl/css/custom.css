@@ -75,13 +75,9 @@ tr.selected td { background-color:rgba(0,0,0,0) !important; }
 tr.selected:hover { background-color:rgb(220,220,255) !important; }
 tr.selected:hover td { background-color:rgba(0,0,0,0) !important; }
 
-.griddl-component input[type='text'] {
+.griddl-component-head-name {
   display: inline-block;
-  width: auto;
-}
-
-.griddl-component-head :not(:first-child) {
-  margin-left: .5em;
+  width: 50%;
 }
 
 .griddl-component.image img {
@@ -89,17 +85,10 @@ tr.selected:hover td { background-color:rgba(0,0,0,0) !important; }
   height: 100%;
 }
 
-.griddl-component-head-minmax {
-  float: right;
-}
-
-.griddl-component-head-remove {
-  float: right;
-}
-
-.griddl-component-head-minmax::after,
-.griddl-component-head-remove::after {
-  clear: both;
+.griddl-component-head-minmax,
+.griddl-component-head-remove,
+.griddl-component-head-type {
+  margin-left: .5em;
 }
 
 .griddl-component-head-btngrp-container {
@@ -108,7 +97,7 @@ tr.selected:hover td { background-color:rgba(0,0,0,0) !important; }
 
 button + button,
 a.button + a.button {
-  margin-left: 1em;
+  margin-left: .5em;
 }
 
 .reorder-handle {
@@ -130,15 +119,18 @@ span.fa.text-label {
   font-family: monospace;
 }
 
-/* fix this, not perfect */
 div#documentMenu button {
   display: inline-block;
   margin-top: 1em;
-  float: left;
 }
 
 div#documentMenu .dropdown-menu i.fa-2x {
   width: 2em;
   margin-left: auto;
   margin-right: auto;
+}
+
+.griddl-component-body {
+  width: 100%;
+  overflow: hidden;
 }
