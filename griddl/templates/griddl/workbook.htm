@@ -53,54 +53,135 @@
   <input type="file" id="fileChooser" style="display:none" onchange="Griddl.IO.HandleLocalLoad(this.files)" />
 
   
-  <div class="row">
-    <div class="col-sm-12">
-      <h3 id="workbookName">{{ workbook.name }}</h3>
+  <div class="row" id="topMenu">
+    <div class="col-sm-3">
+      <a style="margin-right:1em;" class="btn btn-default" href="{{ parentdir }}">
+        <i class="fa fa-level-up fa-flip-horizontal fa-2x" style="vertical-align: middle;"></i>
+        Up
+      </a>
+          
+      <h2 id="workbookName">{{ workbook.name }}</h2>
+    </div>
+
+    <div class="col-sm-9">
+      {% if user.is_authenticated %}
+        {% if user.account == workbook.owner %}
+          <button class="btn btn-default" id="saveMenuButton">
+            <span class="fa-stack">
+              <i class="fa fa-file-o fa-stack-2x"></i>
+              <i class="fa fa-save fa-stack-1x"></i>
+            </span>
+Save</button>
+          <button class="btn btn-default" id="saveasMenuButton" data-toggle="modal" data-target='#saveAsModal'>
+            <span class="fa-stack">
+              <i class="fa fa-file-o fa-stack-2x"></i>
+              <i class="fa fa-i-cursor fa-stack-1x"></i>
+            </span>
+            Save As
+          </button>
+        {% else %}
+          <button class="btn btn-default" id="saveasMenuButton" data-toggle="modal" data-target='#saveAsModal'>
+            <span class="fa-stack">
+              <i class="fa fa-file-o fa-stack-2x"></i>
+              <i class="fa fa-i-cursor fa-stack-1x"></i>
+            </span>
+            Save As
+          </button>
+        {% endif %}
+      {% else %}
+        <button class="btn btn-default" id="saveasMenuButton" data-toggle="modal" data-target='#saveAsModal'>
+          <span class="fa-stack">
+            <i class="fa fa-file-o fa-stack-2x"></i>
+            <i class="fa fa-i-cursor fa-stack-1x"></i>
+          </span>
+          Save As
+        </button>
+      {% endif %}
     </div>
   </div>
 
 
-  <div class="row">
-    <div class="col-sm-12">
-      <div style="display:inline-block; float:left; margin-top: 1em;">
-        <a style="margin-right:1em;" class="btn btn-default" href="{{ parentdir }}">
-          <i class="fa fa-level-up fa-flip-horizontal fa-2x" style="vertical-align: middle;"></i>
-          &nbsp;Up
-        </a>
-            
-        {% if user.is_authenticated %}
-          {% if user.account == workbook.owner %}
-            <button class="btn btn-default" id="saveMenuButton">Save</button>
-            <button class="btn btn-default" id="saveasMenuButton" data-toggle="modal" data-target='#saveAsModal'>Save As</button>
-          {% else %}
-            <button class="btn btn-default" id="saveasMenuButton" style="color:black;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button>
-          {% endif %}
-        {% else %}
-          <button class="btn btn-default" id="saveasMenuButton" style="color:gray;" onclick="Griddl.UI.ShowSaveAsModal()">Save As</button> {#-- or onclick="Griddl.UI.ShowLoginModal()" if you want to redirect --#}
-        {% endif %}
-            
-        <div class="btn-group" role="tablist" id="ui-toggle">
-          <button class="btn btn-default" id="show-components">Components Only</button>
-          <button class="btn btn-default active" id="show-all">Split Screen</button>
-          <button class="btn btn-default" id="show-widgets">Document Only</button>
-        </div>
-        <button class="btn btn-default" data-toggle="modal" data-target="#documentSettings">Document Settings</button>
-
-        <div class="btn-group">
-          <button class="btn btn-default dropdown-toggle" data-toggle='dropdown' aria-haspopup="true" aria-expanded="false">Add Component <span class="caret"></span></button>
-            <ul class="dropdown-menu">
-              <li><a onclick="Griddl.Components.txt.New('js');">Javascript</a></li>
-              <li><a onclick="Griddl.Components.txt.New('html');">Html</a></li>
-              <li><a onclick="Griddl.Components.txt.New('css');">Css</a></li>
-              <li><a onclick="Griddl.Components.txt.New('text');">Plain Text</a></li>
-              <li><a onclick="Griddl.Components.grid.New('grid');">Grid</a></li>
-              <li><a onclick="Griddl.Components.grid.New('tsv');">TSV</a></li>
-              <li><a onclick="Griddl.Components.image.New();">Image</a></li>
-              <li><a onclick="Griddl.Components.font.New();">Font</a></li>
-              <li><a onclick="Griddl.Components.file.New();">File</a></li>
-            </ul>
-        </div>
+  <div class="row" id="documentMenu">
+    <div class="col-sm-3">
+      <div class="btn-group">
+        <button class="btn btn-default dropdown-toggle" data-toggle='dropdown' aria-haspopup="true" aria-expanded="false">
+          <i class="fa fa-cube fa-2x"></i>
+          Add Component 
+          <span class="caret"></span>
+        </button>
+          <ul class="dropdown-menu">
+            <li>
+              <a onclick="Griddl.Components.txt.New('js');">
+                Javascript
+              </a>
+            </li>
+            <li>
+              <a onclick="Griddl.Components.txt.New('html');">
+                Html
+              </a>
+            </li>
+            <li>
+              <a onclick="Griddl.Components.txt.New('css');">
+                Css
+              </a>
+            </li>
+            <li>
+              <a onclick="Griddl.Components.txt.New('text');">
+                Plain Text
+              </a>
+            </li>
+            <li>
+              <a onclick="Griddl.Components.grid.New('grid');">
+                Grid
+              </a>
+            </li>
+            <li>
+              <a onclick="Griddl.Components.grid.New('tsv');">
+                TSV
+              </a>
+            </li>
+            <li>
+              <a onclick="Griddl.Components.image.New();">
+                Image
+              </a>
+            </li>
+            <li>
+              <a onclick="Griddl.Components.font.New();">
+                Font
+              </a>
+            </li>
+            <li>
+              <a onclick="Griddl.Components.file.New();">
+                File
+              </a>
+            </li>
+          </ul>
       </div>
+    </div>
+    <div class="col-sm-9">
+            
+      <div class="btn-group" role="tablist" id="ui-toggle">
+        <button class="btn btn-default" id="show-components">
+          <i class="fa fa-cubes fa-2x"></i>
+          Components Only
+        </button>
+        <button class="btn btn-default active" id="show-all">
+          <i class="fa fa-columns fa-2x"></i>
+          Split Screen
+        </button>
+        <button class="btn btn-default" id="show-widgets">
+          <i class="fa fa-file-text-o fa-2x"></i>
+          Document Only
+        </button>
+      </div>
+      <button class="btn btn-default" data-toggle="modal" data-target="#documentSettings">
+        <span class="fa-stack">
+          <i class="fa fa-stack-2x fa-file-o"></i>
+          <i class="fa fa-stack-1x fa-gears"></i>
+        </span>
+        Document Settings
+      </button>
+
     </div>
   </div>
 

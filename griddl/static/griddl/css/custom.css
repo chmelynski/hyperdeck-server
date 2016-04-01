@@ -84,7 +84,7 @@ tr.selected:hover td { background-color:rgba(0,0,0,0) !important; }
   margin-left: .5em;
 }
 
-.griddl-component img.upload {
+.griddl-component.image img {
   width: 100%;
   height: 100%;
 }
@@ -114,4 +114,31 @@ a.button + a.button {
 .reorder-handle {
   display: inline-block;
   cursor: move;
+}
+
+#topMenu h2 {
+  display: inline;
+  vertical-align: bottom;
+  text-overflow: ellipsis;
+}
+
+.btn .fa {
+  vertical-align: middle;
+}
+
+span.fa.text-label {
+  font-family: monospace;
+}
+
+/* fix this, not perfect */
+div#documentMenu button {
+  display: inline-block;
+  margin-top: 1em;
+  float: left;
+}
+
+div#documentMenu .dropdown-menu i.fa-2x {
+  width: 2em;
+  margin-left: auto;
+  margin-right: auto;
 }

@@ -765,6 +765,7 @@ function CreateComponentDiv(parent, obj) {
 	var clientDiv = $(document.createElement('div'));
 	
 	div.addClass('griddl-component');
+  div.addClass(obj.type);
 	headerDiv.addClass('griddl-component-head');
 	clientDiv.addClass('griddl-component-body');
 	
@@ -816,7 +817,7 @@ function CreateComponentDiv(parent, obj) {
 function AddReorderHandle(obj) {
 	var div = $(document.createElement('a'));
 	div.addClass('reorder-handle btn btn-default btn-sm');
-  div.append($('<i class="fa fa-exchange fa-rotate-90"></i>'));
+  div.append($('<i class="fa fa-arrows-v"></i>'));
 	return div;
 }
 
@@ -887,7 +888,8 @@ function AddUploadButton(obj) {
 	
 	var button = $(document.createElement('button'));
 	button.addClass('griddl-component-head-upload btn btn-default btn-sm');
-	button.html('Upload');
+	button.html('<i class="fa fa-lg fa-cloud-upload"></i>');
+  AddTooltip(button, "Upload");
 	
 	button.on('click', function() {
 		
@@ -938,7 +940,8 @@ function AddDownloadButton(obj) {
 	
 	var button = $(document.createElement('button'));
 	button.addClass('griddl-component-head-download btn btn-default btn-sm');
-	button.html('Download');
+	button.html('<i class="fa fa-lg fa-cloud-download"></i>');
+  AddTooltip(button, "Download");
 	
 	button.on('click', function() {
 		var a = document.createElement('a');
@@ -979,13 +982,20 @@ function AddMinimizeButton(obj) {
 	// instead of just setting display:none, perhaps this should remove the clientDiv from the DOM altogether
 	// this will save DOM resources
 	
-	var button = $(document.createElement('input'));
+	var button = $(document.createElement('button'));
 	button.attr('type', 'button');
-	button.attr('value', (obj.display == 'visible') ? '-' : '+');
   button = AddTooltip(button, 'Expand/Collapse');
 	button.addClass('griddl-component-head-minmax btn btn-default btn-sm');
+
+  minus = "fa-minus";
+  plus = "fa-plus";
+
+  $icon = $("<i class='fa'></i>");
+  $icon.addClass((obj.display == 'visible') ? minus : plus);
+  button.append($icon);
 	
 	button.on('click', function() {
+
 		
 		// surely this should be based off of obj, not the button
 		//$(this).parent().parent().children().last().toggleClass('griddl-component-body-hidden');
@@ -993,12 +1003,12 @@ function AddMinimizeButton(obj) {
 		
 		if (obj.display == 'visible')
 		{
-			$(this).attr('value', '+');
+			$(this).find('i').removeClass(minus).addClass(plus);
 			obj.display = 'hidden';
 		}
 		else
 		{
-			$(this).attr('value', '-');
+			$(this).find('i').removeClass(plus).addClass(minus);
 			obj.display = 'visible';
 			
 			// this fixes this bug: when a component containing a codemirror was initially hidden, and then we maximized, the text would not appear
@@ -1012,11 +1022,11 @@ function AddMinimizeButton(obj) {
 }
 function AddDestroyButton(obj) {
 	
-	var button = $(document.createElement('input'));
+	var button = $(document.createElement('button'));
 	button.attr('type', 'button');
-	button.attr('value', 'x');
   button = AddTooltip(button, 'Delete Component');
 	button.addClass('griddl-component-head-remove btn btn-default btn-sm');
+  button.append($("<i class='fa fa-lg fa-trash-o'></i>"));
 	
 	button.on('click', null, obj, confirmDelete);
 	
