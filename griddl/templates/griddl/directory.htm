@@ -76,7 +76,9 @@
           {{ workbook.type }}
         </td>
         <td>
-          <input type="checkbox" {% if workbook.public %}checked {% endif %}style="margin-left:1em;" onchange="togglePublic({{ workbook.pk }})"></input>
+          {% if workbook.filetype == 'F' %}
+            <input type="checkbox" {% if workbook.public %}checked {% endif %}style="margin-left:1em;" onchange="togglePublic({{ workbook.pk }})"></input>
+          {% endif %}
         </td>
       </tr>
     {% endfor %}
