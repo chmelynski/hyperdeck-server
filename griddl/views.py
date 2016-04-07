@@ -219,12 +219,23 @@ def account(request, userid):
 
 @login_required
 def togglepublic(request):
-    wb = Workbook.objects.get(pk=request.GET['pk'])
-    if wb.owner != request.user.account:
-        return HttpResponse('Access denied')
-    wb.public = not wb.public
-    wb.save()
-    return HttpResponse('toggled')
+    try:
+        pk = request.POST.get('pk', False)
+        if not pk:
+            raise exceptions.ValidationError('bad request')
+        wb = Workbook.objects.get(pk=pk)
+        if wb.owner != request.user.account:
+            return JsonResponse({'success': False,
+                                 'message': 'Access denied'})
+        wb.public = not wb.public
+        wb.save()
+        return JsonResponse({'success': True, 'message': 'saved'})
+    except exceptions.ValidationError as e:
+        return JsonResponse({'success': False, 'message': e.message})
+    except Exception:
+        logger.error(traceback.format_exc())
+        msg = "An error occurred. Please try again."
+        return JsonResponse({'success': False, 'message': msg})
 
 
 def save(request):
@@ -270,7 +281,7 @@ def save(request):
             msg = "Sorry, your workbook is too large and cannot be saved."
             return JsonResponse({'success': False, 'message': msg})
         except exceptions.ValidationError as e:
-            return JsonResponse({'success': False, 'message': e.msg})
+            return JsonResponse({'success': False, 'message': e.message})
         except Exception:
             logger.error(traceback.format_exc())
             msg = "An error occurred. Please try again."
@@ -463,29 +474,34 @@ def workbook(request, userid, path, slug):
         # todo: we use filter mostly bc this isn't guaranteed unique lol
         wb = Workbook.objects.filter(owner=user.account,
                                      path=path, slug=slug)[0]
-    except Exception:  # todo: more specific
-        return HttpResponse('Not found')  # todo :D
+    except Exception:
+        return HttpResponse('Not found')  # todo? more specific maybe.
 
-    try:
-        this = Workbook.objects.get(owner=request.user.account.pk,
-                                    name=request.path.split('/')[-1])
-        parentdir = this.parent.uri
-    except Exception:  # todo: more specific
-        parentdir = reverse(directory, args=(request.user.account.pk, ''))
+    if user == request.user:
+        try:
+            this = Workbook.objects.get(owner=request.user.account.pk,
+                                        name=request.path.split('/')[-1])
+            parentdir = this.parent.uri
+        except Exception:  # todo: more specific
+            parentdir = reverse(directory, args=(request.user.account.pk, ''))
+    else:
+        parentdir = None
 
     context = {
         "workbook": wb,
-        "parentdir": parentdir,
         "path": path,
         "userid": userid
         }
+
+    if parentdir:
+        context['parentdir'] = parentdir
 
     if wb.public:
         return render(request, 'griddl/workbook.htm', context)
     else:
         if request.user.is_authenticated():
             if request.user.account == wb.owner:
-                return render(request, 'griddl/' + wb.type + '.htm', context)
+                return render(request, 'griddl/workbook.htm', context)
             else:
                 return HttpResponse('Access denied')
         else:

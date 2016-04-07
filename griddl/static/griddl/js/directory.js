@@ -5,7 +5,15 @@ function renameToggle() {
 
 function togglePublic(pk) {
   $.post('/togglepublic',
-     { pk : pk }
+         { pk : pk },
+         function (response) {
+           if (response.success) {
+             $.alert('Workbook status successfully toggled.', 'success');
+           } else {
+             $.alert('Sorry - an error occurred. Please try again later.');
+           }
+         },
+         'json'
   );
 }
 

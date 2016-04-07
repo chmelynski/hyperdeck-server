@@ -42,8 +42,15 @@ $(document).ready(function() {
            );
   });
 
-  $('#saveAsSubmit').on('click', save_as);
-  $('#saveAsForm').on('submit', save_as);
+  $('#saveAsSubmit').on('click', function(event) {
+    event.preventDefault();
+    save_as();
+  });
+  $('#saveAsForm').on('submit', function(event) {
+    event.preventDefault();
+    save_as();
+  });
+
 });
 
 function save_as() {
@@ -54,7 +61,7 @@ function save_as() {
     return false;
   }
 
-  $.post('/rename',
+  $.post('/saveas',
          $form.serialize(),
          function(response) {
            if (response.success) {
