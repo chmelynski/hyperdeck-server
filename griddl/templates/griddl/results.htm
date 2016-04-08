@@ -1,0 +1,140 @@
+{% load static from staticfiles %}
+{% load bootstrap3 %}
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="{% static 'griddl/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet">
+  <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/codemirror-3.20.css' %}" />
+  <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/jquery.ui.css' %}" />
+  <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/handsontable.full-0.14.1.css' %}" />
+  <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/griddl.css' %}" />
+
+
+  <script type='text/javascript' src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/bootstrap.min.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/utils.js' %}"></script>
+
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-javascript.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-css.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-xml.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.mousewheel.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/handsontable.full.min-0.14.1.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/opentype.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/jquery-ui.sortable.min.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/griddl.core.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/griddl.ui.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/griddl.io.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/griddl.components.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/griddl.canvas.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/griddl.widgets.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/griddl.pdf.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/griddl.typeset.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/defaultFonts.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/results.js' %}"></script>
+
+</head>
+<body class="framed">
+  <div class="container-fluid"> 
+    <div class="row" id="documentMenu">
+      <div class="col-sm-3">
+        <div class="btn-group">
+          <button class="btn btn-default dropdown-toggle" data-toggle='dropdown' aria-haspopup="true" aria-expanded="false">
+            <i class="fa fa-cube fa-2x"></i>
+            Add<span class="hidden-xs"> Component</span>
+            <span class="caret"></span>
+          </button>
+            <ul class="dropdown-menu">
+              <li>
+                <a onclick="Griddl.Components.txt.New('js');">
+                  Javascript
+                </a>
+              </li>
+              <li>
+                <a onclick="Griddl.Components.txt.New('html');">
+                  Html
+                </a>
+              </li>
+              <li>
+                <a onclick="Griddl.Components.txt.New('css');">
+                  Css
+                </a>
+              </li>
+              <li>
+                <a onclick="Griddl.Components.txt.New('text');">
+                  Plain Text
+                </a>
+              </li>
+              <li>
+                <a onclick="Griddl.Components.grid.New('grid');">
+                  Grid
+                </a>
+              </li>
+              <li>
+                <a onclick="Griddl.Components.grid.New('tsv');">
+                  TSV
+                </a>
+              </li>
+              <li>
+                <a onclick="Griddl.Components.image.New();">
+                  Image
+                </a>
+              </li>
+              <li>
+                <a onclick="Griddl.Components.font.New();">
+                  Font
+                </a>
+              </li>
+              <li>
+                <a onclick="Griddl.Components.file.New();">
+                  File
+                </a>
+              </li>
+            </ul>
+        </div>
+      </div>
+      <div class="col-sm-9">
+              
+        <div class="btn-group" role="tablist" id="ui-toggle">
+          <button class="btn btn-default" id="show-components" title="View Components Only">
+            <i class="fa fa-cubes fa-2x"></i>
+            <span class="hidden-xs hidden-sm">Components Only</span>
+          </button>
+          <button class="btn btn-default active" id="show-all" title="View Split Screen">
+            <i class="fa fa-columns fa-2x"></i>
+            <span class="hidden-xs hidden-sm">Split Screen</span>
+          </button>
+          <button class="btn btn-default" id="show-widgets" title="View Document Only">
+            <i class="fa fa-file-text-o fa-2x"></i>
+            <span class="hidden-xs hidden-sm">Document Only</span>
+          </button>
+        </div>
+        <button class="btn btn-default" data-toggle="modal" data-target="#documentSettings">
+          <span class="fa-stack">
+            <i class="fa fa-stack-2x fa-file-o"></i>
+            <i class="fa fa-stack-1x fa-gears"></i>
+          </span>
+          <span class="hidden-xs">Document</span> Settings
+        </button>
+
+      </div>
+    </div>
+
+    <div class="row tab-content">
+      <div class="col-sm-6">
+
+        <pre id="frce">{{ text }}</pre>
+
+        <div role="tabpanel" class="active" id='cells'></div>
+      </div>
+      <div class="col-sm-6">
+        <div role="tabpanel" class="active" id='output'>
+            <canvas></canvas>
+            <canvas></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+

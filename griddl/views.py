@@ -508,6 +508,15 @@ def workbook(request, userid, path, slug):
             return HttpResponse('Access denied')
 
 
+def results(request):
+    if not request.subdomain == 'griddl':
+        return HttpResponse('No.')
+    text = request.GET.get('text', '')
+    if not text:
+        return HttpResponse('No.')
+    return render(request, 'griddl/results.htm', {'text': text})
+
+
 def index(request):
     context = {}
     return render(request, 'griddl/index.htm', context)

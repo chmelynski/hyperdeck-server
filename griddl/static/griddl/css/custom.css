@@ -134,3 +134,10 @@ div#documentMenu .dropdown-menu i.fa-2x {
   width: 100%;
   overflow: hidden;
 }
+
+iframe#results {
+  width: 100%;
+  border: none;
+  height: 100%;
+  margin-top: 1em;
+}

@@ -158,6 +158,7 @@ TEMPLATES = [
 ]
 
 MIDDLEWARE_CLASSES = (
+    'subdomains.middleware.SubdomainURLRoutingMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -303,3 +304,10 @@ if DEBUG:
 # debug toolbar settings
 DEBUG_TOOLBAR_PATCH_SETTINGS = False
 INTERNAL_IPS = ['127.0.0.1', '24.177.237.106']  # (not actually just for debug toolbar tho)
+
+# subdomain settings
+SUBDOMAIN_URLCONFS = {
+    None: 'griddl.urls',
+    'griddl': 'griddl.urls',
+    
+} 

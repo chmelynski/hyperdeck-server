@@ -70,7 +70,7 @@
             <button class='btn btn-success btn-sm' type="submit" value="Rename">Rename</button>
             <button class='btn btn-danger btn-sm' type="button" value="Cancel" onclick="renameToggle();">Cancel</button>
           </form>
-          <a class="namelink" href="/{{ workbook.filetype|lower }}/{{ user.pk }}/{{ workbook.path }}{{ workbook.path|yesno:'/,,' }}{{ workbook.name }}">{{ workbook.name }}</a>
+          <a class="namelink" href="{{ workbook.uri }}">{{ workbook.name }}</a>
         </td>
         <td>
           {{ workbook.type }}
