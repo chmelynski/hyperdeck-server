@@ -1,8 +1,10 @@
 /griddl/static/griddl/img
 /griddl/static/10ks
-venv
+.venv
 *.pyc
 staticfiles
 .env
 *.log
 db.sqlite3
+pid
+*.sock
