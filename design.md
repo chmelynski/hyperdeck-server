@@ -15,9 +15,26 @@ New Components can be written as plugins - the Component must implement the requ
 
 #### Canvas
 
-It is desirable to have a WYSIWYG document display that can be exported to PDF.  To implement this, Hyperbench has a canvas library that translates HTML Canvas commands to PDF commands.  Client code can just use the HTML Canvas interface, and the commands will both draw to a `&lt;canvas&gt;` element on screen as well as be converted to PDF commands and stored in a shadow PDF file.
+It is desirable to have a WYSIWYG document display that can be exported to PDF.  To implement this, Hyperbench has a canvas library that translates HTML Canvas commands to PDF commands.  Client code can just use the HTML Canvas interface, and the commands will both draw to a `<canvas>` element on screen as well as be converted to PDF commands and stored in a shadow PDF file.
 
 Canvas also has limited SVG support, but this has been neglected in favor of PDF.
+
+##### Fonts
+
+
+
+##### Transformations
+
+One of the important tasks the canvas must handle is dealing with coordinate transformations.  There are many sources of coordinate transformations:
+
+1. The `<canvas>` origin is at the top left, whereas the PDF origin is at the bottom left.  This requires a transform from the very start.
+ a. Of course, this means that the PDF y-axis is flipped, which means that the PDF will draw text upside down - to avoid this you have to re-flip the y-axis with a text coordinate transformation (the Tm command, I believe).
+2. The different scales - all user drawing commands are denominated in cubits, which then must be transformed into pixels and points.  The commands basically diverge - one copy gets transformed into pixels and ultimately CanvasRenderingContext2D calls, and another copy gets transformed into points and implemented via PDF drawing commands.
+3. User code can have arbitrary transformations, which must play nicely with the transforms in #1 and #2.
+
+##### Mathjax
+
+There is some support for MathJax via the `drawMath()` function.  I've managed to keep asynchronity out of this app otherwise, but MathJax introduces it, and so it taints the whole process of drawing the document.  Calls to drawMath unfortunately do not draw directly onto the canvas, but rather are sent to MathJax.  The SVG shapes returned to the callback are then translated to canvas commands (this was implemented before I knew about Path2D, so it could be rewritten to be much shorter - still need to parse and deal with transformations, though) and drawn on screen / on PDF.
 
 
 ### Document components
@@ -26,15 +43,26 @@ Alongside components that hold code and data, there are special component types 
 
 #### The Document component
 
-The presence of a Document component in a workbook indicates that a document will be drawn.  A Document component is optional - the workbook functions fine without one.  Global document settings, such as page size, screen resolution, and userspace unit definition, are stored here.  There are three measurement units that will be used in a document: *pixels* for displaying on the screen, *points* for displaying on the page, and what we call *cubits* for the unit used by user code.  The user defines the number of cubits that will make up an inch, centimeter, etc.  For example, a user may decide to define 1 inch = 100 cubits, which is easy to work with.  Points are fixed at 72 points per inch.  Pixels per inch can be set to an arbitrary number.
+The presence of a Document component in a workbook indicates that a Canvas/PDF document will be drawn.  A Document component is optional - the workbook functions fine without one, and the user can just draw arbitrary HTML to the output <div>.  But I feel that breaking backwards compatibility with paper is the worst mistake HTML makes, and is a big part of why scientists and businesspeople don't use HTML to communicate.  Even if paper will finally be eliminated by iPads, you still need to use some sort of document format - PDF isn't going anywhere.
+
+The variables defined in the Document component include page size, screen resolution, and userspace unit definition.  There are three measurement units that will be used in a document: *pixels* for displaying on the screen, *points* for displaying on the page, and what we call *cubits* for the unit used by user code.  The user defines the number of cubits that will make up an inch, centimeter, etc.  For example, a user may decide to define 1 inch = 100 cubits, which is easy to work with.  Points are fixed at 72 points per inch.  Pixels per inch can be set to an arbitrary number.
 
 #### The Section component
 
-The Section component defines a sequence of continuous content, such as chapter of text.  The Section will separate the content into pages for PDF export, but the Section is treated as one continuous segment for user interface purposes.  This means that the Section will be represented by a single `&lt;canvas&gt;` element, so that dragging content across the section can be done without having to drag content across multiple `&lt;canvas&gt;`es.  This might become a problem if users want to define very large Sections, because browsers have hard limits on the size of the `&lt;canvas&gt;`.  To mitigate this, the user can pick a lower resolution so that the `&lt;canvas&gt;` takes up fewer pixels.  Page breaks are delineated by dashed lines on the continuous `&lt;canvas&gt;`.  Margins and portrait/landscape orientation are defined in the Section component.
+The Section component defines a sequence of continuous content, such as chapter of text.  The Section will separate the content into pages for PDF export, but the Section is treated as one continuous segment for user interface purposes.  This means that the Section will be represented by a single `<canvas>` element, so that dragging content across the section can be done without having to drag content across multiple `<canvas>`es.  This might become a problem if users want to define very large Sections, because browsers have hard limits on the size of the `<canvas>`.  To mitigate this, the user can pick a lower resolution so that the `<canvas>` takes up fewer pixels.  Page breaks are delineated by dashed lines on the continuous `<canvas>`.  Margins and portrait/landscape orientation are defined in the Section component.
 
-margin:{tp,rt,lf,bt}, interalMargin (gap between columns, margin from images/captions), nColumns, linePitch, indent, font, etc.
-then Paragraph widgets will be created for each box on the page
-when laying out text, it must avoid other widgets (think images and captions) that are overlaid on the page
+Variables defined in the Section component:
+
+* margin
+* internalMargin (gap between columns, possibly margin from images/captions)
+* nColumns
+* linePitch
+* indent
+* font
+* etc.
+
+It would be nice to have a way to directly edit the text displayed on the document.  The indirect method (of editing text on the components side, and then seeing it displayed on the document side) is fine, but it is serious change from the direct manipulation people do in Word.  But the whole notion of reimplementing direct manipulation text editors on a canvas is self-evidently a tarpit.
+
 
 #### Layout
 
@@ -72,18 +100,31 @@ Component.Text -> Document, Markdown, ProseMirror, Graphviz, Variables, BarChart
 
 #### Charts
 
-specialized grid component types: BarChartData, LineChartData, ListData, etc.
-two ways to do it: either enforce header names, or require a mapping from arbitrary header names to the graphical meaning (x, y, height, width, etc)
-right now we enforce header names, which is easier.  but that might force people to have two mostly-redundant grids - one for the raw data and then one for the chart in its enforced format.  allowing for a mapping would possibly allow people to just use their raw data grid
-on the other hand, people could just add new x, y, width, etc. columns to their raw data grid and calculate via formulas
-ok.  i like that.  enforce header names, people can add columns if they want
+One of the problems we face is mapping data from its natural format to a format readable by charts.  This is mostly about column headers - data in its native format might have column headers such as latitude and longitude, but a scatter chart needs to know x and y.  Plus there is often a mapping between the native field and the xy-coordinate.
 
+There are basically two ways to do it:
+
+1. Have a separate data grid specifically for the chart, with built-in headers for x, y, height, width, etc.
+2. Define a mapping from the arbitrary header names in the native data grid to the graphical meaning
+
+Option #1 has the benefit of being explicit, and can be implemented with cross-grid formulas (which are not implemented yet, but could be).  The problem is that it is redundant, requiring essentially an entire second copy of intermediate data.
+
+Option #2 saves space, but it would need to be designed.  People would need a way to specify grid+column, and possibly define a mapping formula.
+
+We could also imagine a third option, often used in Excel:
+
+3. Allow the user to add x, y, columns to the native data grid.  This is a pretty good compromise, except that adding columns to a grid is not well supported (requiring an entire paste-in).
 
 
 #### Formulas
 
-perhaps the default Grid should be excel-style: A1, A2, etc. - 1-indexed
-or maybe FormulaGrid can be a subtype of Grid
+The current formula implementation requires A1-style cell references, which conflicts with our desire to use meaningful column headers.
+
+Possible ways to resolve this conflict:
+
+1. Fix the formula implementation - obviously the best solution, also probably the hardest
+2. Add FormulaGrids as a component type, which will use A1-references
+3. Do what one does in Excel, and use the first data row to hold your column headers.  Clunky in all the same ways.
 
 
 
@@ -92,7 +133,7 @@ or maybe FormulaGrid can be a subtype of Grid
 captions could be an inherent part of the Image component - but there are questions as to top/left/bottom/right
 and also, charts and such could use captions too, but there's no straightforward way to put the caption in the component
 in the spirit of having data in the components and presodata in the Document component, we could put caption placement data in the Document component
-the caption can just be a single-line `&lt;input&gt;` right below the header line for the component
+the caption can just be a single-line `<input>` right below the header line for the component
 left/right/top/bottom and the size of those boxes can be adjusted in the GUI
 
 indeed, paragraph components could have the section header done the same way as captions
@@ -123,23 +164,36 @@ footnotes/endnotes/section headers are definitely the result of computations, so
 
 #### Variables
 
-when you mouse over a variable in text, display the cell outline.  click to edit the cell, and you get a formula
-otherwise, the unit of editing is the paragraph.  click anywhere in a paragraph outside of variables, and you display a textarea with the paragraph
+Variables are how we add intelligence and interactivity to numbers embedded inline within paragraph text.
+
+First thoughts about the interface: when you mouse over a variable in text, display the cell outline.  Click to edit the cell, and you get a formula.
+
+See Bret Victor's *Tangle*.
+
 
 
 
 
 #### Handlers
 
-the object currently hovered has control of all handlers for the canvas - onmousemove, onmousedown, onmouseup
-which means it must detect when the mouse leaves its box, and then call this.dehover(), then parent.onhover(e)
-(it might be that the mouse has also left the parent box, so the parent should immediately check for dehover itself)
+Mouse event handling is done by the Box abstraction, which is used by many types of components, as well as the handlers defined by each individual component type.
 
-on clearing:
-the general principle is that we don't want to do page redraws on mousemoves (excepting drags, that is - page redraw on drag is necessary)
-so far, all we do on mousemove is draw handles and arrows on hover, and then clear them when the mouses moves on
-so handles and arrows have their own clear functions that draw a saved patch of canvas
-but for anything involving a mousedown, just redraw the whole page
+Handlers for dealing with mouse entry and exit of the owned region are named `onhover` and `dehover` by convention.
+
+##### Box
+
+Most block components are roughly box-shaped, and so can outsource handling of common functions, such as moving and alignment, to the Box abstraction.  The Box also deals with detecting and acting appropriately when the mouse enters and leaves its territory.  The UI for movement/alignment is the 9 handles drawn on the box.  The user grips a handle and drags to move the box.  The act of gripping a given handle also changes the alignment of the Box - to center the box both horizontally and vertically, grab the handle in the center of the box.  To align to top/left, grab the handle in the top left.
+
+Dragging a handle across the background of the Section can be governed by a snap grid, whose spacing and look and feel can be customized in the Document component.  The Section is responsible for drawing the snap grid.  Draw order is important here - you want to draw the text background first, then draw the snap grid, then draw the handles over top of the snap grid.
+
+The object currently hovered has control of all handlers for the canvas - `onmousemove`, `onmousedown`, `onmouseup`.  Which means it must detect when the mouse leaves its box, and then call `this.dehover()`, then `parent.onhover(e)`.  It might be that the mouse has also left the parent box, so the parent should immediately check for dehover itself.
+
+On clearing: the general principle is that we don't want to do page redraws on mousemoves (excepting drags, that is - page redraw on drag is necessary).
+So far, all we do on mousemove is draw handles and arrows on hover, and then clear them when the mouses moves on.  So handles and arrows have their own clear functions that draw a saved patch of canvas.  But for anything involving a mousedown, just redraw the whole section.
+
+##### Arrows
+
+Single-dimensional scaling changes are handled by Arrows.  The canonical example is the height of a bar chart column, which is some scaled factor of the underlying data.  Besides the sizing of graphical elements, Arrows can also be used for gaps and margins between graphical elements.  An Arrow has its own box that draws an arrow onhover.  Then onmousedown and onmousemove, the arrow expands/contracts and the graphical element is scaled accordingly.
 
 
 #### Undo
@@ -156,12 +210,21 @@ Clearly, #1 is easier to implement but requires more storage space, and #2 is ha
 #### Django app
 
 
+
 #### Deployment
+
+##### Heroku
+
+##### nginx/uWSGI
+
 
 
 #### Sandboxing
 
+If we are forced to draw the sandbox around the document, excluding components, that raises many questions:
 
+1. Newly uploaded component data still needs to be able to get into the sandbox somehow.  Perhaps this one-directional movement is easy.
+2. We will no longer be able to self-modify the components with user code.  Which, like, is fine.  There are other ways, like outputting intermediate data to the sandbox and then hand copypasting it back to the components.
 
 
 
