@@ -8,9 +8,67 @@ The heart of Hyperbench is Components.  Each component is a self-contained unit 
 
 The user interface of each component has a header and a body.  The header holds common UI elements like handles for reordering, a type label, a name input, action buttons, upload/download buttons, and minimize/destroy buttons.  The body can be arbitrary HTML - the body is how the user manipulates the data held by the component.  This data can be arbitrary JSON, but two common forms are text and tabular data.  Text is often displayed in a CodeMirror widget, and tabular data is often displayed in a Handsontable widget.
 
-All Components must define certain functions such as `load()`, `write()`, `add()`, `refresh()`, `getText()`, `setText()`, `getData()`, `setData()`, etc.
+All Components must define certain functions such as:
+
+* `load()` - read?  i think the constructor is doing the work of load in a lot of places
+* `write()` - export to JSON
+* `add()` - add component to the stack, which is a transaction of sorts - several linked components
+* `refresh()` - regenerates the HTML user interface after setting data/params
+* `getText()` - returns the full JSON for the component
+* `setText()` - sets component JSON
+* `getData()` - returns the `data` field
+* `setData()` - sets the `data` field
 
 New Components can be written as plugins - the Component must implement the required functions and fields.
+
+
+##### File format
+
+Hyperbench documents are stored in JSON format, as a list of component objects.  Each component JSON will have several of these fields:
+
+* `type` - `txt`, `grid`, `document`, etc.
+* `name`
+* `visible` - determines whether the component is displayed as maximized or minimized
+* `data` - varies by type - text components will store their text here, and grid components will store a list of objects or lists.  in general, the meat of the component will be stored here
+* `params` - stores everything else, frequently exposed by the component UI
+
+
+##### Text
+
+Components whose data is best represented as text will display that text in a Codemirror instance.  Salient example types include `text`, `js`, `html`, and `css`.  Many other component types will not display their data as text by default, but can be toggled to present a text display for user editing.  For example, grids may be toggled to display their tabular data as tab-separated values in a Codemirror instance.  The data may then be modified and toggled back to a grid display.  This is a way for the user to paste in copied data from Excel, for instance.  It is also currently the only way to change column headers or add columns.  Other component types that normally expose their data via HTML (such as the Document component, which defines global document settings), can be toggled to show the data as JSON, then modified or pasted and toggled back.
+
+The point is to strike a balance between GUI manipulation and programmatic manipulation.  GUI and JSON are two ways of representing the same underlying data, and the user is free to toggle between the representations.
+
+[Discuss `getText()`, etc.?]
+
+
+##### Grids
+
+One of the earliest motivations of this project was the frustration of not being able to properly name columns in Excel.  Here we have named columns, and grid data is properly referred to by name, rather than by A1 bullshit.  A grid typically consists of a list of objects - each row is an object (0-indexed) and each column is a field.  To refer to a data field, you write `get(componentName)[objectIndex].fieldName`, example `get('foo')[0].bar`.  We can also store the data as a list of lists, which we will call a `matrix`.  A matrix will be displayed without column headers.  Data can be accessed with `get(componentName)[objectIndex][fieldIndex]`, such as `get('foo')[0][0]`.
+
+Now, the implementation of various aspects of Handsontable present a lot of complications to our goals.  For instance, column headers are uneditable in normal operation.  That's sort of a good thing - other ways of implementing column headers would rely on convention (such as "column headers go in the first row"), but there wouldn't be anything special about the cells containing column headers.  What I wish happened is that column headers retain their special status, except that they can be selected and edited like any other cell.  But arrow keys, for instance, would not be able to move the selection to a column header.  It would have to be specially clicked on.  But I'd also like a pony.  What we have are fixed column headers, which means we need a means of changing those names if we want.  The way we do this is to toggle to TSV, change the name, and then toggle back.
+
+Another problem is that you can't add a column to a grid with column headers.  I wish Handsontable would provide a default column name, but that would imply editable column headers and they don't have that.  So the only way to add a column is again by toggling to TSV.
+
+Matrixes avoid all these problems - every cell is the same, every cell is editable, you can insert columns.  But the columns cannot have names, they must be indexed by numbers.
+
+In addition, Handsontable is limited to displaying 1000 rows.  If the data is larger, it displays an internally operated scrollbar.  This isn't terrible, but it's clear that Handsontable is not for big data.  In order to store and display larger amounts of data, we have a `tsv` component type, where the data is basically just displayed in TSV format in a `<pre>` element.  This is fairly lightweight as far as the DOM is concerned.
+
+This is a litany of compromises.
+
+
+
+
+##### Codemirror
+
+Codemirror, by Marijn Haverbeke, is the library used to display and edit text.
+
+
+##### Handsontable
+
+Handsontable is the library used to display and edit grid data.
+
+
 
 
 #### Canvas
@@ -19,8 +77,16 @@ It is desirable to have a WYSIWYG document display that can be exported to PDF. 
 
 Canvas also has limited SVG support, but this has been neglected in favor of PDF.
 
+
 ##### Fonts
 
+We use the library opentype.js to read and draw fonts.  Currently we provide two free fonts when the app loads - a serif and a sans, both from Adobe under a libre license.  There are a few routes and options for delivery of the font file:
+
+1. Deliver fonts on app load - easy, but heavyweight
+2. Deliver fonts on request when used (user specifies a name) - harder, adds to delay when drawing a document for the first time, but lightweight
+3. User uploads font
+
+Getting text to display identically between the canvas and PDF turned out to be pretty difficult.  The native canvas handling of fonts is inadequate in two ways: first, I haven't found a way to get the canvas to use a user- or app- provided font file.  It might not be possible.  Also, setting font size behaves unpredictably - how many pixels 12pt is converted to is dependent on unknown factors, and we need precise control.  So, we generally don't use the native canvas `fillText()` function.  Text is drawn on screen by opentype.js, which reads the font file and draws the bezier curves.  The same method can be used to draw text in PDF - just let opentype.js draw the bezier curves.  But this results in a huge PDF file.  So we draw text natively in PDF, storing the font file in the PDF document and using the standard text display functions.
 
 
 ##### Transformations
@@ -34,7 +100,7 @@ One of the important tasks the canvas must handle is dealing with coordinate tra
 
 ##### Mathjax
 
-There is some support for MathJax via the `drawMath()` function.  I've managed to keep asynchronity out of this app otherwise, but MathJax introduces it, and so it taints the whole process of drawing the document.  Calls to drawMath unfortunately do not draw directly onto the canvas, but rather are sent to MathJax.  The SVG shapes returned to the callback are then translated to canvas commands (this was implemented before I knew about Path2D, so it could be rewritten to be much shorter - still need to parse and deal with transformations, though) and drawn on screen / on PDF.
+There is some support for MathJax via the `drawMath()` function.  I've managed to keep asynchronity out of this app otherwise, but MathJax requires it - fortunately I've managed to contain the infection to a few rendering functions.  Calls to drawMath unfortunately do not draw directly onto the canvas, but rather are sent to MathJax.  The SVG shapes returned to the callback are then translated to canvas commands (this was implemented before I knew about Path2D, so it could be rewritten to be much shorter - still need to parse and deal with transformations, though) and drawn on screen / on PDF.
 
 
 ### Document components
@@ -49,7 +115,7 @@ The variables defined in the Document component include page size, screen resolu
 
 #### The Section component
 
-The Section component defines a sequence of continuous content, such as chapter of text.  The Section will separate the content into pages for PDF export, but the Section is treated as one continuous segment for user interface purposes.  This means that the Section will be represented by a single `<canvas>` element, so that dragging content across the section can be done without having to drag content across multiple `<canvas>`es.  This might become a problem if users want to define very large Sections, because browsers have hard limits on the size of the `<canvas>`.  To mitigate this, the user can pick a lower resolution so that the `<canvas>` takes up fewer pixels.  Page breaks are delineated by dashed lines on the continuous `<canvas>`.  Margins and portrait/landscape orientation are defined in the Section component.
+The Section component defines a sequence of continuous content, such as chapter of text.  The Section will separate the content into pages for PDF export, but the Section is treated as one continuous segment for user interface purposes.  This means that the Section will be represented by a single `<canvas>` element, so that dragging content across the section can be done without having to drag content across multiple `<canvas>es`.  This might become a problem if users want to define very large Sections, because browsers have hard limits on the size of the `<canvas>`.  To mitigate this, the user can pick a lower resolution so that the `<canvas>` takes up fewer pixels.  Page breaks are delineated by dashed lines on the continuous `<canvas>`.  Margins and portrait/landscape orientation are defined in the Section component.
 
 Variables defined in the Section component:
 
@@ -168,7 +234,7 @@ Variables are how we add intelligence and interactivity to numbers embedded inli
 
 First thoughts about the interface: when you mouse over a variable in text, display the cell outline.  Click to edit the cell, and you get a formula.
 
-See Bret Victor's *Tangle*.
+See the *Tangle* library, by Bret Victor.
 
 
 
