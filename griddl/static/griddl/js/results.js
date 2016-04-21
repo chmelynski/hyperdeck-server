@@ -1,5 +1,6 @@
+window.addEventListener('message', receiveMessage, false);
+
 $(document).ready(function() {
-  Griddl.Core.Main(Griddl.Components, $('#frce').text())
   // button-group toggle for display modes
   $("#show-components").on('click', function(e) {
       $btn = $(e.target).closest('button');
@@ -26,3 +27,14 @@ $(document).ready(function() {
       $("#cells").css('display', 'none');
   });
 });
+
+function receiveMessage(event) {
+  console.log('heyo!');
+  var origin = event.origin || event.originalEvent.origin;
+  if (origin !== "http://hyperbench.com") {
+    console.log('walp', origin);
+    return false;
+  }
+
+  Griddl.Core.Main(Griddl.Components, event.data);
+}

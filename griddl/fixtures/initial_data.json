@@ -1,0 +1,10 @@
+[
+    {
+        "model": "griddl.Sites",
+        "pk": 1,
+        "fields": {
+            "domain_name": "hyperbench.com",
+            "display_name": "hyperbench.com"
+        }
+    }
+]

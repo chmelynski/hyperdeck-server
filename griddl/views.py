@@ -6,6 +6,7 @@ from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.http import HttpResponseNotFound, HttpResponseServerError
 from django.shortcuts import render
+from django.template import loader
 from django.contrib import messages
 from django.core import exceptions
 from django.core.urlresolvers import reverse
@@ -477,6 +478,13 @@ def workbook(request, userid, path, slug):
     except Exception:
         return HttpResponse('Not found')  # todo? more specific maybe.
 
+    if not wb.public:
+        if request.user.is_authenticated():
+            if not request.user.account == wb.owner:
+                return HttpResponse('Access denied')
+        else:
+            return HttpResponse('Access denied')
+
     if user == request.user:
         try:
             this = Workbook.objects.get(owner=request.user.account.pk,
@@ -496,25 +504,18 @@ def workbook(request, userid, path, slug):
     if parentdir:
         context['parentdir'] = parentdir
 
-    if wb.public:
-        return render(request, 'griddl/workbook.htm', context)
-    else:
-        if request.user.is_authenticated():
-            if request.user.account == wb.owner:
-                return render(request, 'griddl/workbook.htm', context)
-            else:
-                return HttpResponse('Access denied')
-        else:
-            return HttpResponse('Access denied')
+    tpl = loader.get_template('griddl/workbook.htm').render(context, request)
+    response = HttpResponse(tpl, content_type='text/html')
+    csp = "script-src 'self' https://code.jquery.com/"
+    response['Content-Security-Policy'] = csp
+    return response
 
 
 def results(request):
     if not request.subdomain == 'griddl':
+        logger.debug(request.subdomain)
         return HttpResponse('No.')
-    text = request.GET.get('text', '')
-    if not text:
-        return HttpResponse('No.')
-    return render(request, 'griddl/results.htm', {'text': text})
+    return render(request, 'griddl/results.htm')
 
 
 def index(request):

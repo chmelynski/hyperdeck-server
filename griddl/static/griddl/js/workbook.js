@@ -1,7 +1,8 @@
 $(document).ready(function() {
   text = $('#frce').text();
-  $('#results').attr('src', "http://griddl.hyperbench.com/results?" + encodeURIComponent(text));
-
+  $('iframe').load(function() {
+    document.getElementById('results').contentWindow.postMessage(text, "http://griddl.hyperbench.com");
+  });
 
   $('#saveMenuButton').on('click', function(event) {
     event.preventDefault();

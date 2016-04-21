@@ -307,7 +307,6 @@ INTERNAL_IPS = ['127.0.0.1', '24.177.237.106']  # (not actually just for debug t
 
 # subdomain settings
 SUBDOMAIN_URLCONFS = {
-    None: 'griddl.urls',
-    'griddl': 'griddl.urls',
-    
+    None: 'mysite.urls',
+    'griddl': 'mysite.urls',
 } 

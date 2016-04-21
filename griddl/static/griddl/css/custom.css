@@ -10,64 +10,6 @@ body {
   vertical-align: middle;
 }
 
-/* CodeMirror Bootstrap CSS from: http://stackoverflow.com/questions/12742058/apply-twitter-bootstrap-stylings-to-codemirror  -- may need updates :P */
-.CodeMirror {
-  line-height: 1.3em;
-  font-family: monospace;
-
-  /* Necessary so the scrollbar can be absolutely positioned within the wrapper on Lion. */
-  position: relative;
-  /* This prevents unwanted scrollbars from showing up on the body and wrapper in IE. */
-  overflow: hidden;
-  background-color: white;
-  width: 100% !important; /* this enforces col sizing -nh */
-
-  /* Copied from Bootstrap's textarea */
-  display: inline-block;
-  margin-bottom: 9px;
-  color: #555555;
-  border: 1px solid #ccc;
-  -webkit-border-radius: 3px;
-  -moz-border-radius: 3px;
-  border-radius: 3px;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-  -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-  -webkit-transition: border linear 0.2s, box-shadow linear 0.2s;
-  -moz-transition: border linear 0.2s, box-shadow linear 0.2s;
-  -ms-transition: border linear 0.2s, box-shadow linear 0.2s;
-  -o-transition: border linear 0.2s, box-shadow linear 0.2s;
-  transition: border linear 0.2s, box-shadow linear 0.2s;  
-}
-
-.CodeMirror-focused {
-  /* Copied from Bootstrap's textarea */
-  border-color: rgba(82, 168, 236, 0.8);
-  outline: 0;
-  outline: thin dotted \9;
-  /* IE6-9 */
-
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
-     -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
-          box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);  
-}
-
-.CodeMirror-gutters {
-  height: 100% !important;
-}
-
-
-/* temporary */
-#frce {
-  display: none;
-}
-
-#output {
-  display: block;
-  background-color: rgba(117,103,132, .7);
-  margin-top: 3em;
-}
-
 tr.workbook:hover { background-color:rgb(240,240,240) !important; }
 tr.workbook:hover td { background-color:rgba(0,0,0,0) !important; }
 tr.selected { background-color:rgb(220,220,255) !important; }
@@ -75,34 +17,9 @@ tr.selected td { background-color:rgba(0,0,0,0) !important; }
 tr.selected:hover { background-color:rgb(220,220,255) !important; }
 tr.selected:hover td { background-color:rgba(0,0,0,0) !important; }
 
-.griddl-component-head-name {
-  display: inline-block;
-  width: 50%;
-}
-
-.griddl-component.image img {
-  width: 100%;
-  height: 100%;
-}
-
-.griddl-component-head-minmax,
-.griddl-component-head-remove,
-.griddl-component-head-type {
-  margin-left: .5em;
-}
-
-.griddl-component-head-btngrp-container {
-  margin-top: -2px;
-}
-
 button + button,
 a.button + a.button {
   margin-left: .5em;
-}
-
-.reorder-handle {
-  display: inline-block;
-  cursor: move;
 }
 
 #topMenu h2 {
@@ -119,25 +36,14 @@ span.fa.text-label {
   font-family: monospace;
 }
 
-div#documentMenu button {
-  display: inline-block;
-  margin-top: 1em;
-}
-
-div#documentMenu .dropdown-menu i.fa-2x {
-  width: 2em;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.griddl-component-body {
-  width: 100%;
-  overflow: hidden;
-}
-
 iframe#results {
   width: 100%;
   border: none;
-  height: 100%;
+  height: 1200px;
   margin-top: 1em;
 }
+
+#frce {
+  display: none;
+}
+
