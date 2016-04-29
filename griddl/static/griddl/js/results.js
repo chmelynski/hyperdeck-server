@@ -29,12 +29,24 @@ $(document).ready(function() {
 });
 
 function receiveMessage(event) {
-  console.log('heyo!');
   var origin = event.origin || event.originalEvent.origin;
-  if (origin !== "http://hyperbench.com") {
-    console.log('walp', origin);
+  if (origin !== "http://www.hyperbench.com") {
     return false;
   }
 
-  Griddl.Core.Main(Griddl.Components, event.data);
+  data = event.data;
+
+  if (data.action) {
+    switch (data.action) {
+      case 'load':
+        Griddl.Core.Main(Griddl.Components, data.text);
+        break;
+      case 'save':
+        text = Griddl.Core.SaveToText();
+        event.source.postMessage(text, origin);
+        break;
+      default:
+        console.log('problem.', data);
+    }
+  }
 }

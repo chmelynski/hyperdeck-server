@@ -76,7 +76,7 @@
 
   <div class="row">
     <div id='frce'>{{ workbook.text }}</div>
-    <iframe src="http://griddl.hyperbench.com/results" id="results" sandbox='allow-forms allow-popups allow-scripts allow-same-origin allow-modals'></iframe>
+    <iframe src="http://griddl.hyperbench.com/results" id="results" sandbox='allow-forms allow-popups allow-scripts allow-same-origin allow-modals' seamless></iframe>
   </div>
 
 
@@ -93,7 +93,7 @@
           <form class='form-horizontal' id="saveAsForm">
             {% csrf_token %}
             <input type="hidden" name="id" value="{{ workbook.pk }}"></input>
-            <input id="saveasFormTextInput" type="hidden" name="text" value=""></input>
+            <input id="saveAsFormTextInput" type="hidden" name="text" value=""></input>
             <div class="form-group">
               <label class='col-sm-3 form-label'>New name:</label>
               <div class='col-sm-9'>

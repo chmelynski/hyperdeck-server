@@ -1,39 +1,51 @@
 $(document).ready(function() {
   text = $('#frce').text();
+  message = {'text': text, 'action': 'load'}
   $('iframe').load(function() {
-    document.getElementById('results').contentWindow.postMessage(text, "http://griddl.hyperbench.com");
+    document.getElementById('results').contentWindow.postMessage(message, "http://griddl.hyperbench.com");
   });
 
   $('#saveMenuButton').on('click', function(event) {
     event.preventDefault();
-    $form = $('#saveForm');
-    $form.find("#saveFormTextInput").val(Griddl.Core.SaveToText());
-    $.post("/save",
-           $form.serialize(),
-           function(response) {
-             if (response.success) {
-               $.alert('Workbook saved.', 'success');
-             } else {
-               $.alert(response.message);
-             }
-           },
-           'json'
-           );
+    request_text().then(save(text));
   });
+
 
   $('#saveAsSubmit').on('click', function(event) {
     event.preventDefault();
-    save_as();
+    request_text().then(save_as(text));
   });
   $('#saveAsForm').on('submit', function(event) {
     event.preventDefault();
-    save_as();
+    request_text().then(save_as(text));
   });
 
 });
 
-function save_as() {
+function request_text() {
+  var deferred = $.Deferred();
+
+  document.getElementById('results').contentWindow.postMessage({'action': 'save'}, "http://griddl.hyperbench.com");
+
+  window.addEventListener(
+    'message', 
+    function(event) {
+      var origin = event.origin || event.originalEvent.origin;
+      if (origin !== "http://griddl.hyperbench.com") {
+        return false;
+      }
+
+      deferred.resolve(event.data);
+    }, 
+    false
+  );
+
+  return deferred.promise();
+}
+
+function save_as(text) {
   $form = $('#saveAsForm');
+  $form.find('#saveAsFormTextInput').val(text);
   newname = $form.find("[name='newname']").val();
 
   if (!validateName(newname)) {
@@ -57,4 +69,20 @@ function save_as() {
          },
          'json'
         );
+}
+
+function save(text) {
+  $form = $('#saveForm');
+  $form.find("#saveFormTextInput").val(text);
+  $.post("/save",
+         $form.serialize(),
+         function(response) {
+           if (response.success) {
+             $.alert('Workbook saved.', 'success');
+           } else {
+             $.alert(response.message);
+           }
+         },
+         'json'
+         );
 }

@@ -17,6 +17,7 @@ from django.contrib.auth.models import User
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 
+from .decorators import require_subdomain
 from .models import Workbook, Account, DefaultWorkbook, Plan
 from .models import AccountSizeException, MaxWorkbookSizeException
 
@@ -77,6 +78,7 @@ def ajaxlogin(request):
     return HttpResponseRedirect("/newcsrftoken")
 
 
+@require_subdomain('www')
 def register(request):
     username = request.POST['username']
     password = request.POST['password']
@@ -106,6 +108,7 @@ def register(request):
             reverse(directory, kwargs={'userid': user.pk, 'path': ''}))
 
 
+@require_subdomain('www')
 def ajaxregister(request):
     username = request.POST['username']
     password = request.POST['password']
@@ -195,6 +198,7 @@ def directory(request, userid, path=None):
 
 
 @login_required
+@require_subdomain('www')
 def account(request, userid):
     acct = Account.objects.select_related('plan')\
         .select_related('subscription').get(user=request.user.account.pk)
@@ -219,6 +223,7 @@ def account(request, userid):
 
 
 @login_required
+@require_subdomain('www')
 def togglepublic(request):
     try:
         pk = request.POST.get('pk', False)
@@ -239,6 +244,7 @@ def togglepublic(request):
         return JsonResponse({'success': False, 'message': msg})
 
 
+@require_subdomain('www')
 def save(request):
     # todo: this comment does not match the current behavior :(
     #       - actually not even close, would take some effort.
@@ -291,10 +297,12 @@ def save(request):
         return JsonResponse({'success': False, 'message': 'Access denied'})
 
 
+@require_subdomain('www')
 def saveas(request):
     # prompt for a name (with a popup or something)
     # save as that new name
     # similar login/signup prompts necessary if no user
+    # todo: fixup for better error handling, messages, etc
 
     wb = Workbook.objects.get(pk=request.POST['id'])
 
@@ -310,11 +318,7 @@ def saveas(request):
             # todo: actually save wb just in case, or whatever.
             return JsonResponse({'redirect': '/subscriptions?billing=true'})
 
-        urlparts = ['/f', str(request.user.account.pk), wb.name]
-        if wb.path:
-            urlparts.insert(2, wb.path)
-        urlpath = '/'.join(urlparts)
-        return JsonResponse({'redirect': urlpath})
+        return JsonResponse({'success': True})
     else:
         request.session['saveas'] = {
             'wb': wb.pk,
@@ -330,6 +334,7 @@ def saveas(request):
 
 
 @login_required
+@require_subdomain('www')
 def create(request):
     '''
     lawd we gotta refactor this at some point. not at all DRY
@@ -355,12 +360,14 @@ def create(request):
 
 
 @login_required
+@require_subdomain('www')
 def password_change_redirect(request):
     messages.success(request, "Your password has been changed.")
     return HttpResponseRedirect(reverse('account', args=(request.user.pk,)))
 
 
 @login_required
+@require_subdomain('www')
 def createDir(request):
     try:
         # no slashes pls
@@ -394,6 +401,7 @@ def createDir(request):
 
 
 @login_required
+@require_subdomain('www')
 def rename(request):
     try:
         pk = request.POST.get('id', False)
@@ -419,6 +427,7 @@ def rename(request):
 
 
 @login_required
+@require_subdomain('www')
 def delete(request):
     try:
         pk = request.POST.get('id', False)
@@ -438,6 +447,7 @@ def delete(request):
 
 
 @login_required
+@require_subdomain('www')
 def move(request):
     try:
         pk = request.POST.get('id', False)
@@ -511,10 +521,8 @@ def workbook(request, userid, path, slug):
     return response
 
 
+@require_subdomain('griddl')
 def results(request):
-    if not request.subdomain == 'griddl':
-        logger.debug(request.subdomain)
-        return HttpResponse('No.')
     return render(request, 'griddl/results.htm')
 
 
