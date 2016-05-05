@@ -21,4 +21,5 @@ def require_subdomain(subdomain):
                 logger.warning(fmt_str.format(fmt_args))
                 return HttpResponseForbidden()
             return func(request, *args, **kwargs)
-        return decorator
+        return inner
+    return decorator

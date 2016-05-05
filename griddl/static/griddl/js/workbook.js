@@ -7,17 +7,17 @@ $(document).ready(function() {
 
   $('#saveMenuButton').on('click', function(event) {
     event.preventDefault();
-    request_text().then(save(text));
+    request_text().done(save);
   });
 
 
   $('#saveAsSubmit').on('click', function(event) {
     event.preventDefault();
-    request_text().then(save_as(text));
+    request_text().done(save_as);
   });
   $('#saveAsForm').on('submit', function(event) {
     event.preventDefault();
-    request_text().then(save_as(text));
+    request_text().done(save_as);
   });
 
 });
@@ -34,6 +34,8 @@ function request_text() {
       if (origin !== "http://griddl.hyperbench.com") {
         return false;
       }
+
+      console.log("in deferred:", event.data);
 
       deferred.resolve(event.data);
     }, 
@@ -72,6 +74,7 @@ function save_as(text) {
 }
 
 function save(text) {
+  console.log("in save:", text);
   $form = $('#saveForm');
   $form.find("#saveFormTextInput").val(text);
   $.post("/save",
