@@ -26,6 +26,10 @@ $(document).ready(function() {
       $("#output").css('display', 'block').parent().removeClass('col-sm-6').addClass('col-sm-12');
       $("#cells").css('display', 'none');
   });
+
+  $('#fileChooser').on('change', function(event) {
+    Griddl.IO.HandleLocalLoad(event.target.files);
+  });
 });
 
 function receiveMessage(event) {
@@ -39,6 +43,7 @@ function receiveMessage(event) {
   if (data.action) {
     switch (data.action) {
       case 'load':
+        console.log('idfk', data);
         Griddl.Core.Main(Griddl.Components, data.text);
         break;
       case 'save':
