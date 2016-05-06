@@ -58,12 +58,14 @@ function save_as(text) {
          $form.serialize(),
          function(response) {
            if (response.success) {
-             $('#workbookName').text(newname);
-             path = window.location.pathname
-             newpath = path.slice(0, path.lastIndexOf('/')+1) + newname;
-             history.replaceState('workbook-rename', 'Renamed workbook', newpath);
-             $.alert('Workbook renamed to ' + newname + '.', 'success');
-             $('.modal').modal('hide');
+             if (!response.redirect) {
+               $('#workbookName').text(newname);
+               path = window.location.pathname
+               newpath = path.slice(0, path.lastIndexOf('/')+1) + newname;
+               history.replaceState('workbook-rename', 'Renamed workbook', newpath);
+               $.alert('Workbook renamed to ' + newname + '.', 'success');
+               $('.modal').modal('hide');
+             }
            } else {
              $.alert('Something went wrong. Please try again later.');
              $('.modal').modal('hide');

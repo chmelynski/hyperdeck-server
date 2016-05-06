@@ -304,26 +304,33 @@ def saveas(request):
     # similar login/signup prompts necessary if no user
     # todo: fixup for better error handling, messages, etc
 
-    wb = Workbook.objects.get(pk=request.POST['id'])
+    wb = Workbook.objects.get(pk=request.POST.get('id'))
+    original = wb.name
 
     if request.user.is_authenticated():
+        fork = (request.user != wb.owner)
         wb.owner = request.user.account
-        wb.name = request.POST['newname']
-        wb.text = request.POST['text']
+        wb.name = request.POST.get('newname')
+        wb.text = request.POST.get('text')
         wb.public = False  # for now, don't copy public status
         wb.pk = None
         try:
             wb.save()
-        except Exception:  # todo: more specific
-            # todo: actually save wb just in case, or whatever.
+        except Exception:  # todo: more specific exception
+            # todo: actually save wb just in case?
             return JsonResponse({'redirect': '/subscriptions?billing=true'})
 
-        return JsonResponse({'success': True})
+        response = {'success': True}
+        if fork:
+            response['redirect'] = wb.uri
+            messages.success(
+                request, "Successfully copied workbook {}.".format(original))
+        return JsonResponse(response)
     else:
         request.session['saveas'] = {
             'wb': wb.pk,
-            'name': request.POST['newname'],
-            'text': request.POST['text']
+            'name': request.POST.get('newname'),
+            'text': request.POST.get('text')
             }
         messages.info(
             request,
