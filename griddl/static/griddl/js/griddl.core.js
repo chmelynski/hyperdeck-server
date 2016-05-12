@@ -104,7 +104,7 @@ Core.DownloadWorkbook = function() {
 };
 
 // this is called by the DownloadWorkbook button or the Save/Save As button
-var SaveToText = Core.SaveToText = function() { return Core.objs.map(obj => obj.write()).join('\n'); };
+var SaveToText = Core.SaveToText = function() { return JSON.stringify(Core.objs.map(obj => obj.write())); };
 
 // button handlers - these generate the document if a 'document' component is defined, or otherwise run the first js component
 var Generate = Core.Generate = function() {
