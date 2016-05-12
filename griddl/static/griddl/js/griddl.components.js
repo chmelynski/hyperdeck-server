@@ -740,19 +740,6 @@ function CreateComponentDiv(parent, obj) {
 	headerLeft.append(AddNameBox(obj));
 
   floatRight = $('<div class="pull-right"></div>');
-	if (obj.representationToggle)
-	{
-		floatRight.append(AddRepresentationToggle(obj));
-	}
-	if (obj.execButtonText)
-	{ 
-		floatRight.append(AddInvokeButton(obj));
-	}
-	if (obj.uploadDownload)
-	{
-		floatRight.append(AddUploadButton(obj));
-		floatRight.append(AddDownloadButton(obj));
-	}
   
 	floatRight.append(AddMinimizeButton(obj));
   floatRight.append(AddDestroyButton(obj));
