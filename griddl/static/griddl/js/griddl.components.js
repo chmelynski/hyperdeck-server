@@ -931,9 +931,6 @@ function AddNameBox(obj) {
 }
 function AddMinimizeButton(obj) {
 	
-	// a couple proposed changes:
-	// 1. obj.display = 'hidden'/'visible' should be changed to obj.visible = true/false
-	
 	// instead of just setting display:none, perhaps this should remove the clientDiv from the DOM altogether
 	// this will save DOM resources
 	
@@ -946,30 +943,11 @@ function AddMinimizeButton(obj) {
   plus = "fa-plus";
 
   $icon = $("<i class='fa'></i>");
-  $icon.addClass((obj.display == 'visible') ? minus : plus);
+  $icon.addClass(obj.visible ? minus : plus);
   button.append($icon);
 	
 	button.on('click', function() {
-
-		
-		// surely this should be based off of obj, not the button
-		//$(this).parent().parent().children().last().toggleClass('griddl-component-body-hidden');
-		obj.div.toggleClass('griddl-component-body-hidden');
-		
-		if (obj.display == 'visible')
-		{
-			$(this).find('i').removeClass(minus).addClass(plus);
-			obj.display = 'hidden';
-		}
-		else
-		{
-			$(this).find('i').removeClass(plus).addClass(minus);
-			obj.display = 'visible';
-			
-			// this fixes this bug: when a component containing a codemirror was initially hidden, and then we maximized, the text would not appear
-			if (obj.codemirror) { obj.codemirror.refresh(); }
-		}
-		
+		if (obj.visible) { Hide(obj); } else { Show(obj); }
 		MarkDirty();
 	});
 	
@@ -1003,6 +981,24 @@ function confirmDelete(event) {
 
   modal.modal('show');
 }
+
+var Show = Components.Show = function(obj) {
+	
+	obj.div.removeClass('griddl-component-body-hidden');
+	obj.div.parent().find('.griddl-component-head-minmax').find('i').removeClass(plus).addClass(minus);
+	obj.visible = true;
+	
+	// this fixes this bug: when a component containing a codemirror was initially hidden, and then we maximized, the text would not appear
+	if (obj.codemirror) { obj.codemirror.refresh(); }
+}
+var Hide = Components.Hide = function(obj) {
+	obj.div.addClass('griddl-component-body-hidden');
+	obj.div.parent().find('.griddl-component-head-minmax').find('i').removeClass(minus).addClass(plus);
+	obj.visible = false;
+};
+var ShowAll = Components.ShowAll = function() { Griddl.Core.objs.forEach(function(obj) { Show(obj); }); };
+var HideAll = Components.HideAll = function() { Griddl.Core.objs.forEach(function(obj) { Hide(obj); }); };
+
 
 // all references to Griddl.Core.objs are collected here, in case we want to move objs to some other place
 function AddObj(obj) { Griddl.Core.objs[obj.name] = obj; Griddl.Core.objs.push(obj); MakeSortable(); }
