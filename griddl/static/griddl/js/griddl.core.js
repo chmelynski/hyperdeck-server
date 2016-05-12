@@ -9,41 +9,18 @@ Core.objs = []; // set in Main() - not a great idea to make this a var, because 
 
 Core.Main = function(Components, text) {
 	
-	var blocks = [];
-	
 	if (typeof text == 'undefined')
 	{
 		text = $('#frce').text();
 	}
 	
-	var lines = text.trim().split('\n');
-	
-	var block = [];
-	lines.forEach(function(line) {
-		
-		if (line.trim() == '')
-		{
-			
-		}
-		else if (line == '@end')
-		{
-			blocks.push(block); // note that we don't include the '@end' line
-			block = [];
-		}
-		else // the start lines just go here by default, meaning that we only need to scrub @end as a keyword
-		{
-			block.push(line);
-		}
-	});
+	var json = JSON.parse(text);
 	
 	Core.objs = [];
-	blocks.forEach(function(block) {
-		var header = block[0];
-		var rest = block.slice(1);
-		var type = header.split(' ')[0].substr(1);
-		var obj = new Components[type](header.split(' '), rest);
-		Core.objs[obj.name] = obj;
-		Core.objs.push(obj);
+	json.forEach(function(obj) {
+		var component = new Components[obj.type](obj);
+		Core.objs[component.name] = component;
+		Core.objs.push(component);
 	});
 	
 	if (typeof window != 'undefined')
