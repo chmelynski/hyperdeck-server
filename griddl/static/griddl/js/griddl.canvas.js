@@ -3,35 +3,57 @@ var TheCanvas = (function() {
 	
 	if (typeof Griddl == 'undefined') { var Griddl = {}; }
 	
+	// this is probably obsolete?
+	// when the export button is clicked, it:
+	// 1. sets Canvas.drawPdf to true
+	// 2. invokes the first js component
+	// 3. reads griddlCanvas (which the user code must set)
+	Canvas.griddlCanvas = null; // in ExportToPdf we call MakePdf(griddlCanvas) - the Canvas constructor sets griddlCanvas whenever it is invoked
+	Canvas.savedDrawPdf = false; // get/set by pausePdfOutput and resumePdfOutput
+	Canvas.drawPdf = false; // the function invoked by the export button sets this to true, runs the user code, and then sets it to false again
+	Canvas.fontDict = {}; // "serif" => SourceSerifPro-Regular.otf, "sans-serif" => SourceSansPro-Regular.otf
+	Canvas.fontNameToUint8Array = {};
+	Canvas.opentype = null; // we need to parse the default fonts to intialize the fontDict
+	
 	function Canvas(params) {
 		
 		// this is here so that user code does not need to do it - the function invoked by the export button needs access to the canvas
 		Griddl.g = this; // this is a hook for node, used in RenderSvg - should it be Griddl.Canvas.g instead?
 		
 		// params:
-		//  type - default is 'canvas'
-		//  unitsToPx - default 1
-		//  unitsToPt - default 1
+		//  type - default 'canvas'
+		//  unit - in, cm, mm, pt - default in
+		//  pixelsPerUnit - default 100/in
+		//  cubitsPerUnit - default 100/in
 		
 		if (typeof params == 'undefined') { params = {}; }
 		var type = params.type ? params.type : 'canvas';
-		var unitsToPx = params.unitsToPx ? params.unitsToPx : 1;
-		var unitsToPt = params.unitsToPt ? params.unitsToPt : 1;
 		
-		this.pages = []; // should be indexed by names as well
+		var pointsPerUnitDict = {in:72,cm:72/2.54,mm:72/25.4,pt:1};
+		var unit = params.unit ? params.unit : 'in';
+		
+		var pixelsPerUnit = params.pixelsPerUnit ? params.pixelsPerUnit : 100;
+		var cubitsPerUnit = params.cubitsPerUnit ? params.cubitsPerUnit : 100;
+		var pointsPerUnit = pointsPerUnitDict[unit];
+		
+		this.pixelsPerCubit = pixelsPerUnit / cubitsPerUnit;
+		this.cubitsPerPixel = cubitsPerUnit / pixelsPerUnit;
+		this.pointsPerCubit = pointsPerUnit / cubitsPerUnit;
+		this.cubitsPerPoint = cubitsPerUnit / pointsPerUnit;
+		
+		this.sections = [];
+		//this.pages = []; // should be indexed by names as well
 		this.drawCanvas = (type == 'canvas');
 		this.drawSvg = (type == 'svg');
 		this.drawBmp = (type == 'bitmap');
-		this.type = type; // 'canvas' or 'svg' - NewPage() uses this
-		this.unitsToPx = unitsToPx;
-		this.unitsToPt = unitsToPt;
+		this.type = type; // 'canvas' or 'svg' - NewSection() uses this
 		
 		// FinalizeGraphics() sets this and ExportLocalToPdf() reads it
 		this.pdfContextArray = null;
 		
-		this.currentPage = null;
-		this.g = null; // this.pages[i].canvasContext, for some i
-		this.bmp = null; // this.pages[i].bmp, for some i
+		this.currentSection = null;
+		this.g = null; // this.sections[i].canvasContext, for some i
+		this.bmp = null; // this.sections[i].bmp, for some i
 		this.commands = null; // this.pages[i].pdfCommands, for some i
 		this.eltStrings = null; // this.pages[i].eltStrings, for some i
 		this.canvas = null; // the <canvas> element - this is for the passthrough usage e.g. ctx.canvas.width
@@ -43,6 +65,7 @@ var TheCanvas = (function() {
 		if (typeof window != 'undefined') { Array.from(document.querySelectorAll('.mathjaxInput')).forEach(function(elt) { elt.remove(); }); }
 		
 		// our own transformation implementation
+		this.debugTransform = true; // this calculates the transform but does not use it - the commands are passed through to the <canvas>
 		this.useOwnTransform = false;
 		this.matrix = new Matrix();
 		this.matrixStack = [];
@@ -71,12 +94,10 @@ var TheCanvas = (function() {
 		this.fontFamily = 'serif';
 		this.fontSize = 10; // this is what we display in font UI
 		this.fontSizePt = 10;
-		this.fontSizePx = this.fontSizePt / this.unitsToPt * this.unitsToPx;
+		this.fontSizePx = this.fontSizePt * this.cubitsPerPoint * this.pixelsPerCubit;
+		this.fontSizeCu = this.fontSizePt * this.cubitsPerPoint;
 		this.fontSizeUnits = 'pt';
 		this.fontObject = Canvas.fontDict[this.fontFamily]; // type TrueTypeFont or OpenTypeFont
-		
-		// i think truetype.js used this, but opentype.js does not, so we don't need it unless we are compelled to back to truetype.js
-		this.fontScale = this.fontSizePt / 72; // magic number - not correct - right now this is being used as font scale -> pixel scale conversion via multiplication
 		
 		this._textAlign = 'left'; // start (default), end, left, right, center - we should change this from left to start.  does opentype.js support RTL?
 		this._textBaseline = 'alphabetic'; // alphabetic (default), top, hanging, middle, ideographic, bottom
@@ -89,7 +110,7 @@ var TheCanvas = (function() {
 		this._lineJoin = 'miter'; // miter (default), bevel, round
 		this._lineCap = 'butt'; // butt (default), round, square
 		this._miterLimit = 10; // is this part of the spec or just a chrome thing?  what is the default miter limit for PDF?
-		this._globalAlpha = 1.0; // float in [0,1]
+		this._globalAlpha = 1.0; // float in [0,1] - 0 = transparent, 1 = opaque
 		this._globalCompositeOperation = 'source-over'; // source-over (default), source-in, source-out, source-atop, destination-over, destination-in, destination-out, destination-atop, lighter, copy, xor (darker was removed from the spec)
 		this._shadowColor = 'rgba(0, 0, 0, 0)';
 		this._shadowBlur = 0; // float, not sure exactly how to implement
@@ -235,15 +256,29 @@ var TheCanvas = (function() {
 				if (this.fontSizeUnits == 'pt')
 				{
 					this.fontSizePt = this.fontSize;
-					this.fontSizePx = this.fontSizePt / this.unitsToPt * this.unitsToPx;
+					this.fontSizeCu = this.fontSizePt * this.cubitsPerPoint;
+					this.fontSizePx = this.fontSizeCu * this.pixelsPerCubit;
 				}
 				else if (this.fontSizeUnits == 'px')
 				{
 					this.fontSizePx = this.fontSize;
-					this.fontSizePt = this.fontSizePx / this.unitsToPx * this.unitsToPt;
+					this.fontSizeCu = this.fontSizePx * this.cubitsPerPixel;
+					this.fontSizePt = this.fontSizeCu * this.pointsPerCubit;
+				}
+				else if (this.fontSizeUnits == 'cu')
+				{
+					this.fontSizeCu = this.fontSize;
+					this.fontSizePx = this.fontSizeCu * this.pixelsPerCubit;
+					this.fontSizePt = this.fontSizeCu * this.pointsPerCubit;
 				}
 				else
 				{
+					// other possible units are em, ex, and %
+					// standard values:
+					// 1em = 12pt
+					// 1ex = ??
+					// 100% = 12pt
+					
 					throw new Error('Unsupported font size type: "' + this.fontSizeUnits + '"');
 				}
 				
@@ -258,7 +293,8 @@ var TheCanvas = (function() {
 				}
 				
 				this.fontObject = Canvas.fontDict[this.fontFamily] ? Canvas.fontDict[this.fontFamily] : Canvas.fontDict['serif'];
-				//this.fontScale = this.fontSize / 1024; // this seems to work for TrueType at least
+				
+				// in theory, we could dump the font command to PDF here, rather than doing it in each fillText call
 				
 				if (typeof window != 'undefined')
 				{
@@ -275,100 +311,47 @@ var TheCanvas = (function() {
 			this.savedCanvasContext.font = this.font;
 		}
 	}
-	Canvas.prototype.getLineDash = function() {
-		return this._lineDashArray;
-		
-	};
-	Canvas.prototype.setLineDash = function(value) {
-		this._lineDashArray = value;
-		if (this.g) { this.g.setLineDash(value); }
-		if (Canvas.drawPdf) { PushCommand(this, '[ ' + this._lineDashArray.join(' ') + ' ] ' + this._lineDashOffset.toString() + ' d'); }
-	};
+	Canvas.prototype.SetActiveSection = function(nameOrIndexOrSection) {
 	
-	Canvas.prototype.NewPage = function(params) {
-		
-		var width = params.width ? params.width : 792;
-		var height = params.height ? params.height : 612;
-		
-		var page = new Page(this, width, height);
-		
-		if (typeof window != 'undefined')
-		{
-			var div = document.createElement('div');
-			div.style.border = '1px solid #c3c3c3';
-			div.style.margin = '1em';
-			div.style.width = page.pxWidth;
-			div.style.height = page.pxHeight;
-			page.div = div;
-		}
-		
-		if (this.type == 'canvas')
-		{
-			if (typeof window != 'undefined')
-			{
-				var canvas = document.createElement('canvas');
-				canvas.width = page.pxWidth;
-				canvas.height = page.pxHeight;
-				canvas.setAttribute('tabIndex', this.pages.length.toString());
-				
-				var ctx = canvas.getContext('2d');
-				page.canvasContext = ctx;
-				
-				page.div.appendChild(canvas);
-				
-				ctx.scale(this.unitsToPx, this.unitsToPx);
-			}
-		}
-		else if (this.type == 'bitmap')
-		{
-			page.bmp = new Bitmap(page.pxWidth, page.pxHeight, 3);
-		}
-		else if (this.type == 'svg')
-		{
-			
-		}
-		else
-		{
-			throw new Error();
-		}
-		
-		this.pages.push(page);
-		if (params.name) { this.pages[params.name] = page; }
-		
-		this.SetActivePage(page);
-		
-		return page;
-	};
-	Canvas.prototype.SetActivePage = function(nameOrIndexOrPage) {
-	
-		var type = typeof(nameOrIndexOrPage);
-		var page = null;
+		var type = typeof(nameOrIndexOrSection);
+		var section = null;
 		
 		if (type == 'string' || type == 'number')
 		{
-			page = this.pages[nameOrIndexOrPage];
+			section = this.sections[nameOrIndexOrSection];
 		}
 		else
 		{
-			page = nameOrIndexOrPage;
+			section = nameOrIndexOrSection;
 		}
 		
 		if (this.type == 'canvas')
 		{
-			this.g = page.canvasContext;
-			this.canvas = page.canvasContext.canvas;
+			this.g = section.canvasContext;
+			this.canvas = section.canvasContext.canvas;
 		}
 		else if (this.type == 'bitmap')
 		{
-			this.bmp = page.bmp;
-			this.canvas = page.bmp; // width and height will still work, at least
+			this.bmp = section.bmp;
+			this.canvas = section.bmp; // width and height will still work, at least
 		}
 		
-		this.commands = page.pdfCommands;
-		this.eltStrings = page.eltStrings;
-		this.currentPage = page;
+		this.commands = section.pdfCommands[0]; // this is temporary - the drawing functions have to look at the y coordinate and change page as needed
+		this.eltStrings = section.eltStrings;
+		this.currentSection = section;
 	};
-	function Page(parent, width, height) {
+	Canvas.prototype.NewSection = function(width, height, nPages) {
+		
+		var section = new Section(this, width, height, nPages);
+		
+		this.sections.push(section);
+		//if (params.name) { this.sections[params.name] = section; }
+		
+		this.SetActiveSection(section);
+		
+		return section;
+	};
+	function Section(parent, width, height, nPages) {
 		
 		this.parent = parent; // Griddl.Canvas
 		
@@ -384,31 +367,374 @@ var TheCanvas = (function() {
 		this.cy = height / 2;
 		this.hr = height / 2;
 		
-		this.pxWidth = width * parent.unitsToPx;
-		this.pxHeight = height * parent.unitsToPx;
-		this.ptWidth = width * parent.unitsToPt;
-		this.ptHeight = height * parent.unitsToPt;
+		this.nPages = nPages;
+		
+		// so for now, this refers to page size?  we need to distinguish between page dimensions and section dimensions
+		this.wdCu = width;
+		this.hgCu = height;
+		this.pxWidth = width * parent.pixelsPerCubit;
+		this.pxHeight = height * parent.pixelsPerCubit;
+		this.ptWidth = width * parent.pointsPerCubit;
+		this.ptHeight = height * parent.pointsPerCubit;
 		
 		this.div = null; // <div>
 		
 		this.canvasContext = null; // CanvasRenderingContext2D
 		this.bmp = null; // Bitmap
 		
-		this.eltStrings = []; // [ str ]
+		this.eltStrings = []; // [ [ str ] ]
 		
-		this.pdfCommands = []; // [ str ]
+		this.pdfCommands = []; // [ [ str ] ]
 		
-		// the other option is to calculate page.ptHeight - y for everything
-		this.pdfCommands.push('1 0 0 1 0 ' + this.ptHeight.toString() + ' cm'); // the initial PDF transform
-		this.pdfCommands.push(this.parent.unitsToPt.toString() + ' 0 0 -' + this.parent.unitsToPt.toString() + ' 0 0 cm');
+		for (var i = 0; i < nPages; i++)
+		{
+			// this needs to be added to each newly-created sublist of pdfCommands
+			// the other option is to calculate page.ptHeight - y for everything
+			var pageCommands = [];
+			pageCommands.push('1 0 0 1 0 ' + this.ptHeight.toString() + ' cm'); // the initial PDF transform
+			pageCommands.push(this.parent.pointsPerCubit.toString() + ' 0 0 -' + this.parent.pointsPerCubit.toString() + ' 0 0 cm');
+			this.pdfCommands.push(pageCommands);
+		}
+		
+		if (typeof window != 'undefined')
+		{
+			var div = document.createElement('div');
+			div.style.border = '1px solid #c3c3c3';
+			div.style.margin = '1em';
+			div.style.width = this.pxWidth;
+			div.style.height = this.pxHeight * this.nPages;
+			this.div = div;
+		}
+		
+		if (parent.type == 'canvas')
+		{
+			if (typeof window != 'undefined')
+			{
+				var canvas = document.createElement('canvas');
+				canvas.width = this.pxWidth;
+				canvas.height = this.pxHeight * this.nPages;
+				canvas.setAttribute('tabIndex', parent.sections.length.toString());
+				
+				var ctx = canvas.getContext('2d');
+				this.canvasContext = ctx;
+				
+				this.div.appendChild(canvas);
+				
+				ctx.scale(parent.pixelsPerCubit, parent.pixelsPerCubit);
+			}
+		}
+		else if (parent.type == 'bitmap')
+		{
+			this.bmp = new Bitmap(this.pxWidth, this.pxHeight * this.nPages, 3);
+		}
+		else if (parent.type == 'svg')
+		{
+			
+		}
+		else
+		{
+			throw new Error();
+		}
 	}
+	Section.prototype.SetDimensions = function(nPages, wd, hg) {
+		
+		// new page sizes should be able to be set automatically when graphical elements are drawn out of bounds
+		
+		this.nPages = nPages;
+		this.wdCu = wd;
+		this.hgCu = hg;
+		this.pxWidth = wd * this.parent.pixelsPerCubit;
+		this.pxHeight = hg * this.parent.pixelsPerCubit;
+		this.ptWidth = wd * this.parent.pointsPerCubit;
+		this.ptHeight = hg * this.parent.pointsPerCubit;
+		
+		if (this.parent.type == 'canvas')
+		{
+			if (typeof window != 'undefined')
+			{
+				var canvas = this.canvasContext.canvas;
+				canvas.width = this.pxWidth;
+				canvas.height = this.pxHeight * nPages;
+				this.canvasContext = canvas.getContext('2d');
+				this.canvasContext.scale(this.parent.pixelsPerCubit, this.parent.pixelsPerCubit);
+			}
+		}
+		
+		this.pdfCommands = [];
+		
+		for (var i = 0; i < nPages; i++)
+		{
+			// this needs to be added to each newly-created sublist of pdfCommands
+			// the other option is to calculate page.ptHeight - y for everything
+			var pageCommands = [];
+			pageCommands.push('1 0 0 1 0 ' + this.ptHeight.toString() + ' cm'); // the initial PDF transform
+			pageCommands.push(this.parent.pointsPerCubit.toString() + ' 0 0 -' + this.parent.pointsPerCubit.toString() + ' 0 0 cm');
+			this.pdfCommands.push(pageCommands);
+		}
+	};
 	
-	// when the export button is clicked, it sets Canvas.drawPdf to true, invokes the first js component, and then reads griddlCanvas (which the user code must set)
-	Canvas.griddlCanvas = null; // in ExportToPdf we call MakePdf(griddlCanvas) - the Canvas constructor sets griddlCanvas whenever it is invoked
-	Canvas.drawPdf = false; // the function invoked by the export button sets this to true, runs the user code, and then sets it to false again
-	Canvas.fontDict = {}; // "serif" => SourceSerifPro-Regular.otf, "sans-serif" => SourceSansPro-Regular.otf
-	Canvas.fontNameToUint8Array = {};
-	Canvas.opentype = null; // we need to parse the default fonts to intialize the fontDict
+	// there seems to be a case for folding all pdf stuff into Canvas.  the rationale for a separate pdf module was that it would take just a list of commands and then spit out a pdf.  but it's not really that simple - you also need to pass in fonts and images.  which means that the pdf handling is much less separable from the Canvas as a whole
+	
+	// copied from griddl.pdf.js - meaning that griddl.pdf.js can probably be deleted as a separate file
+	Canvas.prototype.ExportToPdf = function() {
+		
+		var objects = [];
+		
+		var totalPageCount = this.sections.map(section => section.pdfCommands.length).reduce(function(a, b) { return a + b; });
+		
+		var catalog = { Type : "Catalog" , Pages : null };
+		var pages = { Type : "Pages" , Count : totalPageCount , Kids : [] };
+		catalog.Pages = pages;
+		objects.push(catalog);
+		objects.push(pages);
+		
+		var fontResourceDict = {}; // { F1 : 3 0 R , F2 : 4 0 R , etc. }
+		var imageResourceDict = {};  // { Im1 : 5 0 R , Im2 : 6 0 R , etc. }
+		
+		// all fonts and images used in the document are put in separate objects here - page resource dicts refer to this section via indirect references
+		
+		// section 5.7, p.455 - Font Descriptors
+		// section 5.8, p.465 - Embedded Font Programs
+		// this.fontNameToIndex = { "Times-Roman" : 1 , "Helvetica" : 2 }
+		// this.fontDict = { "F1" : "Times-Roman" , "F2" : "Helvetica" }
+		for (var key in this.fontNameToIndex)
+		{
+			var fontId = 'F' + this.fontNameToIndex[key];
+			
+			var font = null;
+			
+			if (key == 'Times-Roman' || key == 'Helvetica')
+			{
+				font = { Type : "Font" , Subtype : "Type1" , BaseFont : key }; // or lookup the font name in some global font dictionary to get the right font objects
+				objects.push(font);
+			}
+			else
+			{
+				var fontType = 'OpenType'; // we probably need to store this in the Font component or something - .ttf or .otf
+				
+				if (fontType == 'TrueType')
+				{
+					var uint8Array = Canvas.fontNameToUint8Array[key]; // file bytes go here
+					var stream = Uint8ArrayToAsciiHexDecode(uint8Array);
+					var fontStreamDictionary = { Length : stream.length , Filter : "ASCIIHexDecode" , Length1 : uint8Array.length }; // Length1 = length after being decoded
+					fontStreamDictionary["[stream]"] = stream;
+					var fontDescriptor = { Type : "FontDescriptor" , FontName : key , FontFile2 : fontStreamDictionary };
+					var font = { Type : "Font" , Subtype : "TrueType" , BaseFont : key , FontDescriptor : fontDescriptor };
+					objects.push(font);
+					objects.push(fontDescriptor);
+					objects.push(fontStreamDictionary);
+				}
+				else if (fontType == 'OpenType')
+				{
+					var uint8Array = Canvas.fontNameToUint8Array[key]; // file bytes go here
+					var stream = Uint8ArrayToAsciiHexDecode(uint8Array);
+					var fontStreamDictionary = { Length : stream.length , Filter : "ASCIIHexDecode" , Length1 : uint8Array.length , Subtype : "OpenType" };
+					fontStreamDictionary["[stream]"] = stream;
+					var fontDescriptor = { Type : "FontDescriptor" , FontName : key , FontFile3 : fontStreamDictionary };
+					var font = { Type : "Font" , Subtype : "TrueType" , BaseFont : key , FontDescriptor : fontDescriptor }; // should the Subtype still be TrueType?
+					objects.push(font);
+					objects.push(fontDescriptor);
+					objects.push(fontStreamDictionary);
+				}
+				else
+				{
+					throw new Error();
+				}
+			}
+			
+			fontResourceDict[fontId] = font;
+		}
+		
+		// this.imageDict = { "Im1" : XObject1 , "Im2" : XObject2 }
+		for (var key in this.imageDict)
+		{
+			var xObject = this.imageDict[key];
+			
+			objects.push(xObject);
+			imageResourceDict[key] = xObject;
+		}
+		
+		for (var i = 0; i < this.sections.length; i++)
+		{
+			var section = this.sections[i];
+			
+			for (var k = 0; k < section.pdfCommands.length; k++)
+			{
+				var commands = section.pdfCommands[k].join('\r\n');
+				
+				var page = { Type : "Page" , Parent : pages , MediaBox : [ 0 , 0 , section.ptWidth , section.ptHeight ] , Resources : { Font : {} , XObject : {} } , Contents : null };
+				var pagecontent = { Length : commands.length , "[stream]" : commands };
+				
+				// so, the *correct* approach here would be to only put the resources that are necessary to the page in the page's resource dict
+				// however, that requires bookkeeping, and for what?  to save a few bytes?
+				// so instead, we're just going to load the page's resource dict with the pointers to all fonts and images found in the document
+				//if (section.fontDict) { page.Resources.Font = section.fontDict; }
+				//if (section.imageDict) { page.Resources.XObject = section.imageDict; }
+				page.Resources.Font = fontResourceDict;
+				page.Resources.XObject = imageResourceDict;
+				
+				// this is the ducktape code for fonts that we use right now
+				//page.Resources.Font.F1 = font;
+				
+				page.Contents = pagecontent;
+				pages.Kids.push(page);
+				objects.push(page);
+				objects.push(pagecontent);
+			}
+		}
+		
+		for (var i = 0; i < objects.length; i++)
+		{
+			objects[i]['[index]'] = i + 1;
+		}
+		
+		var objstarts = [];
+		var bytes = 0;
+		
+		var filelines = [];
+		filelines.push('%PDF-1.7');
+		filelines.push('');
+		
+		var bytes = '%PDF-1.7\r\n\r\n'.length;
+		
+		for (var i = 0; i < objects.length; i++)
+		{
+			var obj = objects[i];
+			var objlines = [];
+			
+			objstarts.push(bytes);
+			
+			objlines.push(obj['[index]'].toString() + ' 0 obj');
+			objlines.push(WritePdfObj(obj, false));
+			
+			if (obj['[stream]'])
+			{
+				objlines.push('stream');
+				objlines.push(obj['[stream]']);
+				objlines.push('endstream');
+			}
+			
+			objlines.push('endobj');
+			objlines.push('');
+			
+			var objstr = objlines.join('\r\n');
+			bytes += objstr.length;
+			filelines.push(objstr);
+		}
+		
+		var xrefstart = bytes;
+		
+		filelines.push('xref');
+		filelines.push('0 ' + (objects.length + 1).toString());
+		filelines.push('0000000000 65535 f');
+		for (var i = 0; i < objects.length; i++)
+		{
+			var bytestart = objstarts[i].toString();
+			var len = bytestart.length;
+			var line = '';
+			for (var k = 0; k < 10 - len; k++)
+			{
+				line += '0';
+			}
+			line += bytestart + ' 00000 n';
+			filelines.push(line);
+		}
+		
+		filelines.push('trailer');
+		filelines.push('<<');
+		filelines.push('/Size ' + (objects.length + 1).toString());
+		if (objects[0].Type != 'Catalog') { throw new Error(); } // check for the assumption that root is 1 0 R
+		filelines.push('/Root 1 0 R');
+		filelines.push('>>');
+		filelines.push('startxref');
+		filelines.push(xrefstart.toString());
+		filelines.push('%%EOF');
+		return filelines.join('\r\n');
+	};
+	function WritePdfDict(obj) {
+		var str = '';
+		str += '<<';
+		str += '\r\n';
+		for (var key in obj)
+		{
+			if (key[0] != '[') // avoid [index], [stream], etc. fields
+			{
+				str += '/' + key + ' ';
+				str += WritePdfObj(obj[key], true);
+				str += '\r\n';
+			}
+		}
+		str += '>>';
+		//str += '\r\n';
+		return str;
+	}
+	function WritePdfList(list) {
+		//var str = '';
+		//str += '[ ';
+		//list.forEach(function(obj) { str += WritePdfObj(obj, true); str += ' '; });
+		//str += ']';
+		//return str;
+		
+		var str = '[ ' + list.map(obj => WritePdfObj(obj, true)).join(' ') + ']';
+		return str;
+	}
+	function WritePdfObj(obj, canBeIndirect) {
+		var s = null;
+		var type = typeof(obj);
+		
+		if (type == 'object')
+		{
+			if (canBeIndirect && obj['[index]'])
+			{
+				s = obj['[index]'].toString() + ' 0 R';
+			}
+			else
+			{
+				if (obj.concat) // this is how we test for a list
+				{
+					s = WritePdfList(obj);
+				}
+				else
+				{
+					s = WritePdfDict(obj);
+				}
+			}
+		}
+		else if (type == 'number')
+		{
+			s = obj.toString();
+		}
+		else if (type == 'string')
+		{
+			if (obj[0] == '"')
+			{
+				s = '(' + obj.substring(1, obj.length - 1) + ')';
+			}
+			else
+			{
+				s = '/' + obj.toString();
+			}
+		}
+		else
+		{
+			throw new Error('"' + type + '" is not a recogized type');
+		}
+		
+		return s;
+	}
+	function Uint8ArrayToAsciiHexDecode(uint8Array) {
+		
+		var ascii = [];
+		
+		for (var i = 0; i < uint8Array.length; i++)
+		{
+			var b = uint8Array[i];
+			var hex = ((b < 0x10) ? '0' : '') + b.toString(16).toUpperCase();
+			ascii.push(hex);
+		}
+		
+		return ascii.join('');
+	}
 	
 	function Matrix() {
 		this.rows = 3;
@@ -481,7 +807,7 @@ var TheCanvas = (function() {
 			for (var i = 0; i < g.jax.length; i++)
 			{
 				var jax = g.jax[i];
-				g.SetActivePage(jax.page);
+				g.SetActiveSection(jax.section);
 				
 				var svg = $(jax.inputDivId + ' .MathJax_SVG_Display').children().first().children().first();
 				
@@ -603,16 +929,16 @@ var TheCanvas = (function() {
 		{
 			if (this.drawSvg)
 			{
-				for (var i = 0; i < this.pages.length; i++)
+				for (var i = 0; i < this.sections.length; i++)
 				{
-					var page = this.pages[i];
+					var page = this.sections[i];
 					page.div.html('<svg ' + xmlnss + ' width="' + page.width + '" height="' + page.height + '">' + page.eltStrings.join('') + '</svg>');
 				}
 			}
 		}
 		else
 		{
-			Griddl.svgOutput = '<svg ' + xmlnss + ' width="' + Griddl.g.pages[0].width + '" height="' + Griddl.g.pages[0].height + '">' + Griddl.g.pages[0].eltStrings.join('') + '</svg>';
+			Griddl.svgOutput = '<svg ' + xmlnss + ' width="' + Griddl.g.sections[0].width + '" height="' + Griddl.g.sections[0].height + '">' + Griddl.g.sections[0].eltStrings.join('') + '</svg>';
 		}
 	};
 	
@@ -879,54 +1205,12 @@ var TheCanvas = (function() {
 			// SVG doesn't have the equivalent of the textBaseline of canvas, so we have to simulate it with dx and dy
 			// of course, the exact dx and dy should vary with font and font size, but that's hard
 			
-			var dy = 0;
-			
-			var ptToPx = 1.2;
-			
-			var fontSizePx = 0;
-			
-			if (this.fontSizeUnits == 'pt')
-			{
-				fontSizePx = Math.floor(this.fontSize * ptToPx, 1);
-			}
-			else if (this.fontSizeUnits == 'px')
-			{
-				fontSizePx = this.fontSize;
-			}
-			else
-			{
-				throw new Error();
-			}
-			
-			if (this.textBaseline == 'alphabetic')
-			{
-				dy = 0;
-			}
-			else if (this.textBaseline == 'top')
-			{
-				dy = (fontSizePx - 2);
-			}
-			else if (this.textBaseline == 'hanging')
-			{
-				dy = 0;
-			}
-			else if (this.textBaseline == 'middle')
-			{
-				dy = (fontSizePx - 2) / 2;
-			}
-			else if (this.textBaseline == 'ideographic')
-			{
-				dy = 0;
-			}
-			else if (this.textBaseline == 'bottom')
-			{
-				dy = 0;
-			}
+			var {dx,dy} = this.textAlign(text);
 			
 			svg += 'dy="' + dy.toString() + '" ';
 			
 			svg += 'font-family="' + this.fontFamily + '" ';
-			svg += 'font-size="' + fontSizePx.toString() + '" ';
+			svg += 'font-size="' + this.fontSizePx.toString() + '" ';
 			
 			svg += '>' + text + '</text>';
 			
@@ -944,54 +1228,10 @@ var TheCanvas = (function() {
 		
 		var multiplier = this.fontSize / 2048;
 		
-		var width = this.measureText(text);
-		
-		if (this.textAlign == 'left' || this.textAlign == 'start') // i18n needed
-		{
-			// no change
-		}
-		else if (this.textAlign == 'center')
-		{
-			x -= width / 2;
-		}
-		else if (this.textAlign == 'right' || this.textAlign == 'end') // i18n needed
-		{
-			x -= width;
-		}
-		else
-		{
-			throw new Error();
-		}
-		
-		var textHeightUnits = this.fontSize / this.unitsToPt;
-		
-		if (this.textBaseline == 'middle')
-		{
-			y += textHeightUnits / 2;
-		}
-		else if (this.textBaseline == 'top')
-		{
-			y += textHeightUnits;
-		}
-		else if (this.textBaseline == 'bottom')
-		{
-			// no change?
-		}
-		else if (this.textBaseline == 'alphabetic')
-		{
-			// no change?
-		}
-		else if (this.textBaseline == 'ideographic')
-		{
-			// wat do?
-		}
-		else
-		{
-			throw new Error();
-		}
+		var {dx,dy} = this.alignText(text);
 		
 		this.save();
-		this.translate(x, y);
+		this.translate(x + dx, y + dy);
 		this.scale(multiplier, -multiplier); // the fonts have the y-axis pointing up, rather than down
 		
 		for (var i = 0; i < text.length; i++)
@@ -1029,7 +1269,7 @@ var TheCanvas = (function() {
 		
 		this.beginPath();
 		
-		var fontScale = this.fontScale;
+		var fontScale = this.fontSizePt / 72; // magic number - not correct - right now this is being used as font scale -> pixel scale conversion via multiplication
 		
 		for (var i = 0; i < text.length; i++)
 		{
@@ -1061,52 +1301,147 @@ var TheCanvas = (function() {
 	};
 	Canvas.prototype.fillTextOpenType = function(text, x, y) {
 		
-		var textMetrics = this.measureTextOpenType(text);
+		// x and y are in cubits at this point
 		
-		if (this.textAlign == 'left')
+		var {dxCu,dyCu} = this.alignText(text); // what units are dx and dy in?
+		
+		var xCu = x + dxCu;
+		var yCu = y + dyCu;
+		
+		// we can comment out the if statements below and just use this, and it will work
+		// it will just draw the glyphs as fill paths, making for a large PDF
+		//this.fontObject.draw(this, text, x, y, this.fontSizePx, {});
+		
+		if (this.drawCanvas)
 		{
-			
+			// if we are going to use the PDF-native way of drawing text below, then we don't want to duplicate
+			var savedPdfState = Canvas.drawPdf;
+			Canvas.drawPdf = false;
+			this.fontObject.draw(this, text, xCu, yCu, this.fontSizeCu, {});
+			Canvas.drawPdf = savedPdfState;
 		}
-		else if (this.textAlign == 'center')
+		
+		if (Canvas.drawPdf)
 		{
-			x -= textMetrics.width / 2;
+			this.fillTextPdf(text, xCu, yCu);
 		}
-		else if (this.textAlign == 'right')
+	};
+	Canvas.prototype.fillTextPdf = function(text, x, y) {
+		
+		// x and y come in as cubits - conversion to points is done by the scaling done at the beginning of the page commands
+		// but should font size be specified in cubits?  probably
+		
+		if (y > this.currentSection.hgCu)
 		{
-			x -= textMetrics.width;
+			var pageIndex = Math.floor(y / this.currentSection.hgCu, 1);
+			this.commands = this.currentSection.pdfCommands[pageIndex];
+			y = y % this.currentSection.hgCu;
 		}
-		else if (this.textAlign == 'start')
+		
+		if (!this.fontNameToIndex[this.fontFamily])
 		{
-			var leftToRight = true; // pull this from the font somehow?
-			
+			this.fontNameToIndex[this.fontFamily] = this.fontCount + 1;
+			this.fontCount++;
+		}
+		
+		// this could be changed from F1, F2, etc. to TimesNewRoman, Arial, etc., but it would require some reworking
+		// if we do that, you have to also change the code in MakePdf that does this same construction
+		var fontId = 'F' + this.fontNameToIndex[this.fontFamily];
+		
+		// a couple things here: repeating BT, Tf, and ET on every fillText is obviously more verbose than it needs to be
+		// it would be nice to be able to batch fillText commands and then dump them in one block
+		// two ways to do batching:
+		// 1. the client controls it - this would require new Canvas functions, such as fillTexts(texts)
+		// 2. Canvas does it automatically in the background - much trickier, obviously
+		//   would require an inTextBlock boolean, and also would require dumping the font when the font field is set, not here
+		
+		// the inTextBlock flag could be set here in fillText, but would have to be cleared in literally every other drawing function
+		
+		// a much more overhaul-y way of doing this would be to cache *all* drawing commands and then optimize as needed
+		// to be fair, we already sort of do this with the PDF command lists - we could just examine those before dumping the file to eliminate duplicate BT, Tf, ET commands
+		
+		PushCommand(this, 'BT');
+		PushCommand(this, '/' + fontId + ' ' + this.fontSizeCu.toString() + ' Tf'); // /F1 12 Tf
+		//PushCommand(this, x.toString() + ' ' + y.toString() + ' TD');
+		PushCommand(this, '1 0 0 -1 ' + x.toString() + ' ' + y.toString() + ' Tm'); // 1 0 0 -1 50 50 Tm - the -1 flips the y axis
+		PushCommand(this, '(' + text + ') Tj'); // (foo) Tj
+		PushCommand(this, 'ET');
+	};
+	Canvas.prototype.fillTextDebug = function(text, x, y) {
+		console.log('fill' + '\t"' + text + '"\t' + x + '\t' + y + '\t' + DebugStyle(this));
+	};
+	
+	Canvas.prototype.strokeText = function(text, x, y) { this.strokeTextOpenType(text, x, y); };
+	Canvas.prototype.strokeTextOpenType = function(text, x, y) {
+		
+		var {dxCu,dyCu} = this.alignText(text);
+		
+		// in order to stroke text, we get the Path from the Font, change some fields on the Path, and then call Path.draw(ctx)
+		// this might also have to be used for fillTextOpenType if we want to draw in a color other than black
+		// note that we pass the fontObject coordinates in cubits, because the fontObject will call ctx, which is already appropriately scaled
+		var path = this.fontObject.getPath(this, text, x + dxCu, y + dyCu, this.fontSizeCu, {});
+		path.fill = null;
+		path.stroke = this.strokeStyle;
+		path.strokeWidth = this.lineWidth;
+		path.draw(this);
+	};
+	
+	Canvas.prototype.alignText = function(text) {
+		
+		var leftToRight = true; // pull this from the font somehow?
+		var computedTextAlign = null;
+		
+		var dxCu = 0;
+		var dyCu = 0;
+		
+		if (this.textAlign == 'start')
+		{
 			if (leftToRight)
 			{
-				
+				computedTextAlign = 'left';
 			}
 			else
 			{
-				x -= textMetrics.width;
+				computedTextAlign = 'right';
 			}
 		}
 		else if (this.textAlign == 'end')
 		{
-			var leftToRight = true; // pull this from the font somehow?
-			
 			if (leftToRight)
 			{
-				x -= textMetrics.width;
+				computedTextAlign = 'right';
 			}
 			else
 			{
-				
+				computedTextAlign = 'left';
 			}
 		}
 		else
 		{
-			throw new Error();
+			computedTextAlign = this.textAlign;
 		}
 		
-		var fontUnitsToPx = this.fontSizePx / this.fontObject.unitsPerEm;
+		if (computedTextAlign == 'left')
+		{
+			
+		}
+		else
+		{
+			var textMetricsCu = this.measureTextOpenType(text);
+			
+			if (computedTextAlign == 'center')
+			{
+				dxCu = -textMetricsCu.width / 2;
+			}
+			else if (computedTextAlign == 'right')
+			{
+				dxCu = -textMetricsCu.width;
+			}
+			else
+			{
+				throw new Error();
+			}
+		}
 		
 		if (this.textBaseline == 'alphabetic')
 		{
@@ -1114,15 +1449,15 @@ var TheCanvas = (function() {
 		}
 		else if (this.textBaseline == 'top')
 		{
-			y += this.fontObject.ascender * fontUnitsToPx;
+			dyCu = this.fontObject.ascender / this.fontObject.unitsPerEm * this.fontSizeCu;
 		}
 		else if (this.textBaseline == 'middle')
 		{
-			y -= this.fontObject.descender * fontUnitsToPx; // descender is negative, i guess
+			dyCu = -this.fontObject.descender / this.fontObject.unitsPerEm * this.fontSizeCu; // descender is negative, i guess
 		}
 		else if (this.textBaseline == 'bottom')
 		{
-			y += this.fontObject.descender * fontUnitsToPx; // descender is negative, i guess
+			dyCu = this.fontObject.descender / this.fontObject.unitsPerEm * this.fontSizeCu; // descender is negative, i guess
 		}
 		else if (this.textBaseline == 'ideographic')
 		{
@@ -1137,56 +1472,10 @@ var TheCanvas = (function() {
 			throw new Error();
 		}
 		
-		// we can comment out the if statements below and just use this, and it will work
-		// it will just draw the glyphs as fill paths, making for a large PDF
-		//this.fontObject.draw(this, text, x, y, this.fontSizePx, {});
-		
-		if (this.drawCanvas)
-		{
-			// if we are going to use the PDF-native way of drawing text below, then we don't want to duplicate
-			var savedPdfState = Canvas.drawPdf;
-			Canvas.drawPdf = false;
-			this.fontObject.draw(this, text, x, y, this.fontSizePx, {});
-			Canvas.drawPdf = savedPdfState;
-		}
-		
-		if (Canvas.drawPdf)
-		{
-			this.fillTextPdf(text, x, y);
-		}
-	};
-	Canvas.prototype.fillTextPdf = function(text, x, y) {
-		
-		if (!this.fontNameToIndex[this.fontFamily])
-		{
-			this.fontNameToIndex[this.fontFamily] = this.fontCount + 1;
-			this.fontCount++;
-		}
-		
-		// this could be changed from F1, F2, etc. to TimesNewRoman, Arial, etc., but it would require some reworking
-		// if we do that, you have to also change the code in MakePdf that does this same construction
-		var fontId = 'F' + this.fontNameToIndex[this.fontFamily];
-		
-		PushCommand(this, 'BT');
-		PushCommand(this, '/' + fontId + ' ' + this.fontSizePt.toString() + ' Tf'); // /F1 12 Tf
-		//PushCommand(this, x.toString() + ' ' + y.toString() + ' TD');
-		PushCommand(this, '1 0 0 -1 ' + x.toString() + ' ' + y.toString() + ' Tm'); // 1 0 0 -1 50 50 Tm - the -1 flips the y axis
-		PushCommand(this, '(' + text + ') Tj'); // (foo) Tj
-		PushCommand(this, 'ET');
-		
-		// this was one attempt at flipping the y axis for the text - it did not work, the text failed to appear on the page
-		//PushCommand(this, 'q');
-		//PushCommand(this, '1 0 0 -1 0 0 cm');
-		// Tj here
-		//PushCommand(this, 'Q');
-	};
-	Canvas.prototype.fillTextDebug = function(text, x, y) {
-		console.log('fill' + '\t"' + text + '"\t' + x + '\t' + y + '\t' + DebugStyle(this));
+		return {dxCu:dxCu,dyCu:dyCu};
 	};
 	
-	Canvas.prototype.strokeText = function(text, x, y) { }; // um
-	
-	Canvas.prototype.measureText = function(str) { return this.measureTextDebug(str); }
+	Canvas.prototype.measureText = function(str) { return this.measureTextOpenType(str); }
 	Canvas.prototype.measureTextNative = function(str) {
 		
 		if (this.drawCanvas)
@@ -1237,13 +1526,20 @@ var TheCanvas = (function() {
 			sum += wd;
 		}
 		
-		var width = sum * this.fontScale;
+		var width = sum * this.fontSizePt / 72;  // magic number - not correct - right now this is being used as font scale -> pixel scale conversion via multiplication
 		
 		return { width : width };
 	};
 	Canvas.prototype.measureTextOpenType = function(str) {
 		
-		var path = this.fontObject.getPath(str, 0, 0, this.fontSizePx);
+		// coordinates in the font object are converted to path coordinate by multiplying by: 1 / font.unitsPerEm * fontSize
+		// basically fontSize specifies the em size
+		// so if we specify a fontSize of 1, what we're doing is asking for coordinates in ems
+		// we then multiply that by the fontSize in pixels, points, or cubits to get the size in units we need
+		var x = 0;
+		var y = 0;
+		var fontSize = 1;
+		var path = this.fontObject.getPath(str, x, y, fontSize);
 		
 		var xMin = +Infinity;
 		var xMax = -Infinity;
@@ -1279,10 +1575,17 @@ var TheCanvas = (function() {
 			}
 		}
 		
-		var width = xMax - xMin;
-		var height = yMax - yMin;
+		var wdEm = xMax - xMin;
+		var hgEm = yMax - yMin;
 		
-		return { width : width , height : height };
+		var wdCu = wdEm * this.fontSizeCu;
+		var hgCu = hgEm * this.fontSizeCu;
+		//var wdPx = wdEm * this.fontSizePx;
+		//var hgPx = hgEm * this.fontSizePx;
+		//var wdPt = wdEm * this.fontSizePt;
+		//var hgPt = hgEm * this.fontSizePt;
+		
+		return { width : wdCu , height : hgCu };
 	};
 	Canvas.prototype.measureTextDebug = function(str) {
 		//console.log('measure' + '\t"' + str + '"\t' + DebugStyle(this));
@@ -2433,7 +2736,7 @@ var TheCanvas = (function() {
 			imagematrix += (scale * dw).toString() + ' 0 0 ';
 			imagematrix += (scale * dh).toString() + ' ';
 			imagematrix += (scale * dx).toString() + ' ';
-			//imagematrix += (this.currentPage.height - scale * (dy + dh)).toString() + ' cm';
+			//imagematrix += (this.currentSection.height - scale * (dy + dh)).toString() + ' cm';
 			imagematrix += (scale * (dy + dh)).toString() + ' cm';
 			
 			// /Im1 Do
@@ -2459,10 +2762,10 @@ var TheCanvas = (function() {
 	// https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform
 	Canvas.prototype.save = function() {
 		
-		if (this.useOwnTransform)
+		if (this.debugTransform || this.useOwnTransform)
 		{
 			this.savedMatrixStack.push(this.matrix);
-			return;
+			if (this.useOwnTransform) { return; }
 		}
 		
 		if (this.drawCanvas)
@@ -2484,12 +2787,12 @@ var TheCanvas = (function() {
 	};
 	Canvas.prototype.restore = function() {
 		
-		if (this.useOwnTransform)
+		if (this.debugTransform || this.useOwnTransform)
 		{
 			this.matrix = this.savedMatrixStack.pop();
 			this.matrixStack = []; // restoration obliterates the logger and saved matrix chain
 			this.loggerStack = [];
-			return;
+			if (this.useOwnTransform) { return; }
 		}
 		
 		if (this.drawCanvas)
@@ -2509,13 +2812,13 @@ var TheCanvas = (function() {
 	};
 	Canvas.prototype.scale = function(x, y) {
 		
-		if (this.useOwnTransform)
+		if (this.debugTransform || this.useOwnTransform)
 		{
 			var m = new Matrix.Scale(x, y);
 			this.matrix = Matrix.Multiply(m, this.matrix);
 			this.matrixStack.push(m);
 			this.loggerStack.push('scale(' + x.toString() + ' ' + y.toString() + ')');
-			return;
+			if (this.useOwnTransform) { return; }
 		}
 		
 		if (this.drawCanvas)
@@ -2552,13 +2855,13 @@ var TheCanvas = (function() {
 	};
 	Canvas.prototype.rotateCounterClockwise = function(angle) {
 		
-		if (this.useOwnTransform)
+		if (this.debugTransform || this.useOwnTransform)
 		{
 			var m = new Matrix.Rotate(angle);
 			this.matrix = Matrix.Multiply(m, this.matrix);
 			this.matrixStack.push(m);
 			this.loggerStack.push('rotate(' + (angle / (Math.PI * 2) * 360).toString() + ')');
-			return;
+			if (this.useOwnTransform) { return; }
 		}
 		
 		if (this.drawCanvas)
@@ -2585,13 +2888,13 @@ var TheCanvas = (function() {
 	};
 	Canvas.prototype.rotateClockwise = function(angle) {
 		
-		if (this.useOwnTransform)
+		if (this.debugTransform || this.useOwnTransform)
 		{
 			var m = new Matrix.Rotate(-angle);
 			this.matrix = Matrix.Multiply(m, this.matrix);
 			this.matrixStack.push(m);
 			this.loggerStack.push('rotate(' + (angle / (Math.PI * 2) * 360).toString() + ')');
-			return;
+			if (this.useOwnTransform) { return; }
 		}
 		
 		if (this.drawCanvas)
@@ -2618,13 +2921,13 @@ var TheCanvas = (function() {
 	};
 	Canvas.prototype.translate = function(x, y) {
 		
-		if (this.useOwnTransform)
+		if (this.debugTransform || this.useOwnTransform)
 		{
 			var m = Matrix.Translate(x, y);
 			this.matrix = Matrix.Multiply(m, this.matrix);
 			this.matrixStack.push(m);
 			this.loggerStack.push('translate(' + x.toString() + ',' + y.toString() + ')');
-			return;
+			if (this.useOwnTransform) { return; }
 		}
 		
 		if (this.drawCanvas)
@@ -2654,14 +2957,14 @@ var TheCanvas = (function() {
 		// namely, Canvas does kx, ky and SVG/PDF do ky, kx
 		// wait, are we sure about that?  maybe we should double check what the canvas transform expects
 		
-		if (this.useOwnTransform)
+		if (this.debugTransform || this.useOwnTransform)
 		{
 			var m = new Matrix();
 			m.m = [[sx, kx, dx],[sy, ky, dy],[0,0,1]];
 			this.matrix = Matrix.Multiply(m, this.matrix);
 			this.matrixStack.push(m);
 			this.loggerStack.push('matrix(' + sx.toString() + ' ' + ky.toString() + ' ' + kx.toString() + ' ' + sy.toString() + ' ' + dx.toString() + ' ' + dy.toString() + ')');
-			return;
+			if (this.useOwnTransform) { return; }
 		}
 		
 		if (this.drawCanvas)
@@ -2734,14 +3037,14 @@ var TheCanvas = (function() {
 	};
 	Canvas.prototype.setTransform = function(sx, kx, ky, sy, dx, dy) {
 		
-		if (this.useOwnTransform)
+		if (this.debugTransform || this.useOwnTransform)
 		{
 			var m = new Matrix();
 			m.m = [[sx, kx, dx],[sy, ky, dy],[0,0,1]];
 			this.matrix = Matrix.Multiply(m, this.matrix);
 			this.matrixStack.push(m);
 			this.loggerStack = [ 'matrix(' + sx.toString() + ' ' + ky.toString() + ' ' + kx.toString() + ' ' + sy.toString() + ' ' + dx.toString() + ' ' + dy.toString() + ')' ];
-			return;
+			if (this.useOwnTransform) { return; }
 		}
 		
 		if (this.drawCanvas)
@@ -2762,12 +3065,12 @@ var TheCanvas = (function() {
 	};
 	Canvas.prototype.resetTransform = function() {
 		
-		if (this.useOwnTransform)
+		if (this.debugTransform || this.useOwnTransform)
 		{
 			this.matrix = new Matrix();
 			this.matrixStack = [];
 			this.loggerStack = [];
-			return;
+			if (this.useOwnTransform) { return; }
 		}
 		
 		if (this.drawCanvas)
@@ -2786,6 +3089,13 @@ var TheCanvas = (function() {
 		}
 	};
 	
+	Canvas.prototype.pausePdfOutput = function() {
+		Canvas.savedDrawPdf = Canvas.drawPdf;
+		Canvas.drawPdf = false;
+	};
+	Canvas.prototype.resumePdfOutput = function() {
+		Canvas.drawPdf = Canvas.savedDrawPdf;
+	};
 	
 	function Gradient(x1, y1, x2, y2) {
 		
@@ -2845,6 +3155,16 @@ var TheCanvas = (function() {
 			return pattern;
 		}
 		
+	};
+	
+	Canvas.prototype.getLineDash = function() {
+		return this._lineDashArray;
+		
+	};
+	Canvas.prototype.setLineDash = function(value) {
+		this._lineDashArray = value;
+		if (this.g) { this.g.setLineDash(value); }
+		if (Canvas.drawPdf) { PushCommand(this, '[ ' + this._lineDashArray.join(' ') + ' ] ' + this._lineDashOffset.toString() + ' d'); }
 	};
 	
 	// extensions
@@ -3510,7 +3830,7 @@ var TheCanvas = (function() {
 	// http://cdn.mathjax.org/mathjax/latest/test/sample-signals.html - this is an interesting page that shows all the signals that get sent
 	// calls to drawMath don't immediately draw onto the canvas - the typesetting is put into the mathjax queue
 	// actual drawing to the canvas happens in GenerateDocument(), after all callbacks have returned
-	// jax = { page : Page , latex : string , x : float , y : float , d : string , style : Style }
+	// jax = { section : Section , latex : string , x : float , y : float , d : string , style : Style }
 	Canvas.prototype.drawMath = function(latex, x, y) {
 		
 		if (this.useOwnTransform)
@@ -3523,7 +3843,7 @@ var TheCanvas = (function() {
 		if (typeof(latex) == 'object') { latex = '$$' + latex.ToLatex() + '$$'; }
 		
 		var jax = {};
-		jax.page = this.currentPage;
+		jax.section = this.currentSection;
 		jax.latex = latex;
 		jax.x = x;
 		jax.y = y;
@@ -3675,7 +3995,6 @@ var TheCanvas = (function() {
 		this.textBaseline = 'alphabetic'; // top, hanging, middle, alphabetic, ideographic, bottom
 		
 		this.fontObject = null;
-		this.fontScale = null;
 		
 		this.splines = null;
 		this.startPoint = null;
