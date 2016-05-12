@@ -7,11 +7,12 @@ var Components = {};
 
 Components.Bitmap = null;
 
-var Text = Components.txt = Components.js = Components.html = Components.css = Components.json = function(header, lines) {
+
+var Text = Components.txt = Components.js = Components.html = Components.css = Components.json = function(json) {
 	
-	this.type = header[0].substr(1);
-	this.name = header[1];
-	this.display = header[2];  // visible or hidden
+	this.type = json.type;
+	this.name = json.name;
+	this.visible = json.visible;
 	
 	this.div = null;
 	this.codemirror = null;
@@ -35,17 +36,45 @@ var Text = Components.txt = Components.js = Components.html = Components.css = C
 	
 	this.uploadDownload = false;
 	
-	this.load(lines);
+	this.load(json.data);
 };
-Text.prototype.load = function(lines) {
+Text.prototype.add = function() {
+	
+	var modeDict = {text:'plain',js:'javascript',css:'css',html:'xml',json:'javascript'};
+	var mode = modeDict[this.type];
+	
+	this.div = CreateComponentDiv($('#cells'), this);
+	var textbox = $(document.createElement('textarea'));
+	this.div.append(textbox);
+	
+	this.codemirror = CodeMirror.fromTextArea(textbox[0], { mode : mode , smartIndent : false , lineNumbers : true , lineWrapping : true });
+	
+	this.refresh();
+	
+	var text = this;
+	this.codemirror.on('blur', function() { text.text = text.codemirror.getValue(); text.compile();  });
+	this.codemirror.on('change', function() { MarkDirty(); });
+};
+Text.prototype.refresh = function() {
+	this.codemirror.getDoc().setValue(this.text);
+};
+Text.prototype.load = function(text) {
 	
 	// new -> constructor -> load -> setData
 	// init -> constructor -> load -> setData
 	// upload -> load -> setData
 	// blur -> setData
 	
-	this.text = lines.join('\n');
+	this.text = text;
 	this.compile();
+};
+Text.prototype.setText = function(text) {
+	
+	// this is the same as setData - should the functions be merged?
+	
+	this.text = text;
+	this.compile();
+	this.refresh();
 };
 Text.prototype.getData = function() {
 	
@@ -61,14 +90,6 @@ Text.prototype.getData = function() {
 	{
 		return this.text; // not this.data, it should be noted, because the above would only return text
 	}
-};
-Text.prototype.setText = function(text) {
-	
-	// this is the same as setData - should the functions be merged?
-	
-	this.text = text;
-	this.compile();
-	this.refresh();
 };
 Text.prototype.setData = function(text) {
 	
@@ -111,29 +132,6 @@ Text.prototype.compile = function() {
 	{
 		this.data = this.text;
 	}
-};
-Text.prototype.write = function() {
-	return '@' + this.type + ' ' + this.name + ' ' + this.display + '\n' + this.codemirror.getValue() + '\n@end\n';
-};
-Text.prototype.refresh = function() {
-	this.codemirror.getDoc().setValue(this.text);
-};
-Text.prototype.add = function() {
-	
-	var modeDict = {text:'plain',js:'javascript',css:'css',html:'xml',json:'javascript'};
-	var mode = modeDict[this.type];
-	
-	this.div = CreateComponentDiv($('#cells'), this);
-	var textbox = $(document.createElement('textarea'));
-	this.div.append(textbox);
-	
-	this.codemirror = CodeMirror.fromTextArea(textbox[0], { mode : mode , smartIndent : false , lineNumbers : true , lineWrapping : true });
-	
-	this.refresh();
-	
-	var text = this;
-	this.codemirror.on('blur', function() { text.text = text.codemirror.getValue(); text.compile();  });
-	this.codemirror.on('change', function() { MarkDirty(); });
 };
 Text.prototype.exec = function() {
 	
@@ -191,8 +189,20 @@ Text.prototype.exec = function() {
 		throw new Error("'" + this.name + "' is a " + this.type + ", not an executable js/css/html object");
 	}
 };
+Text.prototype.write = function() {
+	
+	var json = {};
+	
+	json.type = this.type;
+	json.name = this.name;
+	json.visible = this.visible;
+	
+	json.data = this.codemirror.getValue();
+	
+	return json;
+};
 Text.New = function(type) {
-	var obj = new Text(['@'+type, UniqueName(type, 1), 'visible'], (type == 'json') ? ['{}'] : []);
+	var obj = new Text({type:type,name:UniqueName(type, 1),visible:true,data:(type == 'json') ? '{}' : ''});
 	obj.add();
 	MarkDirty();
 	AddObj(obj);
@@ -204,34 +214,32 @@ Components.JsonBackedRepresentationToggle = function() {
 	
 	// interface:
 	// obj.div
-	// obj.text
-	// obj.data
-	// obj.refresh() - generates the graphical representation after obj.data has been set to the JSON object
+	// obj.getText
+	// obj.setData
+	// obj.refresh() - generates the graphical representation after setData is called (if setData can be guaranteed to call refresh then this is unnecessary)
 	// obj.representationLabel - how to label the radio button
 	
 	// Datgui.representationToggle = Components.JsonBackedRepresentationToggle;
 	// var fns = datgui.representationToggle(); // this means that 'this' will be the datgui instance in this function
 	// radioButton.onclick = fns[i] // but the sub-functions below are called on the button, so we can't use 'this' in them
 	var obj = this;
+	var codemirror = null;
 	
 	var TextToOther = function() {
 		
 		obj.div.html('');
 		
-		// if this is to stay in Text, it could be replaced by setData:
-		//obj.setData(obj.codemirror.getDoc().getValue());
-		
-		obj.text = obj.codemirror.getDoc().getValue();
-		
 		try
 		{
-			obj.data = JSON.parse(obj.text);
+			var text = codemirror.getDoc().getValue();
+			var data = JSON.parse(text);
 		}
 		catch (e)
 		{
 			// the parse has failed - display an error message - look at error handling code in MakeComponentsDiv to see how to display error message
 		}
 		
+		obj.setData(data);
 		obj.refresh();
 		
 		MarkDirty();
@@ -245,109 +253,57 @@ Components.JsonBackedRepresentationToggle = function() {
 		textbox.addClass('griddl-component-body-radio-textarea');
 		obj.div.append(textbox);
 		
-		var text = JSON.stringify(obj.data);
+		var text = obj.getText();
 		codemirror = CodeMirror.fromTextArea(textbox[0], { smartIndent : false , lineNumbers : true });
 		codemirror.getDoc().setValue(text);
 		
 		MarkDirty();
 	};
 	
-	return [ { label : obj.representationLabel , fn : TextToOther } , { label : 'Text' , fn : OtherToText } ];
+	return [ { label : obj.representationLabel , fn : TextToOther } , { label : 'JSON' , fn : OtherToText } ];
 };
 
-var Grid = Components.grid = Components.table = Components.matrix = Components.tsv = function(header, lines) {
+var Grid = Components.grid = Components.table = Components.matrix = Components.tsv = function(json) {
 	
 	// so here there are two choices for the underlying data and three choices for the display
 	// [ {} ] vs [ [] ]
 	// Handsontable vs <table> vs <pre>
 	
-	this.type = header[0].substr(1);
-	this.name = header[1];
-	this.display = header[2]; // visible or hidden
+	this.type = json.type;
+	this.name = json.name;
+	this.visible = json.visible;
 	
 	this.div = null;
 	this.tableDiv = null; // for unknown reasons we pass a sub div to Handsontable / add the <table> or <pre> to the sub div
 	this.handsontable = null;
 	this.codemirror = null;
 	
+	this.headers = json.headers;
+	
 	this.matrix = null;
 	this.data = null;
 	
 	this.uploadDownload = false;
 	
-	this.load(lines);
+	this.load(json.data);
 };
-
-Grid.prototype.setText = function(text) {
-	this.matrix = TsvToMatrix(text);
-	this.matrixToData();
+Grid.prototype.add = function() {
+	
+	this.div = CreateComponentDiv($('#cells'), this);
+	
+	var tableDiv = $(document.createElement('div'));
+	this.div.append(tableDiv);
+	this.tableDiv = tableDiv;
+	
 	this.refresh();
-};
-
-Grid.prototype.load = function(lines) {
-	// new -> constructor -> load -> setData
-	// init -> constructor -> load -> setData
-	// paste -> load -> setData
-	// upload -> load -> setData
 	
-	this.matrix = LinesToMatrixPadded(lines);
-	this.matrixToData();
-	
-	// refresh?
+	//todo: update data on blur
 };
-
-Grid.prototype.matrixToData = function() {
-	// here we deal with [ {} ] vs [ [] ]
-	if (this.type == 'grid' || this.type == 'table' || this.type == 'tsv')
-	{
-		this.data = MatrixToObjs(this.matrix);
-	}
-	else if (this.type == 'matrix')
-	{
-		this.data = this.matrix;
-	}
-	else
-	{
-		throw new Error();
-	}
-};
-
-Grid.prototype.getData = function() {
-	return this.data;
-};
-
-Grid.prototype.setData = function(data) {
-	this.data = data;
-	this.refresh();
-};
-
-Grid.prototype.write = function() {
-	return '@' + this.type + ' ' + this.name + ' ' + this.display + '\n' + this.getText() + '\n@end\n';
-};
-
-Grid.prototype.getText = function() {
-	
-	if (this.codemirror)
-	{
-		return this.codemirror.getValue();
-	}
-	else if (this.type == 'matrix')
-	{
-		return MatrixToJoinedLines(this.data)
-	}
-	else if (this.type == 'grid' || this.type == 'tsv' || this.type == 'table')
-	{
-		return ObjsToJoinedLines(this.data)
-	}
-	else
-	{
-		throw new Error();
-	}
-};
-
 Grid.prototype.refresh = function() {
+	
 	// here we deal with Handsontable vs <table> vs <pre>
-	if (this.type == 'grid' || this.type == 'matrix')
+	
+	if (this.type == 'grid' || this.type == 'matrix' || this.type == 'barChart' || this.type == 'lineChart' || this.type == 'scatterChart')
 	{
 		var rowHeaders = false;
 		var colHeaders = false;
@@ -363,6 +319,7 @@ Grid.prototype.refresh = function() {
 		
 		var options = {
 			data : this.data ,
+			formulas : true ,
 			rowHeaders : rowHeaders ,
 			colHeaders : colHeaders ,
 			contextMenu : true ,
@@ -437,35 +394,89 @@ Grid.prototype.refresh = function() {
 		throw new Error();
 	}
 };
-
-
-Grid.prototype.add = function() {
+Grid.prototype.load = function(lines) {
 	
-	this.div = CreateComponentDiv($('#cells'), this);
+	// new -> constructor -> load -> setData
+	// init -> constructor -> load -> setData
+	// paste -> load -> setData
+	// upload -> load -> setData
 	
-	var tableDiv = $(document.createElement('div'));
-	this.div.append(tableDiv);
-	this.tableDiv = tableDiv;
+	this.matrix = LinesToMatrixPadded(lines);
+	this.matrixToData();
 	
-	this.refresh();
-
-  //todo: update data on blur
+	// refresh?
 };
-
-
+Grid.prototype.matrixToData = function() {
+	
+	// here we deal with [ {} ] vs [ [] ]
+	if (this.type == 'grid' || this.type == 'table' || this.type == 'tsv')
+	{
+		this.data = MatrixToObjs(this.matrix);
+	}
+	else if (this.type == 'matrix')
+	{
+		this.data = this.matrix;
+	}
+	else
+	{
+		throw new Error();
+	}
+};
+Grid.prototype.getText = function() {
+	
+	if (this.codemirror)
+	{
+		return this.codemirror.getValue();
+	}
+	else if (this.type == 'matrix')
+	{
+		return MatrixToJoinedLines(this.data)
+	}
+	else if (this.type == 'grid' || this.type == 'tsv' || this.type == 'table')
+	{
+		return ObjsToJoinedLines(this.data)
+	}
+	else
+	{
+		throw new Error();
+	}
+};
+Grid.prototype.setText = function(text) {
+	this.matrix = TsvToMatrix(text);
+	this.matrixToData();
+	this.refresh();
+};
+Grid.prototype.getData = function() {
+	return this.data;
+};
+Grid.prototype.setData = function(data) {
+	this.data = data;
+	this.refresh();
+};
+Grid.prototype.write = function() {
+	
+	var json = {};
+	
+	json.type = this.type;
+	json.name = this.name;
+	json.visible = this.visible;
+	
+	json.data = this.getText();
+	
+	return json;
+};
 Grid.New = function(type) {
-	var obj = new Grid(['@'+type, UniqueName(type, 1), 'visible'], [ '\tA\tB\tC', '0\t\t\t', '1\t\t\t', '2\t\t\t' ]);
+	var obj = new Grid({type:type,name:UniqueName(type, 1),visible:true,headers:['A','B','C'],data:[{A:null,B:null,C:null},{A:null,B:null,C:null},{A:null,B:null,C:null}]});
 	obj.add();
 	MarkDirty();
 	AddObj(obj);
 };
-
-
 Grid.prototype.representationToggle = function() {
 	
 	var obj = this;
 	
 	var TextToGrid = function() {
+		
 		var text = obj.codemirror.getDoc().getValue();
 		
 		obj.div.html('');
@@ -501,19 +512,20 @@ Grid.prototype.representationToggle = function() {
 	return [ { label : 'Grid' , fn : TextToGrid } , { label : 'Text' , fn : GridToText } ];
 };
 
-var Font = Components.font = function(header, lines) {
+var Font = Components.font = function(json) {
 	
 	// a font component should display a selection of text rendered using that font
 	// ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789
 	
 	// single canvas, 8 columns, 16 rows, labeled in hex
 	
-	this.type = header[0].substr(1);
-	this.name = header[1];
-	this.display = header[2]; // visible or hidden
+	this.type = json.type;
+	this.name = json.name;
+	this.visible = json.visible;
 	
 	this.div = null;
 	
+	this.ext = null;
 	this.b64 = null;
 	this.uint8array = null;
 	this.font = null;
@@ -522,11 +534,12 @@ var Font = Components.font = function(header, lines) {
 	
 	this.canvas = null;
 	
-	if (lines.length > 0) { this.load(lines); } // the test is because we have no default b64 string in Font.New
+	this.load(json.data);
 };
 Font.prototype.datauri = function() {
 	return this.b64;
 };
+Font.prototype.setExt = function(ext) { this.ext = ext; };
 Font.prototype.setArrayBuffer = function(arrayBuffer) {
 	
 	this.uint8array = new Uint8Array(arrayBuffer); // this probably isn't necessary - do we even use the uint8array anywhere?
@@ -534,16 +547,19 @@ Font.prototype.setArrayBuffer = function(arrayBuffer) {
 	this.font = opentype.parse(arrayBuffer);
 	
 	Griddl.Canvas.fontDict[this.name] = this.font;
+	Griddl.Canvas.fontNameToUint8Array[this.name] = this.uint8array;
 	
 	this.refresh();
 };
-Font.prototype.load = function(lines) {
+Font.prototype.load = function(b64) {
 	
 	// new -> constructor -> load -> setData
 	// init -> constructor -> load -> setData
 	// upload -> load -> setData
 	
-	this.b64 = lines[0];
+	if (!b64) { return; } // Font.New doesn't have a default font
+	
+	this.b64 = b64;
 	
 	// data:font/ttf;base64, or data:font/otf;base64,
 	var slashIndex = this.b64.indexOf('/');
@@ -559,6 +575,7 @@ Font.prototype.load = function(lines) {
 	this.font = opentype.parse(this.uint8array.buffer);
 	
 	Griddl.Canvas.fontDict[this.name] = this.font;
+	Griddl.Canvas.fontNameToUint8Array[this.name] = this.uint8array;
 };
 Font.prototype.refresh = function() {
 	
@@ -573,7 +590,17 @@ Font.prototype.refresh = function() {
 	}
 };
 Font.prototype.write = function() {
-	return '@' + this.type + ' ' + this.name + ' ' + this.display + '\n' + this.b64 + '\n@end\n';
+	//return '@' + this.type + ' ' + this.name + ' ' + this.display + '\n' + this.b64 + '\n@end\n';
+	
+	var json = {};
+	
+	json.type = this.type;
+	json.name = this.name;
+	json.visible = this.visible;
+	
+	json.data = this.b64;
+	
+	return json;
 };
 Font.prototype.add = function() {
 	
@@ -606,106 +633,11 @@ Font.New = function() {
 	AddObj(obj);
 };
 
-var Image = Components.image = function(header, lines) {
+var File = Components.file = function(json) {
 	
-	this.type = header[0].substr(1);
-	this.name = header[1];
-	this.display = header[2]; // visible or hidden
-	this.width = parseInt(header[3]);
-	this.height = parseInt(header[4]);
-	
-	this.div = null;
-	
-	this.ext = null;
-	this.b64 = null;
-	this.uint8array = null;
-	this.imageElement = null;
-	
-	this.uploadDownload = true;
-	
-	this.load(lines);
-};
-Image.prototype.datauri = function() {
-	return this.b64;
-};
-Image.prototype.setArrayBuffer = function(arrayBuffer) {
-	this.uint8array = new Uint8Array(arrayBuffer);
-	this.b64 = 'data:image/png;base64,' + Uint8ArrayToBase64String(this.uint8array); // assumes .png for now
-	this.imageElement = document.createElement('img');
-	this.imageElement.src = this.b64;
-  this.imageElement.className = 'upload';
-	this.refresh();
-};
-Image.prototype.getData = function() {
-	return this.imageElement;
-};
-Image.prototype.setData = function(imageElement) {
-	this.imageElement = imageElement;
-	// this.b64 = ??
-	this.refresh();
-};
-Image.prototype.load = function(lines) {
-	
-	// new -> constructor -> load -> setData
-	// init -> constructor -> load -> setData
-	// upload -> load -> setData
-	
-	this.b64 = lines[0];
-	
-	var slashIndex = this.b64.indexOf('/');
-	var semicolonIndex = this.b64.indexOf(';');
-	var commaIndex = this.b64.indexOf(',');
-	var prefix = this.b64.substr(0, commaIndex); // data:image/png;base64,
-	var type = prefix.substring(slashIndex + 1, semicolonIndex);
-	var data = this.b64.substr(commaIndex);
-	
-	this.ext = '.' + type;
-	
-	this.uint8array = Base64StringToUint8Array(data);
-	
-	if (typeof window != 'undefined')
-	{
-		this.imageElement = document.createElement('img');
-		this.imageElement.src = this.b64;
-	}
-	else
-	{
-		if (type == 'bmp')
-		{
-			this.imageElement = Components.Bitmap.Read(this.uint8array);
-		}
-		else
-		{
-			this.imageElement = null;
-		}
-	}
-};
-Image.prototype.write = function() {
-	return '@' + this.type + ' ' + this.name + ' ' + this.display + ' ' + this.width + ' ' + this.height + '\n' + this.b64 + '\n@end\n';
-};
-Image.prototype.refresh = function() {
-	
-	// this.div.innerHTML = '<img src="' + this.b64 + '"></img>'; // this assumes div is not Jquery
-	
-	this.div.html('');
-	this.div.append($(this.imageElement));
-};
-Image.prototype.add = function() {
-	this.div = CreateComponentDiv($('#cells'), this);
-	this.refresh();
-};
-Image.New = function() {
-	var obj = new Image(['@image', UniqueName('image', 1), 'visible', '20', '20'], [ 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAIAAAAC64paAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAERJREFUOE9j3LJlCwMMeHt7w9lbt24lKM4A1AwH/5EAMeIDqJlUpyKrZxiimomJElxeG8CoosjZQzSqKHI2RQE2NDUDAEVWy5NpqgO1AAAAAElFTkSuQmCC' ]);
-	obj.add();
-	MarkDirty();
-	AddObj(obj);
-};
-
-var File = Components.file = function(header, lines) {
-	
-	this.type = header[0].substr(1);
-	this.name = header[1];
-	this.display = header[2]; // visible or hidden
+	this.type = json.type;
+	this.name = json.name;
+	this.visible = json.visible;
 	
 	this.div = null;
 	
@@ -715,7 +647,15 @@ var File = Components.file = function(header, lines) {
 	this.ext = '';
 	this.uploadDownload = true;
 	
-	this.load(lines);
+	this.load(json.data);
+};
+File.prototype.add = function() {
+	this.div = CreateComponentDiv($('#cells'), this);
+	this.refresh();
+};
+File.prototype.refresh = function() {
+	this.div.html('');
+	this.div.text(this.uint8array.length); // or we could do a hexdump or something
 };
 File.prototype.datauri = function() {
 	return this.b64;
@@ -723,13 +663,13 @@ File.prototype.datauri = function() {
 File.prototype.getData = function() {
 	return this.uint8array;
 };
-File.prototype.setArrayBuffer = function(arrayBuffer) {
-	this.setData(new Uint8Array(arrayBuffer));
-};
 File.prototype.setData = function(uint8array) {
 	this.uint8array = uint8array;
 	this.b64 = 'data:text/plain;base64,' + Uint8ArrayToBase64String(this.uint8array);
 	this.refresh();
+};
+File.prototype.setArrayBuffer = function(arrayBuffer) {
+	this.setData(new Uint8Array(arrayBuffer));
 };
 File.prototype.load = function(lines) {
 	
@@ -741,15 +681,16 @@ File.prototype.load = function(lines) {
 	this.uint8array = Base64StringToUint8Array(lines[0].substr(lines[0].indexOf(','))); // data:application/binary;base64,
 };
 File.prototype.write = function() {
-	return '@' + this.type + ' ' + this.name + ' ' + this.display + '\n' + this.b64 + '\n@end\n';
-};
-File.prototype.refresh = function() {
-	this.div.html('');
-	this.div.text(this.uint8array.length); // or we could do a hexdump or something
-};
-File.prototype.add = function() {
-	this.div = CreateComponentDiv($('#cells'), this);
-	this.refreshDiv();
+	
+	var json = {};
+	
+	json.type = this.type;
+	json.name = this.name;
+	json.visible = this.visible;
+	
+	json.data = this.b64;
+	
+	return json;
 };
 File.New = function() {
 	var obj = new File(['@file', UniqueName('file', 1), 'visible'], [ 'data:text/plain;base64,AAAA' ]);
@@ -757,6 +698,7 @@ File.New = function() {
 	MarkDirty();
 	AddObj(obj);
 };
+
 
 function CreateComponentDiv(parent, obj) {
 	
