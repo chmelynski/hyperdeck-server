@@ -15,10 +15,8 @@ if noahDev:
 
 if developmentServer or noahDev:
     DEBUG = True
-    TEMPLATE_DEBUG = DEBUG
 else:
     DEBUG = True
-    TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
@@ -144,6 +142,7 @@ TEMPLATES = [
         'DIRS': [os.path.join(BASE_DIR, 'griddl/templates')],  # override for password_reset templates
         'APP_DIRS': True,
         'OPTIONS': {
+            'debug': DEBUG,
             'context_processors': [
                 'django.contrib.auth.context_processors.auth',
                 'django.template.context_processors.debug',
