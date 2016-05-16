@@ -18,7 +18,7 @@ from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 
 from .decorators import require_subdomain
-from .models import Workbook, Account, DefaultWorkbook, Plan
+from .models import Workbook, Account, MY_FIRST_WORKBOOK, Plan
 from .models import AccountSizeException, MaxWorkbookSizeException
 
 logger = logging.getLogger(__name__)
@@ -185,10 +185,8 @@ def directory(request, userid, path=None):
         display = '-- ' * len(d.path.split('/')) + d.name
         acctdirs.append({'val': d.pk, 'display': display})
 
-    dwbs = DefaultWorkbook.objects.filter()
     context = {
         "workbooks": wbs,
-        "defaultWorkbooks": dwbs,
         "parentdir": parentdir,
         "acctdirs": acctdirs
         }
@@ -347,14 +345,9 @@ def create(request):
     lawd we gotta refactor this at some point. not at all DRY
     '''
     try:
-        # todo: kill wb.type :P
-        proto = request.POST.get('type', False)
-        dwb = DefaultWorkbook.objects.get(name=proto)
         wb = Workbook()
         wb.owner = request.user.account
         wb.name = request.POST['name']
-        wb.type = dwb.type
-        wb.text = dwb.text
         wb.public = False
         wb.parent = None  # todo: need to figure this one out
         wb.filetype = 'F'

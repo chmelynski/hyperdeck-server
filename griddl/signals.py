@@ -3,7 +3,7 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 from .management import workbook_locks
-from .models import Account, DefaultWorkbook, Workbook
+from .models import Account, Workbook
 
 
 @receiver(post_save, sender=User)
@@ -21,9 +21,6 @@ def account_setup(sender, created, instance, **kwargs):
         wb = Workbook()
         wb.owner = account
         wb.name = 'My First Workbook'
-        default = DefaultWorkbook.objects.filter(name='bubble-chart')[0]
-        wb.type = default.type
-        wb.text = default.text
         wb.public = False
         wb.save()
 

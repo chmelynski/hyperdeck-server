@@ -7,7 +7,7 @@ from django.utils.decorators import available_attrs
 logger = logging.getLogger(__name__)
 
 
-def require_subdomain(subdomain):
+def require_subdomain(subdomain='www'):
     '''
     enforce views only respond to requests on the specified subdomain.
     '''
@@ -17,8 +17,8 @@ def require_subdomain(subdomain):
             if not request.subdomain == subdomain:
                 fmt_args = (subdomain, request.subdomain, request.path)
                 fmt_str = 'Request on wrong subdomain: \
-                           Required {}, got {}, path{}'
-                logger.warning(fmt_str.format(fmt_args))
+                           Required: {}, got: {}, path: {}'
+                logger.warning(fmt_str.format(*fmt_args))
                 return HttpResponseForbidden()
             return func(request, *args, **kwargs)
         return inner

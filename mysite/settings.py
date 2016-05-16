@@ -157,6 +157,7 @@ TEMPLATES = [
 ]
 
 MIDDLEWARE_CLASSES = (
+    'subdomains.middleware.SubdomainMiddleware',
     'subdomains.middleware.SubdomainURLRoutingMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -306,6 +307,6 @@ INTERNAL_IPS = ['127.0.0.1', '24.177.237.106']  # (not actually just for debug t
 
 # subdomain settings
 SUBDOMAIN_URLCONFS = {
-    None: 'mysite.urls',
+    'www': 'mysite.urls',
     'griddl': 'mysite.urls',
 } 
