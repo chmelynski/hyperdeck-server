@@ -16,11 +16,14 @@
 				"gridlineHighlight": 1.00
 			},
 			"pageNumbering" : {
+				"doPageNumbering": true,
 				"hAlign": "center",
 				"vAlign": "bottom",
 				"hOffset": 0,
 				"vOffset": 50,
-				"firstPage": false
+				"firstPage": false,
+				"font": "12pt serif",
+				"fill": "rgb(0,0,0)"
 			}
 		}
 	},
@@ -146,7 +149,7 @@
 		"type": "subcanvas",
 		"name": "subcanvas1",
 		"visible": true,
-		"text": "",
+		"text": "this.fillStyle = 'rgb(128,128,128)';\nthis.fillRect(0, 0, this.canvas.width, this.canvas.height);",
 		"params": {
 			"x": 425,
 			"y": 200,
@@ -242,7 +245,7 @@
 			"width": 200,
 			"hAlign": "center",
 			"vAlign": "center",
-			"styles": null,
+			"styles": "",
 			"font": "24pt serif",
 			"fill": "rgb(0,0,0)",
 			"pitch": 50,
