@@ -193,14 +193,14 @@ Document.prototype.addElements = function() {
 	tr = $('<tr></tr>');
 	td = $('<td></td>');
 	button = $('<button></button>');
-	button.addClass('griddl-component-head-generate-document');
+	button.addClass('griddl-component-head-generate-document btn btn-default');
 	button.html('Generate');
 	button.on('click', function() { doc.generate(); });
 	td.append(button);
 	tr.append(td);
 	td = $('<td></td>');
 	button = $('<button></button>');
-	button.addClass('griddl-component-head-export-to-pdf');
+	button.addClass('griddl-component-head-export-to-pdf btn btn-default');
 	button.html('Export');
 	button.on('click', function() { doc.exportToPdf(); });
 	td.append(button);
