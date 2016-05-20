@@ -15,6 +15,7 @@ Core.Main = function(Components, text) {
 	}
 	
 	var json = JSON.parse(text);
+  console.log(json);
 	
 	Core.objs = [];
 	json.forEach(function(obj) {

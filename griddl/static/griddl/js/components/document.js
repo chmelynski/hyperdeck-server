@@ -32,14 +32,14 @@ var Document = function(json) {
 	this.snapGrid = { gridlineSpacing : null , gridlineHighlight : null };
 	
 	this.pageNumbering = {};
-	this.pageNumbering.doPageNumbering = json.params.pageNumbering.doPageNumbering;
-	this.pageNumbering.hAlign = json.params.pageNumbering.hAlign;
-	this.pageNumbering.vAlign = json.params.pageNumbering.vAlign;
-	this.pageNumbering.hOffset = json.params.pageNumbering.hOffset;
-	this.pageNumbering.vOffset = json.params.pageNumbering.vOffset;
-	this.pageNumbering.firstPage = json.params.pageNumbering.firstPage;
-	this.pageNumbering.font = json.params.pageNumbering.font;
-	this.pageNumbering.fill = json.params.pageNumbering.fill;
+	this.pageNumbering.doPageNumbering = json.params.pageNumbering.doPageNumbering || false;
+	this.pageNumbering.hAlign = json.params.pageNumbering.hAlign || "center";
+	this.pageNumbering.vAlign = json.params.pageNumbering.vAlign || "bottom";
+	this.pageNumbering.hOffset = json.params.pageNumbering.hOffset || 5;
+	this.pageNumbering.vOffset = json.params.pageNumbering.vOffset || 50;
+	this.pageNumbering.firstPage = json.params.pageNumbering.firstPage || false;
+	this.pageNumbering.font = json.params.pageNumbering.font || "Serif";
+	this.pageNumbering.fill = json.params.pageNumbering.fill || "rgb(0,0,0)";
 	
 	this.setData(json.params);
 	
@@ -377,7 +377,8 @@ Document.prototype.write = function() {
 	json.params.snapGrid = {};
 	json.params.snapGrid.gridlineSpacing = this.snapGrid.gridlineSpacing;
 	json.params.snapGrid.gridlineHighlight = this.snapGrid.gridlineHighlight;
-	json.params.pageNumbering.doPageNumbering = this.pageNumbering.doPageNumbering;
+  json.params.pageNumbering = {};
+	json.params.pageNumbering.doPageNumbering = this.pageNumbering.doPageNumbering || false;
 	json.params.pageNumbering.hAlign = this.pageNumbering.hAlign;
 	json.params.pageNumbering.vAlign = this.pageNumbering.vAlign;
 	json.params.pageNumbering.hOffset = this.pageNumbering.hOffset;
