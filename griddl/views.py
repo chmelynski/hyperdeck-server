@@ -418,7 +418,7 @@ def rename(request):
             raise exceptions.ValidationError('request missing param "newname"')
 
         wb.save()
-        return JsonResponse({'success': True, 'slug': wb.slug})
+        return JsonResponse({'success': True, 'uri': wb.uri})
     except exceptions.PermissionDenied:
         return JsonResponse({'success': False, 'redirect': '/login'})
     except Exception:

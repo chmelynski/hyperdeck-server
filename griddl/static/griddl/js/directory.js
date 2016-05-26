@@ -32,7 +32,7 @@ $(document).ready(function() {
       $tgt.serialize(),
       function(response) {
         if (response.success) {
-          $tgt.closest('td').find('.namelink').attr('href', response.slug).text(name);
+          $tgt.closest('td').find('.namelink').attr('href', response.uri).text(name);
           renameToggle();
         } else {
           $.alert("Sorry, something went wrong. Please try again later.");
