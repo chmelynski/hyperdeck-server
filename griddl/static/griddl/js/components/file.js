@@ -64,7 +64,7 @@ File.New = function() {
 	
 	var json = {};
 	json.type = 'file';
-	json.name = UniqueName('file', 1);
+	json.name = Griddl.Components.UniqueName('file', 1);
 	json.visible = true;
 	json.data = 'data:text/plain;base64,AAAA';
 	return json;

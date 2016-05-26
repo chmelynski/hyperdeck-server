@@ -306,7 +306,7 @@ Title.New = function() {
 	
 	var json = {};
 	json.type = 'title';
-	json.name = UniqueName('title', 1);
+	json.name = Griddl.Components.UniqueName('title', 1);
 	json.visible = true;
 	json.text = 'Title';
 	json.params = {};
@@ -604,7 +604,7 @@ List.New = function() {
 	
 	var json = {};
 	json.type = 'list';
-	json.name = UniqueName('list', 1);
+	json.name = Griddl.Components.UniqueName('list', 1);
 	json.visible = true;
 	json.text = '1. foo\n a. bar\n b. baz\n2. huh';
 	json.params = {};

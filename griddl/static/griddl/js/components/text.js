@@ -175,8 +175,8 @@ Text.prototype.write = function() {
 };
 Text.New = function() {
 	var json = {};
-	json.type = '';
-	json.name = UniqueName(json.type, 1);
+	json.type = ''; // todo: shouldn't this be something other than empty string?
+	json.name = Griddl.Components.UniqueName(json.type, 1);
 	json.visible = true;
 	json.text = '';
 	return json;

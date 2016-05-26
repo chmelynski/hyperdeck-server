@@ -878,7 +878,7 @@ Section.New = function() {
 	
 	var json = {};
 	json.type = 'section';
-	json.name = UniqueName('section', 1);
+	json.name = Griddl.Components.UniqueName('section', 1);
 	json.visible = true;
 	json.text = '';
 	json.params = {};

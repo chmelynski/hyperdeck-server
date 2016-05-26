@@ -159,7 +159,7 @@ Subcanvas.New = function() {
 	
 	var json = {};
 	json.type = 'subcanvas';
-	json.name = UniqueName('subcanvas', 1);
+	json.name = Griddl.Components.UniqueName('subcanvas', 1);
 	json.visible = true;
 	json.text = '';
 	json.params = {};

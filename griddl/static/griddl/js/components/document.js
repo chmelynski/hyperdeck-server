@@ -452,7 +452,7 @@ Document.New = function() {
 	
 	var json = {};
 	json.type = 'document';
-	json.name = UniqueName('document', 1);
+	json.name = Griddl.Components.UniqueName('document', 1);
 	json.visible = true;
 	json.params = {};
 	json.params.unit = 'in';

@@ -13,31 +13,7 @@ FILE_TYPES = (
     ('L', 'Link')
 )
 
-BASE_WORKBOOK = [{
-    "type": "document",
-    "name": "My First Workbook",
-    "visible": True,
-    "params": {
-        "unit": "in",
-        "pageDimensions": {
-            "width": 8.5,
-            "height": 11
-        },
-        "pixelsPerUnit": 50,
-        "cubitsPerUnit": 100,
-        "snapGrid": {
-            "gridlineSpacing": 0.25,
-            "gridlineHighlight": 1.00
-        },
-        "pageNumbering": {
-            "hAlign": "center",
-            "vAlign": "bottom",
-            "hOffset": 0,
-            "vOffset": 50,
-            "firstPage": False
-        }
-    }
-},
+BASE_WORKBOOK = [
     {
         "type": "section",
         "name": "section1",
@@ -64,6 +40,7 @@ BASE_WORKBOOK = [{
 ]
 
 MY_FIRST_WORKBOOK = json.dumps(BASE_WORKBOOK)
+
 logger = logging.getLogger(__name__)
 
 

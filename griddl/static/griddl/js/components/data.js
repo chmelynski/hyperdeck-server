@@ -4,7 +4,7 @@
 var Data = function(json) {
 	
 	this.type = json.type ? json.type : 'data';
-	this.name = json.name ? json.name : UniqueName('data', 1);
+	this.name = json.name ? json.name : Griddl.Components.UniqueName('data', 1);
 	this.visible = json.visible ? json.visible : true;
 	
 	this.div = null;

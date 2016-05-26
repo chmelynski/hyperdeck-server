@@ -119,7 +119,7 @@ Font.New = function() {
 	
 	var json = {};
 	json.type = 'font';
-	json.name = UniqueName('font', 1);
+	json.name = Griddl.Components.UniqueName('font', 1);
 	json.visible = true;
 	json.data = null;
 	return json;

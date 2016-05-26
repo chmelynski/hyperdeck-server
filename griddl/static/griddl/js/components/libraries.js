@@ -69,7 +69,7 @@ Libraries.New = function() {
 	
 	var json = {};
 	json.type = 'libraries';
-	json.name = Griddl.Components.UniqueName('libraries', 1);
+	json.name = Griddl.Components.Griddl.Components.UniqueName('libraries', 1);
 	json.visible = true;
 	json.params = {};
 	json.params.mathjax = false;
