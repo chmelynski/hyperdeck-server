@@ -101,7 +101,22 @@ def register(request):
 
         user = authenticate(username=username, password=password)
         login(request, user)
-        # change to return directoryRedirect(request)
+
+        if 'saveas' in request.session:  # hack for saveas for new account
+            with transaction.atomic():
+                wbs = Workbook.objects.filter(pk=user.account.pk)
+                wbs.filter(name='My First Workbook').delete()
+                data = request.session['saveas']
+                clone = Workbook.objects.get(pk=data['wb'])
+                clone.owner = user.account
+                clone.name = data['name']
+                clone.text = data['text']
+                clone.public = False
+                clone.pk = None
+                clone.save()
+                del(request.session['saveas'])
+
+        # change to return directoryRedirect(request) ?
         messages.success(request,
                          "Congratulations, your account has been created!")
         return HttpResponseRedirect(
@@ -152,19 +167,6 @@ def directory(request, userid, path=None):
 
     wbs = Workbook.objects.filter(owner=request.user.account.pk, path=path) \
         .order_by('filetype', 'name')
-
-    if saveas in request.session:  # hack for saveas for new account
-        with transaction.atomic():
-            wbs.filter(name='My First Workbook').delete()
-            data = request.session['saveas']
-            clone = Workbook.objects.get(pk=data['wb'])
-            clone.owner = request.user.account
-            clone.name = data['name']
-            clone.text = data['text']
-            clone.public = False
-            clone.pk = None
-            clone.save()
-            del(request.session['saveas'])
 
     # sorry, i know this is ugly
     if request.path == reverse(directory, args=(request.user.account.pk, '')):
