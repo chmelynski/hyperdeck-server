@@ -1,4 +1,4 @@
-body {
+body:not(.framed){
   padding-top: 6em;
 }
 

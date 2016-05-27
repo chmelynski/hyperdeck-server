@@ -179,11 +179,6 @@ Section.prototype.addElements = function() {
 	margin.add(this.margin, 'tp');
 	margin.add(this.margin, 'bt');
 	
-	this.div[0].appendChild(gui.domElement);
-	
-	this.div.append($('<hr />'));
-	
-	var gui = new dat.GUI({autoPlace:false});
 	gui.add(this, 'style');
 	gui.add(this, 'font');
 	gui.addColor(this, 'fill');

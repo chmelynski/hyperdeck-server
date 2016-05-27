@@ -6,7 +6,7 @@
 .griddl-component-body { display:block; margin-top: 1px;}
 .griddl-component-body-hidden { display:none; }
 
-.griddl-component-head-type { display:inline-block; font-family:monospace; margin-right:.5em; width:3em; }
+.griddl-component-head-type { display:inline-block; font-family:monospace; margin-right:.5em; width:5em; }
 .griddl-component-head-name { position:relative;}
 .griddl-component-head-minmax { position:relative; font-family:monospace;}
 
