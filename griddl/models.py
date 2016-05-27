@@ -15,6 +15,31 @@ FILE_TYPES = (
 
 BASE_WORKBOOK = [
     {
+        "type": "document",
+        "name": "My First Workbook",
+        "visible": False,
+        "params": {
+            "unit": "in",
+            "pageDimensions": {
+                "width": 8.5,
+                "height": 11
+            },
+            "pixelsPerUnit": 50,
+            "cubitsPerUnit": 100,
+            "snapGrid": {
+                "gridlineSpacing": 0.25,
+                "gridlineHighlight": 1.00
+            },
+            "pageNumbering": {
+                "hAlign": "center",
+                "vAlign": "bottom",
+                "hOffset": 0,
+                "vOffset": 50,
+                "firstPage": False
+            }
+        }
+    },
+    {
         "type": "section",
         "name": "section1",
         "visible": True,
