@@ -20,9 +20,4 @@ class Migration(migrations.Migration):
             name='status_detail',
             field=models.CharField(max_length=255, null=True),
         ),
-        migrations.AlterField(
-            model_name='subscription',
-            name='status',
-            field=models.IntegerField(default=1, choices=[(0, b'Inactive'), (1, b'Active'), (2, b'Downgrade Pending')]),
-        ),
     ]
