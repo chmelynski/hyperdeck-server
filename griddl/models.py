@@ -192,7 +192,7 @@ class Account(models.Model):
     '''
     extend User model with Account info
     '''
-    user = models.OneToOneField(User)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL)
     plan = models.ForeignKey(Plan, default=Plan.FREE)
     subscription = models.ForeignKey('billing.Subscription', null=True,
                                      on_delete=models.SET_NULL, blank=True)

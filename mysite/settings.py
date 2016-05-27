@@ -196,6 +196,9 @@ INSTALLED_APPS = (
     'billing'
 )
 
+# workaround for migration problem
+AUTH_USER_MODEL = 'auth.User'
+
 # crispy_forms setting
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
