@@ -1,8 +1,17 @@
+var sandbox = window.location.protocol + "//";
+chunks = window.location.hostname.split('.');
+if (chunks[0] == "www") {
+  chunks[0] = "griddl";
+} else {
+  chunks[0] = "griddl-" + chunks[0];
+}
+sandbox += chunks.join('.');
+
 $(document).ready(function() {
   text = $('#frce').text();
   message = {'text': text, 'action': 'load'}
   $('iframe').load(function() {
-    document.getElementById('results').contentWindow.postMessage(message, "http://griddl.hyperbench.com");
+    document.getElementById('results').contentWindow.postMessage(message, sandbox);
   });
 
   $('#saveMenuButton').on('click', function(event) {
@@ -25,17 +34,15 @@ $(document).ready(function() {
 function request_text() {
   var deferred = $.Deferred();
 
-  document.getElementById('results').contentWindow.postMessage({'action': 'save'}, "http://griddl.hyperbench.com");
+  document.getElementById('results').contentWindow.postMessage({'action': 'save'}, sandbox);
 
   window.addEventListener(
     'message', 
     function(event) {
       var origin = event.origin || event.originalEvent.origin;
-      if (origin !== "http://griddl.hyperbench.com") {
+      if (origin !== sandbox) {
         return false;
       }
-
-      console.log("in deferred:", event.data);
 
       deferred.resolve(event.data);
     }, 
@@ -76,7 +83,6 @@ function save_as(text) {
 }
 
 function save(text) {
-  console.log("in save:", text);
   $form = $('#saveForm');
   $form.find("#saveFormTextInput").val(text);
   $.post("/save",

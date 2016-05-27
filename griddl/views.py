@@ -17,8 +17,10 @@ from django.contrib.auth.models import User
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 
+from mysite.settings import SUBDOMAINS
+
 from .decorators import require_subdomain
-from .models import Workbook, Account, MY_FIRST_WORKBOOK, Plan
+from .models import Workbook, Account, Plan
 from .models import AccountSizeException, MaxWorkbookSizeException
 
 logger = logging.getLogger(__name__)
@@ -78,7 +80,7 @@ def ajaxlogin(request):
     return HttpResponseRedirect("/newcsrftoken")
 
 
-@require_subdomain('www')
+@require_subdomain(SUBDOMAINS['main'])
 def register(request):
     username = request.POST['username']
     password = request.POST['password']
@@ -123,7 +125,7 @@ def register(request):
             reverse(directory, kwargs={'userid': user.pk, 'path': ''}))
 
 
-@require_subdomain('www')
+@require_subdomain(SUBDOMAINS['main'])
 def ajaxregister(request):
     username = request.POST['username']
     password = request.POST['password']
@@ -198,7 +200,7 @@ def directory(request, userid, path=None):
 
 
 @login_required
-@require_subdomain('www')
+@require_subdomain(SUBDOMAINS['main'])
 def account(request, userid):
     acct = Account.objects.select_related('plan')\
         .select_related('subscription').get(user=request.user.account.pk)
@@ -223,7 +225,7 @@ def account(request, userid):
 
 
 @login_required
-@require_subdomain('www')
+@require_subdomain(SUBDOMAINS['main'])
 def togglepublic(request):
     try:
         pk = request.POST.get('pk', False)
@@ -244,7 +246,7 @@ def togglepublic(request):
         return JsonResponse({'success': False, 'message': msg})
 
 
-@require_subdomain('www')
+@require_subdomain(SUBDOMAINS['main'])
 def save(request):
     # todo: this comment does not match the current behavior :(
     #       - actually not even close, would take some effort.
@@ -297,7 +299,7 @@ def save(request):
         return JsonResponse({'success': False, 'message': 'Access denied'})
 
 
-@require_subdomain('www')
+@require_subdomain(SUBDOMAINS['main'])
 def saveas(request):
     # prompt for a name (with a popup or something)
     # save as that new name
@@ -341,7 +343,7 @@ def saveas(request):
 
 
 @login_required
-@require_subdomain('www')
+@require_subdomain(SUBDOMAINS['main'])
 def create(request):
     '''
     lawd we gotta refactor this at some point. not at all DRY
@@ -362,14 +364,14 @@ def create(request):
 
 
 @login_required
-@require_subdomain('www')
+@require_subdomain(SUBDOMAINS['main'])
 def password_change_redirect(request):
     messages.success(request, "Your password has been changed.")
     return HttpResponseRedirect(reverse('account', args=(request.user.pk,)))
 
 
 @login_required
-@require_subdomain('www')
+@require_subdomain(SUBDOMAINS['main'])
 def createDir(request):
     try:
         # no slashes pls
@@ -403,7 +405,7 @@ def createDir(request):
 
 
 @login_required
-@require_subdomain('www')
+@require_subdomain(SUBDOMAINS['main'])
 def rename(request):
     try:
         pk = request.POST.get('id', False)
@@ -429,7 +431,7 @@ def rename(request):
 
 
 @login_required
-@require_subdomain('www')
+@require_subdomain(SUBDOMAINS['main'])
 def delete(request):
     try:
         pk = request.POST.get('id', False)
@@ -449,7 +451,7 @@ def delete(request):
 
 
 @login_required
-@require_subdomain('www')
+@require_subdomain(SUBDOMAINS['main'])
 def move(request):
     try:
         pk = request.POST.get('id', False)
@@ -510,7 +512,8 @@ def workbook(request, userid, path, slug):
     context = {
         "workbook": wb,
         "path": path,
-        "userid": userid
+        "userid": userid,
+        "sandbox": SUBDOMAINS['sandbox']
         }
 
     if parentdir:
@@ -523,7 +526,7 @@ def workbook(request, userid, path, slug):
     return response
 
 
-@require_subdomain('griddl')
+@require_subdomain(SUBDOMAINS['sandbox'])
 def results(request):
     return render(request, 'griddl/results.htm')
 

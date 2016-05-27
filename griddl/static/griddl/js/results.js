@@ -1,5 +1,14 @@
 window.addEventListener('message', receiveMessage, false);
 
+var playground = window.location.protocol + "//";
+chunks = window.location.hostname.split('.');
+if (chunks[0] == "griddl") {
+  chunks[0] = "www";
+} else {
+  chunks[0] = chunks[0].slice(7);
+}
+playground += chunks.join('.');
+
 $(document).ready(function() {
   // button-group toggle for display modes
   $("#show-components").on('click', function(e) {
@@ -34,7 +43,7 @@ $(document).ready(function() {
 
 function receiveMessage(event) {
   var origin = event.origin || event.originalEvent.origin;
-  if (origin !== "http://www.hyperbench.com") {
+  if (origin !== playground) {
     return false;
   }
 
@@ -43,7 +52,6 @@ function receiveMessage(event) {
   if (data.action) {
     switch (data.action) {
       case 'load':
-        console.log('idfk', data);
         Griddl.Core.Main(Griddl.Components, data.text);
         break;
       case 'save':

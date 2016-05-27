@@ -10,10 +10,12 @@ developmentServer = (os.getcwd() != '/app')
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 noahDev = os.getenv('griddlDev')
-if noahDev:
+staging = os.getenv('staging')
+if noahDev or staging:
     developmentServer = False
 
-if developmentServer or noahDev:
+
+if developmentServer or noahDev or staging:
     DEBUG = True
 else:
     DEBUG = True
@@ -306,7 +308,24 @@ DEBUG_TOOLBAR_PATCH_SETTINGS = False
 INTERNAL_IPS = ['127.0.0.1', '24.177.237.106']  # (not actually just for debug toolbar tho)
 
 # subdomain settings
+SUBDOMAINS = {
+    'main': 'www',
+    'sandbox': 'griddl'
+}
+
+if noahDev:
+    SUBDOMAINS = {
+        'main': 'dev',
+        'sandbox': 'griddl-dev'
+    }
+
+if staging:
+    SUBDOMAINS = {
+        'main': 'staging',
+        'sandbox': 'griddl-stage'
+    }
+
 SUBDOMAIN_URLCONFS = {
-    'www': 'mysite.urls',
-    'griddl': 'mysite.urls',
+    SUBDOMAINS['main']: 'mysite.urls',
+    SUBDOMAINS['sandbox']: 'mysite.urls',
 } 
