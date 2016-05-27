@@ -178,12 +178,12 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 
 INSTALLED_APPS = (
     'django.contrib.auth',
+    'django.contrib.admin',  # enable admin
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',  # enable static files
-    'django.contrib.admin',  # enable admin
     # 'django.contrib.admindocs', # enable admin documentation
 
     'stored_messages',
