@@ -4,12 +4,17 @@ from functools import wraps
 from django.http import HttpResponseForbidden
 from django.utils.decorators import available_attrs
 
+from mysite.settings import SUBDOMAINS
+
 logger = logging.getLogger(__name__)
 
 
-def require_subdomain(subdomain='www'):
+def require_subdomain(subdomain=SUBDOMAINS['main']):
     '''
     enforce views only respond to requests on the specified subdomain.
+
+    defaults to the "main" subdomain defined in settings, but it is
+    preferable to always specify when calling the decorator.
     '''
     def decorator(func):
         @wraps(func, assigned=available_attrs(func))

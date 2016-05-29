@@ -325,7 +325,7 @@ if noahDev:
 if staging:
     SUBDOMAINS = {
         'main': 'staging',
-        'sandbox': 'griddl-stage'
+        'sandbox': 'griddl-staging'
     }
 
 SUBDOMAIN_URLCONFS = {
