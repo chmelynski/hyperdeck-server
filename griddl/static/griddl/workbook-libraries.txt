@@ -1,0 +1,22 @@
+[
+	{
+		"type": "libraries",
+		"name": "libraries1",
+		"visible": true,
+		"data": {
+			"curated": {
+				"mathjax": false,
+				"threejs": false,
+				"d3": false,
+				"chartjs": false,
+				"numeric": false
+			},
+			"urls": [
+				
+			],
+			"files": {
+				"foo": "var foo = 4;"
+			}
+		}
+	}
+]
