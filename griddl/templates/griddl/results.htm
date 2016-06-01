@@ -20,42 +20,45 @@
   <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-javascript.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-css.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-xml.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-markdown.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.mousewheel.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/handsontable.full.min-0.14.1.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/opentype.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/jquery-ui.sortable.min.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/dat.gui.min.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/griddl.core.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/markdown.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/griddl.ui.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/griddl.io.js' %}"></script>
   <!-- <script type='text/javascript' src="{% static 'griddl/js/griddl.components.js' %}"></script> -->
   <script type='text/javascript' src="{% static 'griddl/js/griddl.canvas.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/griddl.pdf.js' %}"></script>
+  <!-- <script type='text/javascript' src="{% static 'griddl/js/griddl.pdf.js' %}"></script> -->
   <script type='text/javascript' src="{% static 'griddl/js/griddl.typeset.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/defaultFonts.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/results.js' %}"></script>
   
   <script type='text/javascript' src="{% static 'griddl/js/griddl.components.new.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/griddl.componentHeaders.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/components/code.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/components/data.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/components/file.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/components/libraries.js' %}"></script>
+  
+  <!--
   <script type='text/javascript' src="{% static 'griddl/js/components/box.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/text.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/data.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/font.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/file.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/document.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/section.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/table.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/subcanvas.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/list.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/image.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/styles.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/libraries.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/chart.bar.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/chart.line.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/chart.scatter.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/axis.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/key.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/arrow.js' %}"></script>
-
+  -->
 </head>
 <body class="framed">
   <div class="container-fluid"> 
@@ -69,47 +72,47 @@
           </button>
             <ul class="dropdown-menu">
               <li>
-                <a onclick="Griddl.Components.txt.New('js');">
+                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['js'](null, 'js'));">
                   Javascript
                 </a>
               </li>
               <li>
-                <a onclick="Griddl.Components.txt.New('html');">
+                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['html'](null, 'html'));">
                   Html
                 </a>
               </li>
               <li>
-                <a onclick="Griddl.Components.txt.New('css');">
+                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['css'](null, 'css'));">
                   Css
                 </a>
               </li>
               <li>
-                <a onclick="Griddl.Components.txt.New('txt');">
+                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['txt'](null, 'txt'));">
                   Plain Text
                 </a>
               </li>
               <li>
-                <a onclick="Griddl.Components.grid.New('grid');">
-                  Grid
+                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['md'](null, 'md'));">
+                  Markdown
                 </a>
               </li>
               <li>
-                <a onclick="Griddl.Components.grid.New('tsv');">
-                  TSV
+                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['data'](null, 'data'));">
+                  Data
                 </a>
               </li>
               <li>
-                <a onclick="Griddl.Components.image.New();">
+                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['image'](null, 'image'));">
                   Image
                 </a>
               </li>
               <li>
-                <a onclick="Griddl.Components.font.New();">
-                  Font
+                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['libraries'](null, 'libraries'));">
+                  Libraries
                 </a>
               </li>
               <li>
-                <a onclick="Griddl.Components.file.New();">
+                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['file'](null, 'file'));">
                   File
                 </a>
               </li>
