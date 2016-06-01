@@ -9,68 +9,164 @@ var Components = {};
 
 Components.Bitmap = null;
 
-Components.JsonBackedRepresentationToggle = function() {
+Griddl.dirty = false;
+
+Components.objs = []; // set in Main() - not a great idea to make this a var, because there are lots of local vars named 'objs'
+
+Components.Main = function(text) {
 	
-	// this deals with the codemirror half of any JSON-backed graphical component
+	if (typeof text == 'undefined')
+	{
+		text = $('#frce').text(); // document.getElementById('frce').innerText
+	}
 	
-	// interface:
-	// obj.div
-	// obj.getText
-	// obj.setData
-	// obj.refresh() - generates the graphical representation after setData is called (if setData can be guaranteed to call refresh then this is unnecessary)
-	// obj.representationLabel - how to label the radio button
+	var json = JSON.parse(text);
 	
-	// Datgui.representationToggle = Components.JsonBackedRepresentationToggle;
-	// var fns = datgui.representationToggle(); // this means that 'this' will be the datgui instance in this function
-	// radioButton.onclick = fns[i] // but the sub-functions below are called on the button, so we can't use 'this' in them
-	var obj = this;
-	var codemirror = null;
+	Components.objs = [];
 	
-	var TextToOther = function() {
-		
-		obj.div.html('');
-		
-		try
-		{
-			var text = codemirror.getDoc().getValue();
-			var data = JSON.parse(text);
-		}
-		catch (e)
-		{
-			// the parse has failed - display an error message - look at error handling code in MakeComponentsDiv to see how to display error message
-		}
-		
-		obj.setData(data);
-		obj.refresh();
-		
-		MarkDirty();
-	};
+	// merge with NewComponent?
 	
-	var OtherToText = function() {
-		
-		obj.div.html('');
-		
-		var textbox = $(document.createElement('textarea'));
-		textbox.addClass('griddl-component-body-radio-textarea');
-		obj.div.append(textbox);
-		
-		var text = obj.getText();
-		codemirror = CodeMirror.fromTextArea(textbox[0], { smartIndent : false , lineNumbers : true });
-		codemirror.getDoc().setValue(text);
-		
-		MarkDirty();
-	};
+	json.forEach(function(obj) {
+		var component = new Components[obj.type](obj);
+		//var component = new Proxy(new Components[obj.type](obj), Components.DefaultProxyHandler);
+		Components.objs[component.name] = component;
+		Components.objs.push(component);
+	});
 	
-	return [ { label : obj.representationLabel , fn : TextToOther } , { label : 'JSON' , fn : OtherToText } ];
+	if (typeof window != 'undefined')
+	{
+		Components.objs.forEach(function(obj) {
+			obj.div = Components.CreateComponentDiv($('#cells'), obj);
+			obj.div.css('border', '1px solid gray');
+			obj.div.css('background-color', 'rgb(230,230,230)');
+			obj.add();
+		});
+		
+		Components.objs.forEach(function(obj) { if (obj.afterLoad) { obj.afterLoad(); } });
+	}
+	
+	Components.MakeSortable();
+};
+Components.NewComponent = function(obj) {
+	
+	//var obj = new Proxy(new Components[type](), Components.DefaultProxyHandler);
+	obj.div = CreateComponentDiv($('#cells'), obj);
+	obj.div.css('border', '1px solid gray');
+	obj.div.css('background-color', 'rgb(230,230,230)');
+	obj.add();
+	if (!Griddl.dirty) { Components.MarkDirty2(); }
+	AddObj(obj);
 };
 
-var NewComponent = function(type) {
+Components.UploadWorkbook = function() {
 	
-	//var obj = new Griddl.Components[type](); // eventually, we want to just call the constructor with no json argument
-	var obj = new Griddl.Components[type](Griddl.Components[type].New()); // but for now, let New generate the default json
-	obj.add();
-	MarkDirty();
-	AddObj(obj);
+	var fileChooser = document.createElement('input');
+	fileChooser.type = 'file';
+	
+	fileChooser.onchange = function() {
+		
+		var fileReader = new FileReader();
+		
+		fileReader.onload = function(event)
+		{
+			var text = event.target.result;
+			
+			$('#cells').children().remove();
+			
+			Components.Main(text);
+			
+			for (var i = 0; i < Components.objs.length; i++)
+			{
+				if (Components.objs[i].type == 'document')
+				{
+					Components.objs[i].generate();
+					Components.MarkClean();
+					return;
+				}
+			}
+			
+			Components.MarkClean();
+		};
+		
+		if (fileChooser.files.length > 0)
+		{
+			var f = fileChooser.files[0];
+			$('title').text(f.name.substr(0, f.name.length - 4));
+			fileReader.readAsText(f);
+		}
+	};
+	
+	fileChooser.click();
+};
+Components.DownloadWorkbook = function() {
+
+	var filename = $('title').text();
+	var text = SaveToText();
+	
+	var downloadLink = document.createElement('a');
+	downloadLink.href = window.URL.createObjectURL(new Blob([text], {type : 'text/plain'}));
+	downloadLink.download = filename + '.txt';
+	downloadLink.click();
+};
+
+// this is called by the DownloadWorkbook button or the Save/Save As button
+var SaveToText = Components.SaveToText = function() { return JSON.stringify(Components.objs.map(obj => obj.write())); };
+
+// API - these functions can be used in user code - put them in the global namespace - get, set, run
+// there is still a lot of legacy usage of GetData in my workbooks, but it's better to have the shorter name 'get'
+Components.Get = Components.GetData = function(name) { return FetchObj(name).getData(); };
+Components.Set = Components.SetData = function(name, data) { FetchObj(name).setData(data); };
+Components.Run = function(name) { FetchObj(name).exec() };
+var FetchObj = Components.FetchObj = function(name) {
+	if (!name) { throw new Error('FetchObj error: invalid name'); }
+	if (!Components.objs[name]) { throw new Error("Error: there is no object named '" + name + "'"); }
+	var obj = Components.objs[name];
+	return obj;
+};
+
+Components.DefaultProxyHandler = {
+	set: function(target, property, value, receiver) {
+		
+		target[property] = value;
+		
+		if (!Griddl.dirty)
+		{
+			Griddl.dirty = true;
+			Components.MarkDirty2();
+		}
+		
+		return true; // i was getting a bug when trying to set a property to false
+		
+		// this is probably way too global - called too many times, too much waste
+		
+		// if (target.section) { target.section.draw(); }
+		
+		// refresh codemirror, handsontable, or datgui
+		//  1. need a mapping variable to ui object
+		//  2. if the change comes from the ui object, a refresh is unnecessary
+		
+		// save in undo stack - do this in transactions, save lists of changes, so that executing code can be rolled back as a whole
+		// of course, it would probably be a good idea to snapshot before running code - put this in Code.exec()
+		// that would be easier
+	}
+};
+
+var titleTag = document.getElementsByTagName('title')[0];
+Components.MarkDirty = function() {
+	
+	if (!Griddl.dirty)
+	{
+		Griddl.dirty = true;
+		titleTag.innerText = titleTag.innerText + '*';
+	}
+};
+Components.MarkClean = function() {
+	
+	if (Griddl.dirty)
+	{
+		Griddl.dirty = false;
+		titleTag.innerText = titleTag.innerText.substr(0, titleTag.innerText.length - 1);
+	}
 };
 
 var Show = Components.Show = function(obj) {
@@ -87,142 +183,10 @@ var Hide = Components.Hide = function(obj) {
 	obj.div.parent().find('.griddl-component-head-minmax').attr('value', '+');
 	obj.visible = false;
 };
-var ShowAll = Components.ShowAll = function() { Griddl.Core.objs.forEach(function(obj) { Show(obj); }); };
-var HideAll = Components.HideAll = function() { Griddl.Core.objs.forEach(function(obj) { Hide(obj); }); };
+var ShowAll = Components.ShowAll = function() { Components.objs.forEach(function(obj) { Show(obj); }); };
+var HideAll = Components.HideAll = function() { Components.objs.forEach(function(obj) { Hide(obj); }); };
 
-// these more type-specific header elements are being moved into the component body
-function AddRepresentationToggle(obj) {
-	
-	var radioDiv = $(document.createElement('div'));
-	radioDiv.addClass('griddl-component-head-radio-container');
-	
-	var radioName = '';
-	
-	// we create a 12-letter random name to link the radio buttons into a group.  collisions are possible but unlikely
-	for (var i = 0; i < 12; i++)
-	{
-		var c = Math.floor(Math.random() * 52, 1);
-		if (c < 26) { radioName += String.fromCharCode(65 + c); }
-		else { radioName += String.fromCharCode(97 + (c - 26)); }
-	}
-	
-	var conversions = obj.representationToggle();
-	
-	for (var i = 0; i < conversions.length; i++)
-	{
-		var radioButton = $(document.createElement('input'));
-		radioButton.addClass('griddl-component-head-radio-button');
-		radioButton.attr('type', 'radio');
-		radioButton.attr('name', radioName);
-		if (i == 0) { radioButton.attr('checked', 'true'); }
-		radioDiv.append(radioButton);
-		
-		var label = $(document.createElement('label'));
-		label.addClass('griddl-component-head-radio-label');
-		label.text(conversions[i].label);
-		radioDiv.append(label);
-		
-		radioButton.on('click', conversions[i].fn);
-	}
-	
-	return radioDiv;
-}
-function AddInvokeButton(obj) {
-	
-	var button = $(document.createElement('button'));
-	
-	button.addClass(obj.execButtonClass);
-	button.html(obj.execButtonText);
-	
-	button.on('click', function() { obj.exec(); });
-	
-	return button;
-}
-function AddInvokeButton2(obj) {
-	
-	var button = $(document.createElement('button'));
-	
-	button.addClass(obj.execButtonClass2);
-	button.html(obj.execButtonText2);
-	
-	button.on('click', function() { obj.exec2(); });
-	
-	return button;
-}
-function AddUploadButton(obj) {
-	
-	// interface required:
-	//  obj.setArrayBuffer
-	//    OR
-	//  obj.setText
-	
-	// we also want drag-n-drop
-	
-	var button = $(document.createElement('button'));
-	button.addClass('griddl-component-head-upload');
-	button.html('Upload');
-	
-	button.on('click', function() {
-		
-		var fileChooser = $(document.createElement('input'));
-		fileChooser.attr('type', 'file');
-		
-		fileChooser.on('change', function() {
-			
-			var fileReader = new FileReader();
-			
-			fileReader.onload = function(event)
-			{
-				if (obj.setArrayBuffer)
-				{
-					obj.setArrayBuffer(event.target.result);
-				}
-				else if (obj.setText)
-				{
-					obj.setText(event.target.result);
-				}
-			};
-			
-			if (fileChooser[0].files.length > 0)
-			{
-				var f = fileChooser[0].files[0];
-				
-				if (obj.setArrayBuffer)
-				{
-					fileReader.readAsArrayBuffer(f);
-				}
-				else if (obj.setText)
-				{
-					fileReader.readAsText(f);
-				}
-			}
-		});
-		
-		fileChooser.click();
-	});
-	
-	return button;
-}
-function AddDownloadButton(obj) {
-	
-	// obj.name
-	// obj.ext
-	// obj.datauri()
-	
-	var button = $(document.createElement('button'));
-	button.addClass('griddl-component-head-download');
-	button.html('Download');
-	
-	button.on('click', function() {
-		var a = document.createElement('a');
-		a.href = obj.datauri();
-		a.download = obj.name + obj.ext;
-		a.click();
-	});
-	
-	return button;
-}
-
+// we can use this as a generic upload function, but the component needs a setArrayBuffer or setText function, and an optional setExt
 var Upload = Components.Upload = function() {
 	
 	// interface required:
@@ -274,52 +238,80 @@ var Upload = Components.Upload = function() {
 	
 	fileChooser.click();
 };
+var Download = Components.Download = function() {
+	var a = document.createElement('a');
+	a.href = this.getHref();
+	a.download = this.name + (this.ext ? '.' : '') + this.ext;
+	a.click();
+};
 
-// image needs an upload/download button (as well as file, font, possibly grid and text)
-// document has Generate and Export buttons
-// section should have a Generate (and Export?) button
-
-// all references to Griddl.Core.objs are collected here, in case we want to move objs to some other place
-var AddObj = Components.AddObj = function(obj) { Griddl.Core.objs[obj.name] = obj; Griddl.Core.objs.push(obj); MakeSortable(); }
-function RenameObj(obj, newname) { 
-	delete Griddl.Core.objs[obj.name];
-	while (Griddl.Core.objs[newname]) { newname += ' - copy'; } // if there is a conflict, just add suffixes until there isn't
+var AddObj = Components.AddObj = function(obj) {
+	Components.objs[obj.name] = obj;
+	Components.objs.push(obj);
+	MakeSortable();
+};
+var RenameObj = Components.RenameObj = function(obj, newname) {
+	delete Components.objs[obj.name];
+	while (Components.objs[newname]) { newname += ' - copy'; } // if there is a conflict, just add suffixes until there isn't
+	$('#'+obj.name).attr('id', newname);
 	obj.name = newname;
-	Griddl.Core.objs[obj.name] = obj;
-}
-function DeleteObj(obj) {
-	delete Griddl.Core.objs[obj.name];
-	var i = Griddl.Core.objs.indexOf(obj);
-	Griddl.Core.objs.splice(i, 1);
-}
-var UniqueName = Components.UniqueName = function(type, n) { while (Griddl.Core.objs[type + n.toString()]) { n++; } return type + n.toString(); }
-var MarkDirty = Components.MarkDirty = function() {
-	
-	if ($('#saveMenuButton').css('color') == 'rgb(0, 0, 0)')
-	{
-		$('#saveMenuButton').css('color', 'red');
-	}
-	else
-	{
-		$('#saveMenuButton').data('color', 'red'); // save the marking for later, when the user logs in
-	}
-	
-	if ($('#saveasMenuButton').css('color') == 'rgb(0, 0, 0)')
-	{
-		$('#saveasMenuButton').css('color', 'red');
-	}
-	else
-	{
-		$('#saveasMenuButton').data('color', 'red'); // save the marking for later, when the user logs in
-	}
-}
+	Components.objs[obj.name] = obj;
+};
+var DeleteObj = Components.DeleteObj = function(obj) {
+	$('#'+obj.name).remove();
+	delete Components.objs[obj.name];
+	var i = Components.objs.indexOf(obj);
+	Components.objs.splice(i, 1);
+};
+
 var MakeSortable = Components.MakeSortable = function() {
 	$('#cells').sortable({handle:'.reorder-handle',stop:function(event, ui) {
 		$(this).children().each(function(index, elt) {
 			var id = $(elt).children().eq(1).attr('id');
-			Griddl.Core.objs[index] = Griddl.Core.objs[id.substr(0, id.length - 'Component'.length)];
+			Components.objs[index] = Components.objs[id.substr(0, id.length - 'Component'.length)];
 		});
 	}});
+};
+
+// we want to make sure that all element ids stay unique
+// pre-populate elementIds with the ids we use: frce, cells, output, screen, newComponentPanel
+// and then the top-level <div> for each component gets the name+'Component', which should probably be replaced by a random unique id
+// <div>'s and <style>'s added to the output by html/css/md components all get id-tagged with the component name - which means that component names must go in elementIds (on creation and also on rename)
+// the Libraries component adds <script>'s with random ids
+var elementIds = {};
+var UniqueElementId = Components.UniqueElementId = function() {
+	
+	var id = null;
+	
+	do
+	{
+		id = '';
+		
+		for (var i = 0; i < 8; i++)
+		{
+			var n = Math.floor(Math.random() * 26, 1);
+			id += String.fromCharCode(97 + n);
+		}
+	} while (elementIds[id]);
+	
+	elementIds[id] = true;
+	
+	return id;
+};
+var UniqueName = Components.UniqueName = function(type, n) {
+	
+	var name = null;
+	
+	do
+	{
+		name = type + n.toString();
+		n++;
+	}
+	while (Components.objs[name] || elementIds[name]);
+	
+	elementIds[name] = true;
+	
+	return name;
 };
 
 var TsvToObjs = Griddl.TsvToObjs = function(text) { return MatrixToObjs(TsvToMatrix(text)); }
@@ -459,7 +451,6 @@ var Uint8ArrayToBase64String = Components.Uint8ArrayToBase64String = function(ui
 	return sB64Enc.replace(/A(?=A$|$)/g, "=");
 };
 
-
 var Clear = Components.Clear = function() {
 	// we can't just call this.box.clear(), because Box.clear() only clears the handles
 	this.ctx.clearRect(this.box.lf, this.box.tp, this.box.wd, this.box.hg);
@@ -494,33 +485,6 @@ var OnMouseMove = Components.OnMouseMove = function(e) {
 	{
 		//console.log('warning: component "' + this.name + '" has no controls');
 	}
-}
-
-function Captions() {
-	
-	// text, x, y, width, hAlign, vAlign, style
-	
-	// text can support LaTeX math
-	// there's no height field - the text just wraps
-	// style is a comma-delimited list - maybe some syntax on the text to delimit default, special1, special2 styles
-	
-	// {first special style:} default style - {second special style}
-	
-	var options = {}
-	options.data = this.data;
-	options.formulas = true;
-	options.rowHeaders = false;
-	options.colHeaders = ['text','x','y','width','hAlign','vAlign','font','color'];
-	options.colWidths = [ 50 , 10 , 10 , 10 , 10 , 10 , 20 , 10 ];
-	options.contextMenu = false;
-	options.manualColumnResize = true;
-	//options.afterChange = function(changes, source) { if (this.firstChange) { this.firstChange = false; } else { MarkDirty(); } };
-	
-	//var tableDiv = $(document.createElement('div'));
-	//this.div.append(tableDiv);
-	//this.tableDiv = tableDiv;
-	
-	this.handsontable = new Handsontable(this.div[0], options);
 }
 
 //var debugCanvas = document.createElement('canvas');
@@ -591,6 +555,40 @@ function Debug(text) { document.getElementById('debug').innerText = text; }
 return Components;
 
 })();
+
+// we use lowercase so that "set" does not conflict with the built-in (mathematical) "Set"
+var getData = TheComponents.Get;
+var get = TheComponents.FetchObj;
+var set = TheComponents.Set;
+var run = TheComponents.Run;
+
+if (typeof window !== 'undefined') {
+	CanvasRenderingContext2D.prototype.drawLine = function(x1, y1, x2, y2) {
+		this.beginPath();
+		this.moveTo(x1, y1);
+		this.lineTo(x2, y2);
+		this.stroke();
+	};
+	CanvasRenderingContext2D.prototype.fillCircle = function(x, y, r) {
+		this.beginPath();
+		this.arc(x, y, r, 0, Math.PI * 2, true);
+		this.fill();
+	};
+	CanvasRenderingContext2D.prototype.strokeCircle = function(x, y, r) {
+		this.beginPath();
+		this.arc(x, y, r, 0, Math.PI * 2, true);
+		this.stroke();
+	};
+	
+	// monkey patching Array breaks 'for (key in array)'
+	//Array.prototype.sortBy = function(key) {
+	//	this.sort(function(a, b) {
+	//		if (a[key] > b[key]) { return 1; }
+	//		if (a[key] < b[key]) { return -1; }
+	//		return 0;
+	//	});
+	//};
+}
 
 if (typeof window !== 'undefined') {
 	//if (typeof Griddl === 'undefined') { var Griddl = {}; } // Griddl must be defined before this module is loaded
