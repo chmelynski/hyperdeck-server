@@ -55,23 +55,14 @@ var CreateComponentDiv = Griddl.Components.CreateComponentDiv = function(parent,
 	
 	return clientDiv;
 }
-
 function AddReorderHandle(obj) {
-	var div = $(document.createElement('a'));
-	div.addClass('reorder-handle btn btn-default btn-sm');
-  div.append($('<i class="fa fa-arrows-v"></i>'));
-	return div;
+	
+	var img = $(document.createElement('img'));
+	img.addClass('reorder-handle');
+	img.css('cursor', 'move');
+	img[0].src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAIAAAAC64paAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAERJREFUOE9j3LJlCwMMeHt7w9lbt24lKM4A1AwH/5EAMeIDqJlUpyKrZxiimomJElxeG8CoosjZQzSqKHI2RQE2NDUDAEVWy5NpqgO1AAAAAElFTkSuQmCC';
+	return img;
 }
-
-function AddTooltip(el, text) {
-  // assumes a jQuery object representing a DOM element
-  el.attr('data-toggle', 'tooltip');
-  el.attr('data-placement', 'top');
-  el.attr('title', text);
-  el.tooltip();
-  return el;
-}
-
 function AddTypeLabel(obj) {
 	
 	var typeLabel = $(document.createElement('label'));
@@ -84,7 +75,7 @@ function AddNameBox(obj) {
 	var nameBox = $(document.createElement('input'));
 	nameBox.attr('type', 'text');
 	nameBox.attr('value', obj.name);
-	nameBox.addClass('griddl-component-head-name form-control input-sm');
+	nameBox.addClass('griddl-component-head-name');
 	
 	nameBox.on('blur', function(e) {
 		Griddl.Components.RenameObj(obj, this.value);
@@ -98,17 +89,10 @@ function AddMinimizeButton(obj) {
 	
 	// to save resources, instead of just setting display:none, perhaps this should remove the clientDiv from the DOM altogether
 	
-	var button = $(document.createElement('button'));
+	var button = $(document.createElement('input'));
 	button.attr('type', 'button');
-  button = AddTooltip(button, 'Expand/Collapse');
-	button.addClass('griddl-component-head-minmax btn btn-default btn-sm');
-
-  var minus = "fa-minus";
-  var plus = "fa-plus";
-
-  var $icon = $("<i class='fa'></i>");
-  $icon.addClass(obj.visible ? minus : plus);
-  button.append($icon);
+	button.attr('value', obj.visible ? '-' : '+');
+	button.addClass('griddl-component-head-minmax');
 	
 	button.on('click', function() {
 		if (obj.visible) { Griddl.Components.Hide(obj); } else { Griddl.Components.Show(obj); }
@@ -119,31 +103,19 @@ function AddMinimizeButton(obj) {
 }
 function AddDestroyButton(obj) {
 	
-	var button = $(document.createElement('button'));
+	var button = $(document.createElement('input'));
 	button.attr('type', 'button');
-  button = AddTooltip(button, 'Delete Component');
-	button.addClass('griddl-component-head-remove btn btn-default btn-sm');
-  button.append($("<i class='fa fa-lg fa-trash-o'></i>"));
+	button.attr('value', 'x');
+	button.addClass('griddl-component-head-remove');
 	
-	button.on('click', null, obj, confirmDelete);
+	button.on('click', function() {
+		if (window.confirm('Delete component?')) {
+			Griddl.Components.DeleteObj(obj);
+			obj.div.parent().remove();
+			Griddl.Components.MarkDirty();
+		}
+	});
 	
 	return button;
 }
-
-function confirmDelete(event) {
-  var obj = event.data;
-  var modal = $("<div class='modal'><div class='modal-dialog modal-sm'><div class='modal-content'><div class='modal-header text-center'><h3></h3><button class='btn btn-success'>Confirm</button><button data-dismiss='modal' class='btn btn-danger'>Cancel</button></div></div></div></div>");
-  $('h3', modal).text("Delete " + obj.name + "?");
-  $('body').append(modal);
-
-  $('.btn-success', modal).on('click', function(event) {
-    Griddl.Components.DeleteObj(obj);
-    obj.div.parent().remove();
-    Griddl.Components.MarkDirty(obj);
-    $('.modal').modal('hide');
-  });
-
-  modal.modal('show');
-}
-
 
