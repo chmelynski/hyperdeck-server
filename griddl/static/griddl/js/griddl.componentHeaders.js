@@ -87,9 +87,9 @@ function AddNameBox(obj) {
 	nameBox.addClass('griddl-component-head-name form-control input-sm');
 	
 	nameBox.on('blur', function(e) {
-		RenameObj(obj, this.value);
+		Griddl.Components.RenameObj(obj, this.value);
 		obj.div.parent().attr('id', obj.name + 'Component');
-		MarkDirty();
+		Griddl.Components.MarkDirty();
 	});
 	
 	return nameBox;
@@ -111,8 +111,8 @@ function AddMinimizeButton(obj) {
   button.append($icon);
 	
 	button.on('click', function() {
-		if (obj.visible) { Hide(obj); } else { Show(obj); }
-		MarkDirty();
+		if (obj.visible) { Griddl.Components.Hide(obj); } else { Griddl.Components.Show(obj); }
+		Griddl.Components.MarkDirty();
 	});
 	
 	return button;
@@ -137,9 +137,9 @@ function confirmDelete(event) {
   $('body').append(modal);
 
   $('.btn-success', modal).on('click', function(event) {
-    DeleteObj(obj);
+    Griddl.Components.DeleteObj(obj);
     obj.div.parent().remove();
-    MarkDirty(obj);
+    Griddl.Components.MarkDirty(obj);
     $('.modal').modal('hide');
   });
 
