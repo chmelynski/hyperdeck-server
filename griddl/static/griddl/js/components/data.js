@@ -3,9 +3,22 @@
 
 var Data = function(json) {
 	
-	this.type = json.type ? json.type : 'data';
-	this.name = json.name ? json.name : Griddl.Components.UniqueName('data', 1);
-	this.visible = json.visible ? json.visible : true;
+	if (!json)
+	{
+		json = {};
+		json.type = 'data';
+		json.name = Griddl.Components.UniqueName('data', 1);
+		json.visible = true;
+		json.data = [{A:1,B:2,C:3},{A:4,B:5,C:6},{A:7,B:8,C:9}];
+		json.params = {};
+		json.params.format = 'json';
+		json.params.display = 'grid';
+		json.params.form = null;
+	}
+	
+	this.type = json.type;
+	this.name = json.name;
+	this.visible = json.visible; // can't use ?: here because visible can be set to false
 	
 	this.div = null;
 	this.tableDiv = null; // for unknown reasons we pass a sub div to Handsontable / add the <table> or <pre> to the sub div
@@ -13,15 +26,18 @@ var Data = function(json) {
 	this.codemirror = null;
 	this.firstChange = false; // stupid flag we need for MarkDirty to work correctly
 	
-	this.data = json.data ? json.data : [{A:1,B:2,C:3},{A:4,B:5,C:6},{A:7,B:8,C:9}];
+	this.data = json.data;
 	this.htData = null; // in many cases, we have to convert the data to a different form to get HT to display it the way we want - this holds the converted data
 	
-	this.format = json.params.format ? json.params.format : 'json';
-	this.display = json.params.display ? json.params.display : 'grid';
-	this.form = json.params.form ? json.params.form : null; // object, list, listOfObjects, listOfLists, other
+	this.format = json.params.format; // json, headerList
+	this.headers = json.params.headers ? json.params.headers : null; // this is needed to specify which columns to display and in what order
+	this.display = json.params.display;
+	this.form = json.params.form; // object, list, listOfObjects, listOfLists, other
 	
 	if (this.format == 'headerList')
 	{
+		this.headers = this.data.headers;
+		
 		// convert this.data from {headers:["foo","bar"],values:[[1,2],[3,4]]} => [{"foo":1,"bar":2},{"foo":3,"bar":4}]
 		var data = [];
 		
@@ -39,13 +55,21 @@ var Data = function(json) {
 		
 		this.data = data;
 	}
+	else if (this.format == 'json')
+	{
+		if (this.headers === null) { this.introspectHeaders(); }
+	}
+	else
+	{
+		throw new Error();
+	}
 	
 	// this can be an expensive operation, so we cache the result and remember it as long as we can
 	// for example, if the data is modified by the user interacting with a grid, we can be assured the data stays in a certain form
 	// the only time the slate gets completely cleared is when the user introduces arbitrary json
 	if (this.form === null) { this.form = DetermineDataForm(this.data); }
 	
-	console.log(this.name + ' - ' + this.form)
+	//console.log(this.name + ' - ' + this.form)
 	
 	if (this.form == 'object')
 	{
@@ -71,15 +95,33 @@ var Data = function(json) {
 	{
 		this.display = 'json';
 	}
+	else
+	{
+		throw new Error();
+	}
 };
 Data.prototype.add = function() {
 	
-	this.addElements();
-	//this.refresh();
-};
-Data.prototype.addElements = function() {
-	
 	this.div.html('');
+	
+	var gui = new dat.GUI({autoPlace:false});
+	var displayControl = gui.add(this, 'display', ['json','grid','matrix','formula','pre']); // restrict based on form, add handler for immediate change
+	
+	var comp = this;
+	displayControl.onChange(function(value) { comp.add(); });
+	
+	// upload and download folders?  also, restrict based on form
+	//gui.add(this, 'uploadJson');
+	//gui.add(this, 'uploadTSV');
+	//gui.add(this, 'uploadCSV');
+	//gui.add(this, 'uploadXLSX');
+	//gui.add(this, 'downloadAsJson');
+	//gui.add(this, 'downloadAsTSV');
+	//gui.add(this, 'downloadAsCSV');
+	//gui.add(this, 'downloadAsXLSX');
+	
+	this.div[0].appendChild(gui.domElement);
+	
 	this.tableDiv = $(document.createElement('div'));
 	this.div.append(this.tableDiv);
 	
@@ -94,14 +136,16 @@ Data.prototype.addElements = function() {
 	//	this.div.append(this.tableDiv);
 	//}
 	
+	var comp = this;
+	
 	if (this.display == 'json')
 	{
-		var comp = this;
 		var textbox = $(document.createElement('textarea'));
 		this.tableDiv.append(textbox);
 		this.codemirror = CodeMirror.fromTextArea(textbox[0], { mode : 'javascript' , smartIndent : false , lineNumbers : true , lineWrapping : true });
 		this.codemirror.on('blur', function() {
 			comp.data = JSON.parse(comp.codemirror.getValue()); // error checking?
+			comp.introspectHeaders();
 		});
 		this.codemirror.on('change', function() { Griddl.Components.MarkDirty(); });
 		this.codemirror.getDoc().setValue(JSON.stringify(this.data))
@@ -114,20 +158,17 @@ Data.prototype.addElements = function() {
 		if (this.form == 'listOfObjects')
 		{
 			rowHeaders = function(index) { return index; };
-			colHeaders = []; for (var key in this.data[0]) { colHeaders.push(key); }
+			colHeaders = this.headers;
 		}
 		else if (this.form == 'listOfLists')
 		{
 			rowHeaders = function(index) { return index; };
-			colHeaders = []; for (var key in this.data[0]) { colHeaders.push(key); }
+			colHeaders = this.headers;
 		}
 		else
 		{
 			throw new Error();
 		}
-		
-		// we need this because the afterChange event fires after the table is first created - we don't want MarkDirty() to be called on init
-		this.firstChange = true;
 		
 		var options = {
 			data : this.data ,
@@ -136,72 +177,82 @@ Data.prototype.addElements = function() {
 			colHeaders : colHeaders ,
 			contextMenu : true ,
 			manualColumnResize : true ,
-			afterChange : function(changes, source) { if (this.firstChange) { this.firstChange = false; } else { Griddl.Components.MarkDirty(); } }
+			afterChange : function(changes, source) { if (source != 'loadData') { Griddl.Components.MarkDirty(); } }
 			//colWidths : DetermineColWidths(this.$, '11pt Calibri', [ 5 , 23 , 5 ]) // expand widths to accomodate text length
 			//colWidths : [ 10 , 30 , 10 ].map(function(elt) { return elt * TextWidth('m', '11pt Calibri'); }) // fixed widths, regardless of text length
 		};
 		
 		this.handsontable = new Handsontable(this.tableDiv[0], options);
 	}
-	else if (this.display == 'matrix')
+	else if (this.display == 'matrix' || this.display == 'formula')
 	{
-		if (this.form == 'listOfObjects')
-		{
-			this.htData = ListOfObjectsToListOfLists(this.data);
-		}
-		else if (this.form == 'listOfLists')
-		{
-			this.htData = this.data;
-		}
-		else
-		{
-			throw new Error();
-		}
+		var options = {};
+		options.formulas = (this.display == 'formula');
+		options.rowHeaders = (this.display == 'formula');
+		options.colHeaders = (this.display == 'formula');
+		options.contextMenu = true;
+		options.manualColumnResize = true;
 		
 		// we might want to color the cell backgrounds gray on the pseudo- row and col headers
 		
-		this.firstChange = true;
-		
-		var options = {
-			data : this.htData ,
-			formulas : false ,
-			rowHeaders : false ,
-			colHeaders : false ,
-			contextMenu : true ,
-			manualColumnResize : true ,
-			afterChange : function(changes, source) { if (this.firstChange) { this.firstChange = false; } else { Griddl.Components.MarkDirty(); } }
-		};
-		
-		this.handsontable = new Handsontable(this.tableDiv[0], options);
-	}
-	else if (this.display == 'formula')
-	{
-		// this is almost identical to matrix, except that rowHeaders, colHeaders, and formulas are set to true instead of false
-		
 		if (this.form == 'listOfObjects')
 		{
 			this.htData = ListOfObjectsToListOfLists(this.data);
+			options.data = this.htData;
+			
+			options.afterChange = function(changes, source) {
+				
+				if (source != 'loadData')
+				{
+					Griddl.Components.MarkDirty();
+					
+					// a change to headers in first row requires re-keying all the objects
+					// a change to headers in the first col is ignored
+					// a change to values propagates
+					// for perf, we might want to iterate through the list of changes rather than doing the whole conversion on every change
+					//this.data = ListOfListsToListOfObjects(this.htData);
+					
+					for (var i = 0; i < changes.length; i++)
+					{
+						var change = changes[i];
+						var row = change[0];
+						var col = change[1];
+						var oldvalue = change[2];
+						var newvalue = change[3];
+						
+						if (col == 0)
+						{
+							// revert the change
+						}
+						else if (row == 0)
+						{
+							comp.headers[col-1] = newvalue;
+							
+							for (var i = 0; i < comp.data.length; i++)
+							{
+								comp.data[i][newvalue] = comp.data[i][oldvalue];
+								delete comp.data[i][oldvalue];
+							}
+						}
+						else
+						{
+							comp.data[row-1][comp.headers[col-1]] = newvalue;
+						}
+					}
+				}
+			};
+			
+			// add hooks for inserting/deleting rows/cols, change comp.data as necessary
 		}
 		else if (this.form == 'listOfLists')
 		{
-			this.htData = this.data;
+			options.data = this.data;
+			options.afterChange = function(changes, source) { if (source != 'loadData') { Griddl.Components.MarkDirty(); } };
 		}
 		else
 		{
 			throw new Error();
 		}
-		
-		this.firstChange = true;
-		
-		var options = {
-			data : this.htData ,
-			formulas : true ,
-			rowHeaders : true ,
-			colHeaders : true ,
-			contextMenu : true ,
-			manualColumnResize : true ,
-			afterChange : function(changes, source) { if (this.firstChange) { this.firstChange = false; } else { Griddl.Components.MarkDirty(); } }
-		};
 		
 		this.handsontable = new Handsontable(this.tableDiv[0], options);
 	}
@@ -264,102 +315,6 @@ Data.prototype.addElements = function() {
 	{
 		throw new Error();
 	}
-	
-	var gui = new dat.GUI({autoPlace:false});
-	var displayControl = gui.add(this, 'display', ['json','grid','matrix','formula','pre']); // restrict based on form, add handler for immediate change
-	
-	var comp = this;
-	displayControl.onChange(function(value) { comp.addElements(); });
-	
-	// upload and download folders?  also, restrict based on form
-	//gui.add(this, 'uploadJson');
-	//gui.add(this, 'uploadTSV');
-	//gui.add(this, 'uploadCSV');
-	//gui.add(this, 'uploadXLSX');
-	//gui.add(this, 'downloadAsJson');
-	//gui.add(this, 'downloadAsTSV');
-	//gui.add(this, 'downloadAsCSV');
-	//gui.add(this, 'downloadAsXLSX');
-	
-	this.div[0].appendChild(gui.domElement);
-};
-Data.prototype.refresh = function() {
-	
-	// here we deal with Handsontable vs <table> vs <pre>
-	
-	if (this.type == 'grid' || this.type == 'matrix')
-	{
-		var rowHeaders = false;
-		var colHeaders = false;
-		
-		if (this.type == 'grid')
-		{
-			rowHeaders = function(index) { return index; };
-			colHeaders = []; for (var key in this.data[0]) { colHeaders.push(key); }
-		}
-		
-		// we need this because the afterChange event fires after the table is first created - we don't want MarkDirty() to be called on init
-		this.firstChange = true;
-		
-		var options = {
-			data : this.data ,
-			formulas : true ,
-			rowHeaders : rowHeaders ,
-			colHeaders : colHeaders ,
-			contextMenu : true ,
-			manualColumnResize : true ,
-			afterChange : function(changes, source) { if (this.firstChange) { this.firstChange = false; } else { Griddl.Components.MarkDirty(); } }
-			//colWidths : DetermineColWidths(this.$, '11pt Calibri', [ 5 , 23 , 5 ]) // expand widths to accomodate text length
-			//colWidths : [ 10 , 30 , 10 ].map(function(elt) { return elt * TextWidth('m', '11pt Calibri'); }) // fixed widths, regardless of text length
-		};
-		
-		this.handsontable = new Handsontable(this.tableDiv[0], options);
-	}
-	else if (this.type == 'table')
-	{
-		var table = DataToTable(this.data);
-		this.tableDiv.append(table);
-	}
-	else if (this.type == 'tsv')
-	{
-		// this works for both the initial add as well as refreshes
-		this.tableDiv[0].innerHTML = '<pre>' + this.matrix.map(row => row.join('\t')).join('\n') + '</pre>';
-	}
-	else
-	{
-		throw new Error();
-	}
-};
-Data.prototype.getText = function() {
-	
-	if (this.codemirror)
-	{
-		return this.codemirror.getValue();
-	}
-	else if (this.type == 'matrix')
-	{
-		return MatrixToJoinedLines(this.data)
-	}
-	else if (this.type == 'grid' || this.type == 'tsv' || this.type == 'table')
-	{
-		return ObjsToJoinedLines(this.data)
-	}
-	else
-	{
-		throw new Error();
-	}
-};
-Data.prototype.setText = function(text) {
-	this.matrix = TsvToMatrix(text);
-	this.matrixToData();
-	this.refresh();
-};
-Data.prototype.getData = function() {
-	return this.data;
-};
-Data.prototype.setData = function(data) {
-	this.data = data;
-	this.refresh();
 };
 Data.prototype.write = function() {
 	
@@ -371,49 +326,24 @@ Data.prototype.write = function() {
 	json.params = {};
 	json.params.format = this.format;
 	json.params.display = this.display;
+	json.params.form = this.form;
 	return json;
 };
-Data.prototype.representationToggle = function() {
+Data.prototype.introspectHeaders = function() {
 	
-	var obj = this;
+	this.headers = [];
 	
-	var TextToGrid = function() {
-		
-		var text = obj.codemirror.getDoc().getValue();
-		
-		obj.div.html('');
-		obj.codemirror = null;
-		
-		// because we destroy the tableDiv to add the codemirror, we need to create a new tableDiv here
-		var tableDiv = $(document.createElement('div'));
-		obj.div.append(tableDiv);
-		obj.tableDiv = tableDiv;
-		
-		obj.setText(text); // so if we define a getText/setText interface, we could abstract the representationToggle so that the same generic function could be used for both JSON and grid objects
-		
-		Griddl.Components.MarkDirty();
-	};
-	
-	var GridToText = function() {
-		
-		if (obj.type == 'grid' || obj.type == 'matrix') { obj.handsontable.destroy(); }
-		obj.div.html('');
-		
-		var textbox = $(document.createElement('textarea'));
-		textbox.addClass('griddl-component-body-radio-textarea');
-		obj.div.append(textbox);
-		
-		var text = obj.getText();
-		
-		obj.codemirror = CodeMirror.fromTextArea(textbox[0], { smartIndent : false , lineNumbers : true });
-		obj.codemirror.getDoc().setValue(text);
-		
-		Griddl.Components.MarkDirty();
-	};
-	
-	return [ { label : 'Grid' , fn : TextToGrid } , { label : 'Text' , fn : GridToText } ];
+	for (var i = 0; i < this.data.length; i++)
+	{
+		for (var key in this.data[i])
+		{
+			if (this.headers.indexOf(key) == -1)
+			{
+				this.headers.push(key);
+			}
+		}
+	}
 };
-
 function DetermineDataForm(data) {
 	
 	// object : { Primitive }
@@ -593,6 +523,132 @@ function DetermineDataForm(data) {
 	
 	return form;
 }
+
+// these two functions are probably obsolete
+Data.prototype.representationToggle = function() {
+	
+	var obj = this;
+	
+	var TextToGrid = function() {
+		
+		var text = obj.codemirror.getDoc().getValue();
+		
+		obj.div.html('');
+		obj.codemirror = null;
+		
+		// because we destroy the tableDiv to add the codemirror, we need to create a new tableDiv here
+		var tableDiv = $(document.createElement('div'));
+		obj.div.append(tableDiv);
+		obj.tableDiv = tableDiv;
+		
+		obj.setText(text); // so if we define a getText/setText interface, we could abstract the representationToggle so that the same generic function could be used for both JSON and grid objects
+		
+		Griddl.Components.MarkDirty();
+	};
+	
+	var GridToText = function() {
+		
+		if (obj.type == 'grid' || obj.type == 'matrix') { obj.handsontable.destroy(); }
+		obj.div.html('');
+		
+		var textbox = $(document.createElement('textarea'));
+		textbox.addClass('griddl-component-body-radio-textarea');
+		obj.div.append(textbox);
+		
+		var text = obj.getText();
+		
+		obj.codemirror = CodeMirror.fromTextArea(textbox[0], { smartIndent : false , lineNumbers : true });
+		obj.codemirror.getDoc().setValue(text);
+		
+		Griddl.Components.MarkDirty();
+	};
+	
+	return [ { label : 'Grid' , fn : TextToGrid } , { label : 'Text' , fn : GridToText } ];
+};
+Data.prototype.refresh = function() {
+	
+	// here we deal with Handsontable vs <table> vs <pre>
+	
+	if (this.type == 'grid' || this.type == 'matrix')
+	{
+		var rowHeaders = false;
+		var colHeaders = false;
+		
+		if (this.type == 'grid')
+		{
+			rowHeaders = function(index) { return index; };
+			colHeaders = []; for (var key in this.data[0]) { colHeaders.push(key); }
+		}
+		
+		// we need this because the afterChange event fires after the table is first created - we don't want MarkDirty() to be called on init
+		this.firstChange = true;
+		
+		var options = {
+			data : this.data ,
+			formulas : true ,
+			rowHeaders : rowHeaders ,
+			colHeaders : colHeaders ,
+			contextMenu : true ,
+			manualColumnResize : true ,
+			afterChange : function(changes, source) { if (this.firstChange) { this.firstChange = false; } else { Griddl.Components.MarkDirty(); } }
+			//colWidths : DetermineColWidths(this.$, '11pt Calibri', [ 5 , 23 , 5 ]) // expand widths to accomodate text length
+			//colWidths : [ 10 , 30 , 10 ].map(function(elt) { return elt * TextWidth('m', '11pt Calibri'); }) // fixed widths, regardless of text length
+		};
+		
+		this.handsontable = new Handsontable(this.tableDiv[0], options);
+	}
+	else if (this.type == 'table')
+	{
+		var table = DataToTable(this.data);
+		this.tableDiv.append(table);
+	}
+	else if (this.type == 'tsv')
+	{
+		// this works for both the initial add as well as refreshes
+		this.tableDiv[0].innerHTML = '<pre>' + this.matrix.map(row => row.join('\t')).join('\n') + '</pre>';
+	}
+	else
+	{
+		throw new Error();
+	}
+};
+
+// these functions are also probably obsolete
+Data.prototype.getText = function() {
+	
+	if (this.codemirror)
+	{
+		return this.codemirror.getValue();
+	}
+	else if (this.type == 'matrix')
+	{
+		return MatrixToJoinedLines(this.data)
+	}
+	else if (this.type == 'grid' || this.type == 'tsv' || this.type == 'table')
+	{
+		return ObjsToJoinedLines(this.data)
+	}
+	else
+	{
+		throw new Error();
+	}
+};
+Data.prototype.setText = function(text) {
+	this.matrix = TsvToMatrix(text);
+	this.matrixToData();
+	this.refresh();
+};
+Data.prototype.getData = function() {
+	
+	// if htData is being used, convert it appropriately
+	
+	return this.data;
+};
+Data.prototype.setData = function(data) {
+	this.data = data;
+	this.refresh();
+};
+
 
 function ListOfObjectsToListOfLists(data) {
 	
