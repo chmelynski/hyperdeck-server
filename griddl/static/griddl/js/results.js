@@ -52,10 +52,10 @@ function receiveMessage(event) {
   if (data.action) {
     switch (data.action) {
       case 'load':
-        Griddl.Core.Main(Griddl.Components, data.text);
+        Griddl.Components.Main(data.text);
         break;
       case 'save':
-        text = Griddl.Core.SaveToText();
+        text = Griddl.Components.SaveToText();
         event.source.postMessage(text, origin);
         break;
       default:

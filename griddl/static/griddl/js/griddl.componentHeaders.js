@@ -75,7 +75,7 @@ function AddNameBox(obj) {
 	var nameBox = $(document.createElement('input'));
 	nameBox.attr('type', 'text');
 	nameBox.attr('value', obj.name);
-	nameBox.addClass('griddl-component-head-name');
+	nameBox.addClass('griddl-component-head-name form-control input-sm');
 	
 	nameBox.on('blur', function(e) {
 		Griddl.Components.RenameObj(obj, this.value);
@@ -89,33 +89,44 @@ function AddMinimizeButton(obj) {
 	
 	// to save resources, instead of just setting display:none, perhaps this should remove the clientDiv from the DOM altogether
 	
-	var button = $(document.createElement('input'));
+	var button = $(document.createElement('button'));
 	button.attr('type', 'button');
-	button.attr('value', obj.visible ? '-' : '+');
-	button.addClass('griddl-component-head-minmax');
+  button = AddTooltip(button, 'Expand/Collapse');
+	button.addClass('griddl-component-head-minmax btn btn-default btn-sm');
+
+  var minus = "fa-minus";
+  var plus = "fa-plus";
+
+  var $icon = $("<i class='fa'></i>");
+  $icon.addClass(obj.visible ? minus : plus);
+  button.append($icon);
 	
 	button.on('click', function() {
 		if (obj.visible) { Griddl.Components.Hide(obj); } else { Griddl.Components.Show(obj); }
-		Griddl.Components.MarkDirty();
-	});
-	
-	return button;
-}
-function AddDestroyButton(obj) {
-	
-	var button = $(document.createElement('input'));
-	button.attr('type', 'button');
-	button.attr('value', 'x');
-	button.addClass('griddl-component-head-remove');
-	
-	button.on('click', function() {
-		if (window.confirm('Delete component?')) {
-			Griddl.Components.DeleteObj(obj);
-			obj.div.parent().remove();
-			Griddl.Components.MarkDirty();
-		}
+		MarkDirty();
 	});
 	
 	return button;
 }
 
+function AddDestroyButton(obj) {
+	
+	var button = $(document.createElement('button'));
+	button.attr('type', 'button');
+  button = AddTooltip(button, 'Delete Component');
+	button.addClass('griddl-component-head-remove btn btn-default btn-sm');
+  button.append($("<i class='fa fa-lg fa-trash-o'></i>"));
+	
+	button.on('click', null, obj, Griddl.Components.confirmDelete);
+	
+	return button;
+}
+
+function AddTooltip(el, text) {
+  // assumes a jQuery object representing a DOM element
+  el.attr('data-toggle', 'tooltip');
+  el.attr('data-placement', 'top');
+  el.attr('title', text);
+  el.tooltip();
+  return el;
+}

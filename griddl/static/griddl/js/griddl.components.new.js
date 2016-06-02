@@ -109,6 +109,25 @@ Components.DownloadWorkbook = function() {
 	downloadLink.click();
 };
 
+var confirmDelete = Components.confirmDelete = function (event) {
+  var obj = event.data;
+  var modal = $("<div class='modal'><div class='modal-dialog modal-sm'><div class='modal-content'><div class='modal-header text-center'><h3></h3><button class='btn btn-success'>Confirm</button><button data-dismiss='modal' class='btn btn-danger'>Cancel</button></div></div></div></div>");
+  $('h3', modal).text("Delete " + obj.name + "?");
+  $('body').append(modal);
+
+  $('.btn-success', modal).on('click', function(event) {
+    Griddl.Components.DeleteObj(obj);
+    obj.div.parent().remove();
+    Griddl.Components.MarkDirty(obj);
+    $('.modal').modal('hide');
+  });
+
+  modal.modal('show');
+}
+
+
+
+
 // this is called by the DownloadWorkbook button or the Save/Save As button
 var SaveToText = Components.SaveToText = function() { return JSON.stringify(Components.objs.map(obj => obj.write())); };
 
@@ -597,4 +616,6 @@ if (typeof window !== 'undefined') {
 else {
 	exports.Components = TheComponents;
 }
+
+
 
