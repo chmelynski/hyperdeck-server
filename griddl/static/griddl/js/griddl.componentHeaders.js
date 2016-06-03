@@ -103,7 +103,7 @@ function AddMinimizeButton(obj) {
 	
 	button.on('click', function() {
 		if (obj.visible) { Griddl.Components.Hide(obj); } else { Griddl.Components.Show(obj); }
-		MarkDirty();
+		Griddl.Components.MarkDirty();
 	});
 	
 	return button;

@@ -54,7 +54,7 @@ Components.NewComponent = function(obj) {
 	obj.div.css('border', '1px solid gray');
 	obj.div.css('background-color', 'rgb(230,230,230)');
 	obj.add();
-	if (!Griddl.dirty) { Components.MarkDirty2(); }
+	if (!Griddl.dirty) { Components.MarkDirty(); }
 	AddObj(obj);
 };
 
@@ -126,8 +126,6 @@ var confirmDelete = Components.confirmDelete = function (event) {
 }
 
 
-
-
 // this is called by the DownloadWorkbook button or the Save/Save As button
 var SaveToText = Components.SaveToText = function() { return JSON.stringify(Components.objs.map(obj => obj.write())); };
 
@@ -151,7 +149,7 @@ Components.DefaultProxyHandler = {
 		if (!Griddl.dirty)
 		{
 			Griddl.dirty = true;
-			Components.MarkDirty2();
+			Components.MarkDirty();
 		}
 		
 		return true; // i was getting a bug when trying to set a property to false
@@ -176,7 +174,7 @@ Components.MarkDirty = function() {
 	if (!Griddl.dirty)
 	{
 		Griddl.dirty = true;
-		titleTag.innerText = titleTag.innerText + '*';
+		// titleTag.innerText = titleTag.innerText + '*';
 	}
 };
 Components.MarkClean = function() {
@@ -184,7 +182,7 @@ Components.MarkClean = function() {
 	if (Griddl.dirty)
 	{
 		Griddl.dirty = false;
-		titleTag.innerText = titleTag.innerText.substr(0, titleTag.innerText.length - 1);
+		// titleTag.innerText = titleTag.innerText.substr(0, titleTag.innerText.length - 1);
 	}
 };
 

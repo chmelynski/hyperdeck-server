@@ -143,12 +143,12 @@ Data.prototype.add = function() {
 		var textbox = $(document.createElement('textarea'));
 		this.tableDiv.append(textbox);
 		this.codemirror = CodeMirror.fromTextArea(textbox[0], { mode : 'javascript' , smartIndent : false , lineNumbers : true , lineWrapping : true });
+		this.codemirror.getDoc().setValue(JSON.stringify(this.data))
 		this.codemirror.on('blur', function() {
 			comp.data = JSON.parse(comp.codemirror.getValue()); // error checking?
 			comp.introspectHeaders();
 		});
 		this.codemirror.on('change', function() { Griddl.Components.MarkDirty(); });
-		this.codemirror.getDoc().setValue(JSON.stringify(this.data))
 	}
 	else if (this.display == 'grid')
 	{
