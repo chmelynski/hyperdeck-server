@@ -25,7 +25,7 @@ var Code = function(json, type) {
 	this.errorSpan = null;
 	
 	this._text = json.text;
-	this.data = null; // this is the function object for js, and plain text otherwise
+	this._data = null; // this is the function object for js, and plain text otherwise.  we compile in add() rather than here because the errorSpan needs to be in place to display any compilation errors
 	
 	Object.defineProperty(this, 'text', { 
 		get : function() {
@@ -36,6 +36,23 @@ var Code = function(json, type) {
 			if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
 			this.codemirror.getDoc().setValue(this._text);
 			this.compile();
+		}
+	});
+	
+	Object.defineProperty(this, 'data', { 
+		get : function() {
+			return this._data;
+		},
+		set : function(value) {
+			
+			// if type is js, data should be a function.  otherwise, data should be plain text
+			// that said, there is a seed here for general purpose conversion between objects and their textual representations
+			// compile(string) => object
+			// textify(object) => string
+			
+			this._data = value;
+			if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+			this.textify();
 		}
 	});
 };
@@ -81,9 +98,11 @@ Code.prototype.compile = function() {
 	
 	if (this.type == 'js')
 	{
+		this.errorSpan.text('');
+		
 		try
 		{
-			this.data = new Function('args', this.text);
+			this._data = new Function('args', this._text);
 		}
 		catch (e)
 		{
@@ -93,12 +112,26 @@ Code.prototype.compile = function() {
 	}
 	else if (this.type == 'html' || this.type == 'css' || this.type == 'md')
 	{
+		this._data = this._text;
 		this.exec();
 	}
 	else
 	{
-		this.data = this.text;
+		this._data = this._text;
 	}
+};
+Code.prototype.textify = function() {
+	
+	if (this.type == 'js')
+	{
+		this._text = this._data.toString();
+	}
+	else
+	{
+		this._text = this._data.toString(); // this._data should be a string anyway, but no harm in calling toString
+	}
+	
+	this.codemirror.getDoc().setValue(this._text);
 };
 Code.prototype.afterLoad = function() {
 	
@@ -117,33 +150,28 @@ Code.prototype.exec = function() {
 		var style = $(document.createElement('style'));
 		style.attr('id', this.name);
 		style.html(this.text);
-		$('head').append(style);
+		//$('head').append(style);
+		$('#output').append(style); // we put the style tag in output because we want to be able to export #output as a static html
 	}
-	else if (this.type == 'html')
+	else if (this.type == 'html' || this.type == 'md')
 	{
 		$('#' + this.name).remove();
 		var div = $('<div id="' + this.name + '"></div>');
-		div.html(this.text);
-		$('#output').append(div);
-	}
-	else if (this.type == 'md')
-	{
-		$('#' + this.name).remove();
-		var div = $('<div id="' + this.name + '"></div>');
-		var html = markdown.toHTML(this.text);
+		
+		var html = (this.type == 'md') ? markdown.toHTML(this.text) : this.text;
+		
 		div.html(html);
 		$('#output').append(div);
+		
+		if (MathJax) { MathJax.Hub.Typeset(this.name); }
 	}
 	else if (this.type == 'js')
 	{
-		var fn = new Function('args', this.text);
-		this.data = fn;
-		
 		this.errorSpan.text('');
 		
 		try
 		{
-			fn();
+			this.data();
 		}
 		catch (e)
 		{
@@ -183,10 +211,12 @@ Code.prototype.write = function() {
 	return json;
 };
 
-//Code.prototype.getText = function() { return this.codemirror.getDoc().getValue(); };
-//Code.prototype.setText = function(text) { this.text = text; };
-//Code.prototype.getData = function() { return this.data; };
-//Code.prototype.setData = function(fn) { if (this.type == 'js') { this.data = fn; this.text = fn.toString(); this.refresh(); } };
+// okay, for Code, this is pretty dumb. but having separate getter/setter functions makes more sense for components like File, where the internal
+// names are b64 and uint8array rather than 'text' and 'data'.  although maybe we should just implement 'text' and 'data' getter/setters in File
+Code.prototype.getText = function() { return this.text; };
+Code.prototype.setText = function(text) { this.text = text; };
+Code.prototype.getData = function() { return this.data; };
+Code.prototype.setData = function(data) { this.data = data };
 
 Griddl.Components.txt = Code;
 Griddl.Components.js = Code;
