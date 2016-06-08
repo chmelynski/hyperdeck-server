@@ -7,7 +7,8 @@
 		"params": {
 			"format": "json",
 			"display": "json",
-			"form": null
+			"form": null,
+			"headers": null
 		}
 	},
 	{
@@ -18,7 +19,8 @@
 		"params": {
 			"format": "json",
 			"display": "grid",
-			"form": null
+			"form": null,
+			"headers": null
 		}
 	},
 	{
@@ -29,7 +31,8 @@
 		"params": {
 			"format": "json",
 			"display": "grid",
-			"form": null
+			"form": null,
+			"headers": null
 		}
 	},
 	{
@@ -43,7 +46,8 @@
 		"params": {
 			"format": "headerList",
 			"display": "grid",
-			"form": null
+			"form": null,
+			"headers": null
 		}
 	},
 	{
@@ -54,7 +58,8 @@
 		"params": {
 			"format": "json",
 			"display": "grid",
-			"form": null
+			"form": null,
+			"headers": null
 		}
 	},
 	{
@@ -65,51 +70,8 @@
 		"params": {
 			"format": "json",
 			"display": "grid",
-			"form": null
-		}
-	},
-	{
-		"type": "data",
-		"name": "listOfObjects-matrix",
-		"visible": true,
-		"data": [{"foo":1,"bar":2},{"foo":3,"bar":4}],
-		"params": {
-			"format": "json",
-			"display": "matrix",
-			"form": null
-		}
-	},
-	{
-		"type": "data",
-		"name": "listOfLists-matrix",
-		"visible": true,
-		"data": [["a","b","c"],["d","e","f"]],
-		"params": {
-			"format": "json",
-			"display": "matrix",
-			"form": null
-		}
-	},
-	{
-		"type": "data",
-		"name": "listOfObjects-formula",
-		"visible": true,
-		"data": [{"foo":1,"bar":2},{"foo":3,"bar":4}],
-		"params": {
-			"format": "json",
-			"display": "formula",
-			"form": null
-		}
-	},
-	{
-		"type": "data",
-		"name": "listOfLists-formula",
-		"visible": true,
-		"data": [["a","b","c"],["d","e","f"]],
-		"params": {
-			"format": "json",
-			"display": "formula",
-			"form": null
+			"form": null,
+			"headers": null
 		}
 	},
 	{
@@ -120,7 +82,8 @@
 		"params": {
 			"format": "json",
 			"display": "pre",
-			"form": null
+			"form": null,
+			"headers": null
 		}
 	},
 	{
@@ -131,7 +94,8 @@
 		"params": {
 			"format": "json",
 			"display": "pre",
-			"form": null
+			"form": null,
+			"headers": null
 		}
 	}
 ]
