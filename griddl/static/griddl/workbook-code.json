@@ -19,6 +19,12 @@
 		"text": "foo"
 	},
 	{
+		"type": "md",
+		"name": "md1",
+		"visible": true,
+		"text": "\n*foo*\n\n**foo**\n"
+	},
+	{
 		"type": "css",
 		"name": "css1",
 		"visible": true,
