@@ -27,6 +27,8 @@
   <script type='text/javascript' src="{% static 'griddl/js/lib/jquery-ui.sortable.min.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/dat.gui.min.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/markdown.min.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/js-yaml.min.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.csv.min.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/griddl.ui.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/griddl.io.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/griddl.canvas.js' %}"></script>
@@ -37,11 +39,45 @@
   
   <script type='text/javascript' src="{% static 'griddl/js/griddl.components.new.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/griddl.componentHeaders.js' %}"></script>
+  
+  <script type='text/javascript' src="{% static 'griddl/js/handlersGeneric.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/b64Converters.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/genericUploadDownload.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/markDirty.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/elementIds.js' %}"></script>
+  
   <script type='text/javascript' src="{% static 'griddl/js/components/code.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/data.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/file.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/libraries.js' %}"></script>
   
+  <script src='http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML'></script>
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+	
+	/* http://docs.mathjax.org/en/latest/options/hub.html */
+	
+	tex2jax: {
+		inlineMath: [["$","$"],["\\(","\\)"]]
+	} ,
+	
+	jax : [ 'input/TeX' , 'output/HTML-CSS' ] ,
+	//jax : [ 'input/TeX' , 'output/SVG' ] ,
+	//jax : [ 'input/TeX' , 'output/NativeMML' ] ,
+	
+	messageStyle : 'none' ,
+	
+	/* Normally MathJax will typeset the mathematics on the page as soon as the page is loaded. If you want to delay that process, in which case you will need to call MathJax.Hub.Typeset() yourself by hand, set this value to true. */
+	skipStartupTypeset : true ,
+	
+	/* This is a list of DOM element ID’s that are the ones to process for mathematics when any of the Hub typesetting calls (Typeset(), Process(), Update(), etc.) are called with no element specified, and during MathJax’s initial typesetting run when it starts up. This lets you restrict the processing to particular containers rather than scanning the entire document for mathematics. If none are supplied, the complete document is processed. */
+	elements : [] ,
+	
+	showMathMenu : true ,
+	showMathMenuMSIE : true
+});
+</script>
 
   {# these are for PDF documents  #}
   <script type='text/javascript' src="{% static 'griddl/js/components/box.js' %}"></script>
@@ -72,6 +108,16 @@
           </button>
             <ul class="dropdown-menu">
               <li>
+                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['data']());">
+                  Data
+                </a>
+              </li>
+              <li>
+                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['js'](null, 'js'));">
+                  Javascript
+                </a>
+              </li>
+              <li>
                 <a onclick="Griddl.Components.NewComponent(new Griddl.Components['md'](null, 'md'));">
                   Markdown
                 </a>
@@ -82,18 +128,8 @@
                 </a>
               </li>
               <li>
-                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['js'](null, 'js'));">
-                  Javascript
-                </a>
-              </li>
-              <li>
                 <a onclick="Griddl.Components.NewComponent(new Griddl.Components['css'](null, 'css'));">
                   Css
-                </a>
-              </li>
-              <li>
-                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['data']());">
-                  Data
                 </a>
               </li>
               <li>
@@ -102,18 +138,18 @@
                 </a>
               </li>
               <li>
-                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['image']());">
-                  Image
-                </a>
-              </li>
-              <li>
-                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['libraries']());">
-                  Libraries
-                </a>
-              </li>
-              <li>
-                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['file']());">
+                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['file'](null, 'file'));">
                   File
+                </a>
+              </li>
+              <li>
+                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['jsfile'](null, 'jsfile'));">
+                  Javascript File
+                </a>
+              </li>
+              <li>
+                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['imgfile'](null, 'imgfile'));">
+                  Image File
                 </a>
               </li>
             </ul>
