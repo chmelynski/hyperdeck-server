@@ -150,18 +150,21 @@ Code.prototype.exec = function() {
 		var style = $(document.createElement('style'));
 		style.attr('id', this.name);
 		style.html(this.text);
-		//$('head').append(style);
 		$('#output').append(style); // we put the style tag in output because we want to be able to export #output as a static html
 	}
 	else if (this.type == 'html' || this.type == 'md')
 	{
-		$('#' + this.name).remove();
 		var div = $('<div id="' + this.name + '"></div>');
 		
 		var html = (this.type == 'md') ? markdown.toHTML(this.text) : this.text;
 		
 		div.html(html);
-		$('#output').append(div);
+    id = "#" + this.name;
+    if ( $(id, '#output').length > 0 ) {
+      $('#' + this.name).replaceWith(div);
+    } else {
+      $('#output').append(div);
+    }
 		
 		if (MathJax) { MathJax.Hub.Typeset(this.name); }
 	}

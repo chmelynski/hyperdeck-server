@@ -42,8 +42,8 @@ Components.Main = function(text) {
 	
 	MakeSortable();
 };
+
 Components.NewComponent = function(obj) {
-	
 	obj.div = Components.CreateComponentDiv($('#cells'), obj);
 	obj.div.css('border', '1px solid gray');
 	obj.div.css('background-color', 'rgb(230,230,230)');
@@ -53,6 +53,7 @@ Components.NewComponent = function(obj) {
 	objs.push(obj);
 	MakeSortable();
 };
+
 var RenameObj = Components.RenameObj = function(obj, newname) {
 	delete objs[obj.name];
 	while (objs[newname]) { newname += ' - copy'; } // if there is a conflict, just add suffixes until there isn't
@@ -60,12 +61,14 @@ var RenameObj = Components.RenameObj = function(obj, newname) {
 	obj.name = newname;
 	objs[obj.name] = obj;
 };
+
 var DeleteObj = Components.DeleteObj = function(obj) {
 	$('#'+obj.name).remove();
 	delete objs[obj.name];
 	var i = objs.indexOf(obj);
 	objs.splice(i, 1);
 };
+
 var SaveToText = Components.SaveToText = function() { return JSON.stringify(objs.map(obj => obj.write())); };
 var MakeSortable = Components.MakeSortable = function() {
 	$('#cells').sortable({handle:'.reorder-handle',stop:function(event, ui) {
