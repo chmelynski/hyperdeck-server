@@ -18,7 +18,7 @@ Components.Main = function(text) {
 	
 	var json = JSON.parse(text);
 	
-	objs = [];
+	objs = Griddl.Components.objs = [];
 	
 	// merge with NewComponent?
 	

@@ -57,11 +57,13 @@ var CreateComponentDiv = Griddl.Components.CreateComponentDiv = function(parent,
 }
 function AddReorderHandle(obj) {
 	
-	var img = $(document.createElement('img'));
-	img.addClass('reorder-handle');
-	img.css('cursor', 'move');
-	img[0].src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAIAAAAC64paAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAERJREFUOE9j3LJlCwMMeHt7w9lbt24lKM4A1AwH/5EAMeIDqJlUpyKrZxiimomJElxeG8CoosjZQzSqKHI2RQE2NDUDAEVWy5NpqgO1AAAAAElFTkSuQmCC';
-	return img;
+	var div = $(document.createElement('a'));
+	div.addClass('reorder-handle btn btn-default btn-sm');
+	div.attr('type', 'button');
+  div = AddTooltip(div, 'Drag to Reorder');
+	div.css('cursor', 'move');
+  $(div).append($("<i class='fa fa-arrows-v'></i>"));
+	return div;
 }
 function AddTypeLabel(obj) {
 	
