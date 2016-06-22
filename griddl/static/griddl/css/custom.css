@@ -47,3 +47,10 @@ iframe#results {
   display: none;
 }
 
+#cells {
+  overflow: auto;
+}
+
+#output {
+ overflow: auto; 
+}
