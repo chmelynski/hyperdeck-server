@@ -104,8 +104,14 @@ function AddMinimizeButton(obj) {
   button.append($icon);
 	
 	button.on('click', function() {
-		if (obj.visible) { Griddl.Components.Hide(obj); } else { Griddl.Components.Show(obj); }
-		Griddl.Components.MarkDirty();
+		if (obj.visible) { 
+      $("i.fa", this).removeClass(minus).addClass(plus);
+      Griddl.Components.Hide(obj); 
+    } else { 
+      $("i.fa", this).removeClass(plus).addClass(minus);
+      Griddl.Components.Show(obj); 
+    }
+		//Griddl.Components.MarkDirty();
 	});
 	
 	return button;
