@@ -50,3 +50,11 @@ iframe#results {
 #workbookName {
   display: inline;
 }
+
+#cells {
+  overflow: auto;
+}
+
+#output {
+ overflow: auto; 
+}

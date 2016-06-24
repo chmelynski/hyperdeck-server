@@ -1,9 +1,11 @@
 
 (function() {
 
+// the <style> or <div> tag is added in add(), so that subsequent calls to exec() just sets the inner html
+
 // we compile on blur or when text is set
 // for js, compile just builds the Function object, it doesn't execute it
-// for html, css, and md, compile passes through to exec
+// for html, css, and md, compile sets this._data and then calls exec
 
 var Code = function(json, type) {
 	
@@ -27,7 +29,7 @@ var Code = function(json, type) {
 	this._text = json.text;
 	this._data = null; // this is the function object for js, and plain text otherwise.  we compile in add() rather than here because the errorSpan needs to be in place to display any compilation errors
 	
-	Object.defineProperty(this, 'text', { 
+	Object.defineProperty(this, 'text', {
 		get : function() {
 			return this._text;
 		},
@@ -39,7 +41,7 @@ var Code = function(json, type) {
 		}
 	});
 	
-	Object.defineProperty(this, 'data', { 
+	Object.defineProperty(this, 'data', {
 		get : function() {
 			return this._data;
 		},
@@ -92,7 +94,16 @@ Code.prototype.add = function() {
 	this.errorSpan.css('color', 'red');
 	this.div.append(this.errorSpan);
 	
-	this.compile(); // we do this here in add rather than in the constructor because the errorSpan has to be in place
+	this.addOutputElements();
+};
+Code.prototype.addOutputElements = function() {
+	
+	if (this.type == 'html' || this.type == 'css' || this.type == 'md')
+	{
+		var tagname = ((this.type == 'css') ? 'style' : 'div');
+		var elt = $('<' + tagname + ' id="' + this.name + '"></' + tagname + '>');
+		$('#output').append(elt);
+	}
 };
 Code.prototype.compile = function() {
 	
@@ -135,10 +146,9 @@ Code.prototype.textify = function() {
 };
 Code.prototype.afterLoad = function() {
 	
-	if (this.type == 'html' || this.type == 'css' || this.type == 'md')
-	{
-		this.exec();
-	}
+	// we do this here rather than in the constructor because the errorSpan has to be in place
+	// we do this here rather than in add because we don't want to exec inline <script>s until all components have loaded
+	this.compile();
 };
 Code.prototype.exec = function() {
 	
@@ -146,25 +156,25 @@ Code.prototype.exec = function() {
 	
 	if (this.type == 'css')
 	{
-		$('#' + this.name).remove();
-		var style = $(document.createElement('style'));
-		style.attr('id', this.name);
-		style.html(this.text);
-		$('#output').append(style); // we put the style tag in output because we want to be able to export #output as a static html
+		$('#' + this.name).html(this.text);
 	}
 	else if (this.type == 'html' || this.type == 'md')
 	{
-		var div = $('<div id="' + this.name + '"></div>');
-		
 		var html = (this.type == 'md') ? markdown.toHTML(this.text) : this.text;
+		$('#' + this.name).html(html);
 		
-		div.html(html);
-    id = "#" + this.name;
-    if ( $(id, '#output').length > 0 ) {
-      $('#' + this.name).replaceWith(div);
-    } else {
-      $('#output').append(div);
-    }
+		//var div = $('<div id="' + this.name + '"></div>');
+		//div.html(html);
+		//var id = "#" + this.name;
+		//
+		//if ($(id, '#output').length > 0)
+		//{
+		//	$('#' + this.name).replaceWith(div);
+		//}
+		//else
+		//{
+		//	$('#output').append(div);
+		//}
 		
 		if (MathJax) { MathJax.Hub.Typeset(this.name); }
 	}
