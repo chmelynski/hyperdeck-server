@@ -52,3 +52,43 @@ $.ajaxSetup({
     }
   }
 });
+
+function jslog(str, file) {
+  if (!file) {
+    file = '';
+  }
+
+  $.post("/jslog", 
+         {
+           'msg': str,
+           'file': file,
+           'page': document.location.href
+         }
+  );
+}
+
+// find data attributes or datasets by walking dom ancestors
+function find_dataset(el, attr) {
+  if (attr) {
+    if (el.hasAttribute(attr)) {
+      return el.dataset;
+    } else {
+      dataParent = $(el).closest('[' + attr + ']');
+      return dataParent.dataset;
+    }
+  } else {
+    if (Object.keys(el.dataset).length > 0) {
+      return el.dataset;
+    } else {
+      // ehhhhhhhh
+      data = false;
+      $(el).parents().each(function() {
+        if (Object.keys(this.dataset).length > 0) {
+          data = this.dataset;
+          return false; // break out of .each() loop, not the func
+        }
+      });
+      return data;                                           
+    }                                                  
+  }                                                    
+}

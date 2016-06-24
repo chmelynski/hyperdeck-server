@@ -21,17 +21,6 @@
 .gapRight { margin-right:1em; }
 .gapLeft { margin-left:1em; }
 
-div#documentMenu button {
-  display: inline-block;
-  margin-top: 1em;
-}
-
-div#documentMenu .dropdown-menu i.fa-2x {
-  width: 2em;
-  margin-left: auto;
-  margin-right: auto;
-}
-
 .griddl-component-body {
   width: 100%;
   overflow: hidden;

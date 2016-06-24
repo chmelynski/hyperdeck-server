@@ -2,25 +2,25 @@
 <div class="navbar navbar-default navbar-fixed-top">
   <div class="container">
     <div class="pull-left clearfix">
-      <h1 class="text-muted">HyperDeck</h1>
+      <h3 class="text-muted">HyperDeck</h3>
     </div>
     <div class="nav navbar-nav nav-pills pull-right navbar-right clearfix">
       {% if user.is_authenticated %}
-        <a href="/d/{{ user.account.pk }}" class="btn btn-primary">
-          <span class="fa fa-home fa-2x"></span>
+        <a href="/d/{{ user.account.pk }}" class="btn btn-primary btn-sm">
+          <span class="fa fa-home fa-lg"></span>
           &nbsp;Home
         </a>
-        <a href="/{{ user.account.pk }}/account" class="btn btn-default">
-          <span class="fa fa-cogs fa-2x"></span>
+        <a href="/{{ user.account.pk }}/account" class="btn btn-default btn-sm">
+          <span class="fa fa-cogs fa-lg"></span>
           &nbsp;Account
         </a>
-        <a href="/logout" class="btn btn-info">
-          <span class="fa fa-sign-out fa-2x"></span>
+        <a href="/logout" class="btn btn-info btn-sm">
+          <span class="fa fa-sign-out fa-lg"></span>
           &nbsp;Logout
         </a>
       {% else %}
-        <a class="btn btn-info" href="/login">
-          <span class="fa fa-sign-in fa-2x"></span>
+        <a class="btn btn-info btn-sm" href="/login">
+          <span class="fa fa-sign-in fa-lg"></span>
           &nbsp;Sign in
         </a>
       {% endif %}

@@ -7,89 +7,85 @@ if (chunks[0] == "www") {
 }
 sandbox += chunks.join('.');
 
+window.addEventListener('message', receiveMessage, false);
+
 $(document).ready(function() {
+
   text = $('#frce').text();
   message = {'text': text, 'action': 'load'}
   $('iframe').load(function() {
     document.getElementById('results').contentWindow.postMessage(message, sandbox);
   });
 
-  $('#saveMenuButton').on('click', function(event) {
-    event.preventDefault();
-    request_text().done(save);
-  });
-
-
-  $('#saveAsSubmit').on('click', function(event) {
-    event.preventDefault();
-    request_text().done(save_as);
-  });
-  $('#saveAsForm').on('submit', function(event) {
-    event.preventDefault();
-    request_text().done(save_as);
-  });
-
 });
 
-function request_text() {
-  var deferred = $.Deferred();
 
-  document.getElementById('results').contentWindow.postMessage({'action': 'save'}, sandbox);
-
-  window.addEventListener(
-    'message', 
-    function(event) {
-      var origin = event.origin || event.originalEvent.origin;
-      if (origin !== sandbox) {
-        return false;
-      }
-
-      deferred.resolve(event.data);
-    }, 
-    false
-  );
-
-  return deferred.promise();
-}
-
-function save_as(text) {
-  $form = $('#saveAsForm');
-  $form.find('#saveAsFormTextInput').val(text);
-  newname = $form.find("[name='newname']").val();
-
-  if (!validateName(newname)) {
+function receiveMessage(event) {
+  var origin = event.origin || event.originalEvent.origin;
+  if (origin !== sandbox) {
     return false;
   }
+
+  data = event.data
+  if (data.action) {
+    switch (data.action) {
+      case 'save':
+        save_passthru(data);
+        break;
+      case 'save_as':
+        save_as_passthru(data);
+        break;
+      case 'nav':
+        window.location.pathname = data.uri;
+        break;
+      default:
+        console.log('problem in playground: ', data);
+    }
+  }
+}
+
+
+function save_as_passthru(payload) {
+  $form = $('#saveAsForm');
+  $form.find('#saveAsFormTextInput').val(payload.text);
+
+  if (!validateName(payload.newname)) {
+    return false;
+  }
+  
+  $form.find("[name='newname']").val(payload.newname);
 
   $.post('/saveas',
          $form.serialize(),
          function(response) {
            if (response.success) {
+             // processing happens on both sides of sandbox lol woof
+             path = window.location.pathname
+             newpath = path.slice(0, path.lastIndexOf('/')+1) + payload.newname;
+             history.replaceState('workbook-rename', 'Renamed workbook', newpath);
              if (!response.redirect) {
-               $('#workbookName').text(newname);
-               path = window.location.pathname
-               newpath = path.slice(0, path.lastIndexOf('/')+1) + newname;
-               history.replaceState('workbook-rename', 'Renamed workbook', newpath);
-               $.alert('Workbook renamed to ' + newname + '.', 'success');
-               $('.modal').modal('hide');
+               message = {'action': 'resolve', 'deferred': payload.deferred, 'success': true}
+               $('iframe')[0].contentWindow.postMessage(message, sandbox);
              }
            } else {
              $.alert('Something went wrong. Please try again later.');
-             $('.modal').modal('hide');
+             $('iframe')[0].contentWindow.postMessage({'action': 'modal_close'}, sandbox);
            }
          },
          'json'
         );
 }
 
-function save(text) {
+
+function save_passthru(payload) {
   $form = $('#saveForm');
-  $form.find("#saveFormTextInput").val(text);
+  $form.find("#saveFormTextInput").val(payload.text);
   $.post("/save",
          $form.serialize(),
          function(response) {
            if (response.success) {
-             $.alert('Workbook saved.', 'success');
+             message = {'action': 'resolve', 'deferred': payload.deferred, 'success': true};
+             $('iframe')[0].contentWindow.postMessage(message, sandbox);
            } else {
              $.alert(response.message);
            }

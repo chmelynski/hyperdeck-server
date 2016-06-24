@@ -98,11 +98,25 @@ MathJax.Hub.Config({
 </head>
 <body class="framed">
   <div class="container-fluid"> 
+    <div class="header"></div>
+ 
     <div class="row" id="documentMenu">
-      <div class="col-sm-3">
+      <div class="col-sm-7">
+
+
+        <div style="display: inline-block;">
+          <a id="up" style="margin-right:1em;" class="btn btn-default" href="{{ parentdir }}">
+            <i class="fa fa-level-up fa-flip-horizontal fa-lg" style="vertical-align: middle;"></i>
+            Up
+          </a>
+              
+          <h4 id="workbookName">{{ workbook.name }}</h4>
+        </div>
+
+
         <div class="btn-group">
           <button class="btn btn-default dropdown-toggle" data-toggle='dropdown' aria-haspopup="true" aria-expanded="false">
-            <i class="fa fa-cube fa-2x"></i>
+            <i class="fa fa-cube fa-lg"></i>
             Add<span class="hidden-xs"> Component</span>
             <span class="caret"></span>
           </button>
@@ -155,20 +169,35 @@ MathJax.Hub.Config({
             </ul>
         </div>
       </div>
-      <div class="col-sm-9">
+
+
+      <div class="col-sm-5">
               
-        <div class="btn-group" role="tablist" id="ui-toggle">
+        <div class="btn-group btn-group" role="tablist" id="ui-toggle">
           <button class="btn btn-default" id="show-components" title="View Components Only">
-            <i class="fa fa-cubes fa-2x"></i>
+            <i class="fa fa-cubes fa-lg"></i>
             <span class="hidden-xs hidden-sm">Components Only</span>
           </button>
           <button class="btn btn-default active" id="show-all" title="View Split Screen">
-            <i class="fa fa-columns fa-2x"></i>
+            <i class="fa fa-columns fa-lg"></i>
             <span class="hidden-xs hidden-sm">Split Screen</span>
           </button>
           <button class="btn btn-default" id="show-widgets" title="View Document Only">
-            <i class="fa fa-file-text-o fa-2x"></i>
+            <i class="fa fa-file-text-o fa-lg"></i>
             <span class="hidden-xs hidden-sm">Document Only</span>
+          </button>
+        </div>
+
+        <div class="pull-right">
+          {% if user.is_authenticated and user.account == workbook.owner %}
+            <button class="btn btn-default" id="saveMenuButton">
+              <i class="fa fa-save fa-lg"></i>
+              Save
+            </button>
+          {% endif %}
+          <button class="btn btn-default" id="saveasMenuButton" data-toggle="modal" data-target='#saveAsModal'>
+            <i class="fa fa-files-o fa-lg"></i>
+            Save As
           </button>
         </div>
 
@@ -186,13 +215,35 @@ MathJax.Hub.Config({
       </div>
       <div class="col-sm-6">
         <div role="tabpanel" class="active" id='output'>
-          <div class="header">
-            <label class="griddl-component-head-type">Output</label>
-          </div>
+          <label class="griddl-component-head-type">Output</label>
         </div>
       </div>
     </div>
   </div>
 
+
+  <div id="saveAsModal" class="modal fade">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-body">
+          <form class='form-horizontal' id="saveAsForm">
+            {% csrf_token %}
+            <input type="hidden" name="id" value="{{ workbook.pk }}"></input>
+            <input id="saveAsFormTextInput" type="hidden" name="text" value=""></input>
+            <div class="form-group">
+              <label class='col-sm-3 form-label'>New name:</label>
+              <div class='col-sm-9'>
+                <input class="form-control" type="text" name="newname"></input>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button id="saveAsSubmit" class="btn btn-success" type="submit" value="Save">Save</input>
+          <button class="btn btn-danger" type="button" value="Cancel" data-dismiss="modal">Cancel</input>
+        </div>
+      </div>
+    </div>
+  </div>
 
 </body>

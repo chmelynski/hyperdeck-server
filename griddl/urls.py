@@ -31,7 +31,7 @@ urlpatterns = patterns(
 
     url(r'^f/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ %]*)/(?P<slug>[A-Za-z0-9-/ %]*)$', views.workbook),
     url(r'^d/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ ]*)$', views.directory),
-    url(r'^results$', views.results),
+    url(r'^results/f/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ %]*)/(?P<slug>[A-Za-z0-9-/ %]*)$', views.results),
 )
 
 # builtin auth views

@@ -264,7 +264,6 @@ def save(request):
     if request.user.is_authenticated():
         try:
             pk = request.POST.get('id', False)
-            logger.debug(request.POST)
             if not pk:
                 raise exceptions.ValidationError('bad request')
 
@@ -527,8 +526,41 @@ def workbook(request, userid, path, slug):
 
 
 @require_subdomain(SUBDOMAINS['sandbox'])
-def results(request):
-    return render(request, 'griddl/results.htm')
+def results(request, userid, path, slug):
+    # todo: this is now WET wrt views.workbook :'(
+    try:
+        user = User.objects.get(account=userid)
+        # todo: we use filter mostly bc this isn't guaranteed unique lol
+        wb = Workbook.objects.filter(owner=user.account,
+                                     path=path, slug=slug)[0]
+    except Exception:
+        return HttpResponse('Not found')  # todo? more specific maybe.
+
+    if not wb.public:
+        if request.user.is_authenticated():
+            if not request.user.account == wb.owner:
+                return HttpResponse('Access denied')
+        else:
+            return HttpResponse('Access denied')
+
+    if user == request.user:
+        try:
+            this = Workbook.objects.get(owner=request.user.account.pk,
+                                        name=request.path.split('/')[-1])
+            parentdir = this.parent.uri
+        except Exception:  # todo: more specific
+            parentdir = reverse(directory, args=(request.user.account.pk, ''))
+    else:
+        parentdir = None
+
+    context = {
+        "workbook": wb
+    }
+
+    if parentdir:
+        context['parentdir'] = parentdir
+
+    return render(request, 'griddl/results.htm', context)
 
 
 def index(request):

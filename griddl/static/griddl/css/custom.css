@@ -1,5 +1,5 @@
 body:not(.framed){
-  padding-top: 6em;
+  padding-top: 4em;
 }
 
 .navbar-right {
@@ -47,3 +47,6 @@ iframe#results {
   display: none;
 }
 
+#workbookName {
+  display: inline;
+}

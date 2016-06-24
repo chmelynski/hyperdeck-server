@@ -163,10 +163,10 @@ MIDDLEWARE_CLASSES = (
     'subdomains.middleware.SubdomainURLRoutingMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
@@ -332,3 +332,7 @@ SUBDOMAIN_URLCONFS = {
     SUBDOMAINS['main']: 'mysite.urls',
     SUBDOMAINS['sandbox']: 'mysite.urls',
 } 
+
+# session is cross-subdomain unless that's too insecure
+SESSION_COOKIE_DOMAIN = ".hyperdeck.io"
+SESSION_COOKIE_NAME = SUBDOMAINS['main'] + 'sessionid'
