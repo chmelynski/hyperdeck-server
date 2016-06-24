@@ -1,5 +1,28 @@
 body:not(.framed){
-  padding-top: 4em;
+  overflow: hidden;
+  padding: 4em 0px 0px 0px;
+  margin: 0px;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+}
+
+body.framed {
+  overflow: hidden;
+  margin: 0px;
+  padding: 0px;
+  height: 100%;
+  width: 100%;
+}
+
+body.framed > .container-fluid {
+  height: 100%;
+}
+
+.row.tab-content {
+  height: 90%;
 }
 
 .navbar-right {
@@ -39,8 +62,11 @@ span.fa.text-label {
 iframe#results {
   width: 100%;
   border: none;
-  height: 1200px;
+  height: 100%;
   margin-top: 1em;
+  position: relative;
+  overflow: hidden;
+  max-width: 100%;
 }
 
 #frce {
@@ -51,10 +77,28 @@ iframe#results {
   display: inline;
 }
 
-#cells {
-  overflow: auto;
+#cells-container {
+  height: 100%;
+  overflow-y: auto;
+}
+
+#cells { 
+  height: auto;
+}
+
+#output-container {
+  height: 100%;
+  overflow-y: auto;
 }
 
 #output {
- overflow: auto; 
+  height: auto;
+}
+
+.full-height {
+  height: 100%;
+}
+    
+.form-align {
+  margin-top: 1.8em !important;
 }

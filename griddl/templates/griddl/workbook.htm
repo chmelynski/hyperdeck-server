@@ -8,11 +8,6 @@
 
 {% block styles %}
   {{ block.super }}
-  <style>
-    .form-align {
-      margin-top: 1.8em !important;
-    }
-  </style>
 {% endblock %}
 
 
@@ -23,9 +18,9 @@
 
 
 {% block body %}
-  <div class="row">
+  <div class="row full-height">
     <div id='frce'>{{ workbook.text }}</div>
-    <iframe src="http://{{ sandbox }}.hyperdeck.io/results{{ workbook.uri }}" id="results" sandbox='allow-forms allow-popups allow-scripts allow-same-origin allow-modals' seamless></iframe>
+    <iframe src="http://{{ sandbox }}.hyperdeck.io/results{{ workbook.uri }}" id="results" height="100%" width="100%" frameborder="0" sandbox='allow-forms allow-popups allow-scripts allow-same-origin allow-modals' seamless></iframe>
   </div>
 
 

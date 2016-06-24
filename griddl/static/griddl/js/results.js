@@ -64,6 +64,7 @@ $(document).ready(function() {
   $('#fileChooser').on('change', function(event) {
     Griddl.IO.HandleLocalLoad(event.target.files);
   });
+
 });
 
 function saveAsSubmit() {
