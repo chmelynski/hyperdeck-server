@@ -133,7 +133,7 @@ function AddDestroyButton(obj) {
 function AddTooltip(el, text) {
   // assumes a jQuery object representing a DOM element
   el.attr('data-toggle', 'tooltip');
-  el.attr('data-placement', 'top');
+  el.attr('data-placement', 'bottom');
   el.attr('title', text);
   el.tooltip();
   return el;
