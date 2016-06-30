@@ -16,8 +16,8 @@ $(document).ready(function() {
       $btn = $(e.target).closest('button');
       if ($btn.hasClass('active')) {return;}
       $btn.addClass('active').siblings().removeClass("active");
-      $("#cells").css('display', 'block').parent().removeClass('col-sm-6').addClass('col-sm-12');
-      $("#output").css('display', 'none');
+      $("#cells-container").css('display', 'block').removeClass('col-sm-6').addClass('col-sm-12');
+      $("#output-container").css('display', 'none');
 
   });
 
@@ -25,7 +25,7 @@ $(document).ready(function() {
       $btn = $(e.target).closest('button');
       if ($btn.hasClass('active')) {return;}
       $btn.addClass('active').siblings().removeClass("active");
-      $("#cells, #output").css('display', 'block').parent().removeClass("col-sm-12").addClass("col-sm-6");
+      $("#cells-container, #output-container").css('display', 'block').removeClass("col-sm-12").addClass("col-sm-6");
   });
 
   $("#show-widgets").on('click', function(e) {
@@ -33,8 +33,8 @@ $(document).ready(function() {
       if ($btn.hasClass('active')) {return;}
       $btn.addClass('active').siblings().removeClass("active");
       
-      $("#output").css('display', 'block').parent().removeClass('col-sm-6').addClass('col-sm-12');
-      $("#cells").css('display', 'none');
+      $("#output-container").css('display', 'block').removeClass('col-sm-6').addClass('col-sm-12');
+      $("#cells-container").css('display', 'none');
   });
 
   $("#up").on('click', function(event) {
