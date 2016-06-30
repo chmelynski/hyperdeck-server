@@ -82,9 +82,9 @@ def ajaxlogin(request):
 
 @require_subdomain(SUBDOMAINS['main'])
 def register(request):
-    username = request.POST['username']
-    password = request.POST['password']
-    email = request.POST['email']
+    username = request.POST.get('username')
+    password = request.POST.get('password')
+    email = request.POST.get('email')
     # form = SignupForm(request.POST)
     # use if form.is_valid(): and do this to access the fields:
     #     form.cleaned_data['username']
@@ -103,20 +103,6 @@ def register(request):
 
         user = authenticate(username=username, password=password)
         login(request, user)
-
-        if 'saveas' in request.session:  # hack for saveas for new account
-            with transaction.atomic():
-                wbs = Workbook.objects.filter(pk=user.account.pk)
-                wbs.filter(name='My First Workbook').delete()
-                data = request.session['saveas']
-                clone = Workbook.objects.get(pk=data['wb'])
-                clone.owner = user.account
-                clone.name = data['name']
-                clone.text = data['text']
-                clone.public = False
-                clone.pk = None
-                clone.save()
-                del(request.session['saveas'])
 
         # change to return directoryRedirect(request) ?
         messages.success(request,
@@ -162,6 +148,20 @@ def directory(request, userid, path=None):
         return HttpResponseRedirect(reverse(directory,
                                             args=(request.user.account.pk,
                                                   '',)))
+
+    if 'saveas' in request.session:  # saveas resolution for logged-out users
+        with transaction.atomic():
+            wbs = Workbook.objects.filter(pk=request.user.account.pk)
+            # wbs.filter(name='My First Workbook').delete()
+            data = request.session['saveas']
+            clone = Workbook.objects.get(pk=data['wb'])
+            clone.owner = request.user.account
+            clone.name = data['name']
+            clone.text = data['text']
+            clone.public = False
+            clone.pk = None
+            clone.save()
+            del(request.session['saveas'])
 
     # remove trailing slash for sanity's sake
     if path:
@@ -335,7 +335,8 @@ def saveas(request):
             }
         messages.info(
             request,
-            'Please create an account to save your copy of the workbook "%s"' %
+            'Please log in or create an account to save\
+            your copy of the workbook "%s"' %
             wb.name
             )
         return JsonResponse({'redirect': '/signup'})
