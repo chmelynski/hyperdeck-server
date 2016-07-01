@@ -93,6 +93,9 @@ class Workbook(models.Model):
     # path to containing directory
     path = models.CharField(max_length=2000, blank=True)
 
+    class Meta:
+        unique_together = ("owner", "path", "name")  # filesystem-style unique
+
     @property
     def uri(self):
         """convenience for redirects & such"""
