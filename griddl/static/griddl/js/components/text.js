@@ -114,7 +114,7 @@ Text.prototype.add = function() {
 	
 	var controls = [];
 	
-	var gui = new dat.GUI({autoPlace:false});
+	var gui = new dat.GUI({autoPlace:false, width:"100%"});
 	
 	//var sizeControls = [];
 	

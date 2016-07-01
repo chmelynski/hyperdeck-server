@@ -90,7 +90,7 @@ File.prototype.add = function() {
 	
 	this.div.html('');
 	
-	var gui = new dat.GUI({autoPlace:false});
+	var gui = new dat.GUI({autoPlace:false, width:"100%"});
 	this.filenameControl = gui.add(this, 'filename');
 	gui.add(this, 'download');
 	gui.add(this, 'upload');

@@ -63,7 +63,7 @@ BarChart.prototype.addElements = function() {
 	
 	this.div.html('');
 	
-	var gui = new dat.GUI({autoPlace:false});
+	var gui = new dat.GUI({autoPlace:false, width:"100%"});
 	gui.add(this, 'scale');
 	gui.add(this, 'barWidth');
 	gui.add(this, 'widthBetweenBars');

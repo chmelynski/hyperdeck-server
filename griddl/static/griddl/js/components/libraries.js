@@ -51,7 +51,7 @@ Libraries.prototype.add = function() {
 	
 	this.div.html('');
 	
-	var gui = new dat.GUI({autoPlace:false});
+	var gui = new dat.GUI({autoPlace:false, width:"100%"});
 	
 	var curated = gui.addFolder('curated');
 	for (var key in this.data.curated)

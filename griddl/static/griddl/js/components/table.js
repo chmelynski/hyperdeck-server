@@ -69,7 +69,7 @@ Table.prototype.addElements = function() {
 	
 	this.div.append($('<hr />'));
 	
-	var gui = new dat.GUI({autoPlace:false});
+	var gui = new dat.GUI({autoPlace:false, width:"100%"});
 	gui.add(this.box, 'x'); // add handlers to align the box on change
 	gui.add(this.box, 'y');
 	gui.add(this.box, 'hAlign', ['left','center','right']);

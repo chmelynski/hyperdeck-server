@@ -59,7 +59,7 @@ Image.prototype.addElements = function() {
 	
 	this.div.append($('<hr />'));
 	
-	var gui = new dat.GUI({autoPlace:false});
+	var gui = new dat.GUI({autoPlace:false, width:"100%"});
 	gui.add(this, 'download');
 	gui.add(this, 'upload');
 	gui.add(this.box, 'x'); // add handlers to align the box on change

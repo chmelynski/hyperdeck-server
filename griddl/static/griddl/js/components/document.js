@@ -277,7 +277,7 @@ Document.prototype.addElements = function() {
 	table.append(tr);
 	this.div.append(table);
 	
-	var gui = new dat.GUI({autoPlace:false});
+	var gui = new dat.GUI({autoPlace:false, width:"100%"});
 	var pageNumbering = gui.addFolder('page numbering');
 	pageNumbering.add(this.pageNumbering, 'doPageNumbering');
 	pageNumbering.add(this.pageNumbering, 'firstPage');

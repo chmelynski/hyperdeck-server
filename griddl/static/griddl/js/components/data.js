@@ -157,7 +157,7 @@ Data.prototype.add = function() {
 		displayOptions.push('pre');
 	}
 	
-	var gui = new dat.GUI({autoPlace:false});
+	var gui = new dat.GUI({autoPlace:false, width:"100%"});
 	var displayControl = gui.add(this, 'display', displayOptions);
 	
 	var comp = this;

@@ -51,7 +51,7 @@ LineChart.prototype.addElements = function() {
 	
 	this.div.html('');
 	
-	var gui = new dat.GUI({autoPlace:false});
+	var gui = new dat.GUI({autoPlace:false, width:"100%"});
 	gui.add(this, 'xMin');
 	gui.add(this, 'xMax');
 	gui.add(this, 'yMin');
