@@ -11,7 +11,7 @@ html, body {
 
 body.framed {
   overflow: hidden;
-  margin: 0px;
+  margin: 1em 0px 0px;
   padding: 0px;
   height: 100%;
   width: 100%;
@@ -43,6 +43,10 @@ tr.selected:hover td { background-color:rgba(0,0,0,0) !important; }
 button + button,
 a.button + a.button {
   margin-left: .5em;
+}
+
+button.bg-danger, .btn.bg-danger {
+  background-color: #f2dede;
 }
 
 #topMenu h2 {

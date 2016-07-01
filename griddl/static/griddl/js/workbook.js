@@ -38,6 +38,12 @@ function receiveMessage(event) {
       case 'nav':
         window.location.pathname = data.uri;
         break;
+      case 'markDirty':
+        $('title').text('*' + $('title').text());
+        break;
+      case 'markClean':
+        $('title').text($('title').text().substring(1));
+        break;
       default:
         console.log('problem in playground: ', data);
     }

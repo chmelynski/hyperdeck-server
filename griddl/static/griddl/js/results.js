@@ -46,7 +46,7 @@ $(document).ready(function() {
     save().done(function(success) {
       if (success) {
         $.alert('Your workbook has been saved.', 'success');
-        Griddl.markClean();
+        Griddl.Components.MarkClean();
       }
     });
   }); 
