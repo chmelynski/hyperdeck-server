@@ -1,0 +1,63 @@
+[
+	{
+		"type": "data",
+		"name": "listOfObjects",
+		"visible": true,
+		"data": [[1,2],[3,4]],
+		"params": {
+			"format": "headerList",
+			"display": "grid",
+			"form": null,
+			"headers": ["foo", "bar"]
+		}
+	},
+	{
+		"type": "data",
+		"name": "listOfLists",
+		"visible": true,
+		"data": [["a","b","c"],["d","e","f"]],
+		"params": {
+			"format": "json",
+			"display": "grid",
+			"form": null,
+			"headers": null
+		}
+	},
+	{
+		"type": "data",
+		"name": "object",
+		"visible": true,
+		"data": {"foo":1,"bar":2},
+		"params": {
+			"format": "json",
+			"display": "grid",
+			"form": null,
+			"headers": null
+		}
+	},
+	{
+		"type": "data",
+		"name": "list",
+		"visible": true,
+		"data": ["foo", "bar"],
+		"params": {
+			"format": "json",
+			"display": "grid",
+			"form": null,
+			"headers": null
+		}
+	},
+	{
+		"type": "data",
+		"name": "other",
+		"visible": true,
+		"data": {"foo":{"bar":1,"baz":2}},
+		"params": {
+			"format": "json",
+			"display": "json",
+			"form": null,
+			"headers": null
+		}
+	}
+]
+

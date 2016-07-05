@@ -1,0 +1,23 @@
+[
+	{
+		"type": "file",
+		"name": "file1",
+		"visible": true,
+		"data": "data:text/txt;base64,AAAA",
+		"filename": "file1"
+	},
+	{
+		"type": "jsfile",
+		"name": "jsfile1",
+		"visible": true,
+		"data": "data:text/txt;base64,dmFyIG4gPSAwOw==",
+		"filename": "jsfile1.js"
+	},
+	{
+		"type": "imgfile",
+		"name": "imgfile1",
+		"visible": true,
+		"data": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAIAAAAC64paAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAERJREFUOE9j3LJlCwMMeHt7w9lbt24lKM4A1AwH/5EAMeIDqJlUpyKrZxiimomJElxeG8CoosjZQzSqKHI2RQE2NDUDAEVWy5NpqgO1AAAAAElFTkSuQmCC",
+		"filename": "imgfile1.png"
+	}
+]
