@@ -1,0 +1,51 @@
+[
+	{
+		"type": "data",
+		"name": "listOfObjects-matrix",
+		"visible": true,
+		"data": [{"foo":1,"bar":2},{"foo":3,"bar":4}],
+		"params": {
+			"format": "json",
+			"display": "matrix",
+			"form": null,
+			"headers": null
+		}
+	},
+	{
+		"type": "data",
+		"name": "listOfLists-matrix",
+		"visible": true,
+		"data": [["a","b","c"],["d","e","f"]],
+		"params": {
+			"format": "json",
+			"display": "matrix",
+			"form": null,
+			"headers": null
+		}
+	},
+	{
+		"type": "data",
+		"name": "listOfObjects-formula",
+		"visible": true,
+		"data": [{"foo":1,"bar":2},{"foo":3,"bar":4}],
+		"params": {
+			"format": "json",
+			"display": "formula",
+			"form": null,
+			"headers": null
+		}
+	},
+	{
+		"type": "data",
+		"name": "listOfLists-formula",
+		"visible": true,
+		"data": [["a","b","c"],["d","e","f"]],
+		"params": {
+			"format": "json",
+			"display": "formula",
+			"form": null,
+			"headers": null
+		}
+	}
+]
+

@@ -1,0 +1,153 @@
+[
+	{
+		"type": "document",
+		"name": "document",
+		"visible": false,
+		"params": {
+			"unit": "in",
+			"pageDimensions": {
+				"width": 8.5,
+				"height": 11
+			},
+			"pixelsPerUnit": 50,
+			"cubitsPerUnit": 100,
+			"snapGrid": {
+				"gridlineSpacing": 0.25,
+				"gridlineHighlight": 1.00
+			},
+			"pageNumbering" : {
+				"doPageNumbering": true,
+				"hAlign": "center",
+				"vAlign": "bottom",
+				"hOffset": 0,
+				"vOffset": 50,
+				"firstPage": false,
+				"font": "12pt serif",
+				"fill": "rgb(0,0,0)"
+			}
+		}
+	},
+	{
+		"type": "data",
+		"name": "barChartData",
+		"visible": false,
+		"data": [{
+			"year": 2012,
+			"cars": 50,
+			"trucks": 50,
+			"vans": 50,
+			"buses": 50
+		}, {
+			"year": 2013,
+			"cars": 100,
+			"trucks": 100,
+			"vans": 100,
+			"buses": 100
+		}, {
+			"year": 2014,
+			"cars": 150,
+			"trucks": 100,
+			"vans": 150,
+			"buses": 100
+		}, {
+			"year": 2015,
+			"cars": 100,
+			"trucks": 50,
+			"vans": 50,
+			"buses": 100
+		}],
+		"params": {
+			"format": "json",
+			"display": "grid",
+			"form": null
+		}
+	},
+	{
+		"type": "section",
+		"name": "section1",
+		"visible": false,
+		"text": "Lorem ipsum dolor sit amet, diceret fierent dissentiunt ne vel. Sed dicit fuisset sapientem no. Id mel iuvaret placerat antiopam. Vim at viris mentitum omnesque, partem everti animal per in, appetere postulant similique eu qui. Sit harum iuvaret te, est ut timeam theophrastus, ad pri feugait platonem deterruisset.\n\nIn sea stet verterem, est ei inimicus voluptatum, vidisse luptatum sea id. Usu cu porro malorum petentium, sea no dicunt admodum dolores. Te qui qualisque accusamus consetetur, ne nam dicta possim suscipit, no rebum dissentias mel. Id vitae moderatius duo, an aeque nobis vim. Noster epicuri at vis, ex vim aperiam volumus denique, qui sint case atqui an. Ex electram vituperatoribus vix, vel id integre inermis phaedrum.\n\nQui deleniti consequuntur in, iuvaret euripidis has eu. Prompta apeirian quo at. Has ex lorem accommodare, id quo congue eripuit. Semper utroque has an, possim verear nam in. An est quis apeirian inciderint.\n\nHas no tota harum partem. Et nam phaedrum interpretaris, aliquam propriae recusabo ius te, eam quando discere et. Nec at oratio referrentur conclusionemque, option legimus atomorum ut vel, clita urbanitas te pri. Eam stet magna te. Pro melius utroque maiorum id, dolores similique ad eos.\n\nEst eligendi senserit ea, eos quis fierent democritum ad, tantas similique mei te. Per quodsi partiendo euripidis te, populo accusam adolescens ei cum. Et dolor quidam blandit vim, est dicant possit antiopam id. Sit probo cetero option ei. Eu vel enim nonumy corrumpit, qui at purto dolore. Et falli tamquam pro.",
+		"params": {
+			"orientation": "portrait",
+			"margin": {
+				"top": 100,
+				"left": 100,
+				"right": 100,
+				"bottom": 100
+			},
+			"nColumns": 1,
+			"interColumnMargin": 50,
+			"indent": 25,
+			"pitch": 20,
+			"style": "serif",
+			"font": "12pt serif",
+			"fill": "rgb(0,0,0)"
+		}
+	},
+	{
+		"type": "barChart",
+		"name": "barChart1",
+		"visible": false,
+		"params": {
+			"dataSource": "barChartData",
+			"columnKey": "year",
+			"valueKeys": "cars,trucks,vans,buses",
+			"scale": null,
+			"barWidth": 36,
+			"barGap": 18,
+			"box": {
+				"hAlign": "center",
+				"vAlign": "center",
+				"xAnchor": "left",
+				"yAnchor": "top",
+				"x": 425,
+				"y": 550
+			},
+			"textStyle": {
+				"margin": 9,
+				"segmentLabelFont": null,
+				"segmentLabelColor": null,
+				"segmentLabelAnchor": null,
+				"topLabelFont": null,
+				"topLabelColor": null,
+				"bottomLabelFont": null,
+				"bottomLabelColor": null
+			},
+			"key": {
+				"visible": true,
+				"x": 10,
+				"y": 0,
+				"hAlign": "left",
+				"vAlign": "center",
+				"hAnchor": "right",
+				"vAnchor": "center",
+				"data": [{
+					"label": "cars",
+					"color": "orange"
+				}, {
+					"label": "trucks",
+					"color": "green"
+				}, {
+					"label": "vans",
+					"color": "red"
+				}, {
+					"label": "buses",
+					"color": "purple"
+				}]
+			},
+			"padding": {
+				"top": 25,
+				"left": 0,
+				"right": 0,
+				"bottom": 50
+			},
+			"margin": {
+				"top": 25,
+				"left": 25,
+				"right": 25,
+				"bottom": 25
+			}
+		}
+	}
+]
+
