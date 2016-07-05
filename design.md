@@ -1,62 +1,77 @@
 
-# Hyperbench: Design and Implementation
+# Hyperdeck: Design and Implementation
+
+#### Purpose
+
+The motivation behind Hyperdeck is the recognition that the browser has become a powerful platform.  The built-in facilities for programming and graphical interaction have matured and standardized to the point where the browser can outclass, rather than simply match, desktop software.  Desktop office software is powerful, well-designed (well, spreadsheets are, anyway), and ubiquitous.  The basic form, however, dates from the 70s and 80s and has remained essentially unchanged.  Not that there's anything wrong with that, but the technological environment is very different now, primarily with the development of the web.  Attempts to port office software to the web have mostly been direct ports of the interface - everything looks the same, you're just in the browser now.  This makes for a smooth user transition, but ultimately does not represent innovation as such.  The browser is a fundamentally different platform than the desktop computers of the 80s, and demands a fundamentally different approach to office software.
+
+One of the main design problems faced in the building of Hyperdeck was how to unify the different parts of the office software suite.  There are basically two dimensions of unification: one is the unification of the office triad: spreadsheets, word processors, and presentation editors.  The other is the unification of interaction modes: direct, indirect, and programmatic manipulation.
+
+We want to enable and integrate three separate modes of interaction: direct manipulation, indirect manipulation, and programmatic manipulation.  Direct manipulation means interaction with the visual elements of the document - for the most part, pointing, clicking, and dragging with the mouse or by touch.  Indirect manipulation involves interacting with GUI inputs - textboxes, number sliders, color pickers, etc.  Programmatic manipulation involves modifying variables via code. Existing office software has a mix of all three, but is clearly the messy result of evolution rather than integrated design.  Programmatic manipulation in particular was bolted on several years after the fact, using a language popular in the 80s but which has since been buried in sand everywhere except office software.
 
 
 #### Components
 
-The heart of Hyperbench is Components.  Each component is a self-contained unit that holds data, exposes an interface for manipulating that data, and possibly draws itself onto the document canvas.  Components are displayed on the left side of the screen in a vertical stack.
+The heart of Hyperdeck is components.  Each component is a self-contained unit that holds data, exposes an interface for manipulating that data, and possibly draws itself onto the document canvas.  Components are displayed on the left side of the screen in a vertical stack.
 
-The user interface of each component has a header and a body.  The header holds common UI elements like handles for reordering, a type label, a name input, action buttons, upload/download buttons, and minimize/destroy buttons.  The body can be arbitrary HTML - the body is how the user manipulates the data held by the component.  This data can be arbitrary JSON, but two common forms are text and tabular data.  Text is often displayed in a CodeMirror widget, and tabular data is often displayed in a Handsontable widget.
+The user interface of each component has a header and a body.  The header holds common UI elements like handles for reordering, a type label, a name input, and minimize/destroy buttons.  The body can be arbitrary HTML - the body is how the user manipulates the data held by the component.
 
-All Components must define certain functions such as:
-
-* `load()` - read?  i think the constructor is doing the work of load in a lot of places
-* `write()` - export to JSON
-* `add()` - add component to the stack, which is a transaction of sorts - several linked components
-* `refresh()` - regenerates the HTML user interface after setting data/params
-* `getText()` - returns the full JSON for the component
-* `setText()` - sets component JSON
-* `getData()` - returns the `data` field
-* `setData()` - sets the `data` field
-
-New Components can be written as plugins - the Component must implement the required functions and fields.
-
-
-##### File format
-
-Hyperbench documents are stored in JSON format, as a list of component objects.  Each component JSON will have several of these fields:
+All components must define certain fields and functions such as:
 
 * `type` - `txt`, `grid`, `document`, etc.
-* `name`
-* `visible` - determines whether the component is displayed as maximized or minimized
-* `data` - varies by type - text components will store their text here, and grid components will store a list of objects or lists.  in general, the meat of the component will be stored here
-* `params` - stores everything else, frequently exposed by the component UI
+* `name` - `getText`, `setText`, `getData`, and `setData` take the component name as an argument
+* `visible` - a boolean that determines whether the component is displayed as maximized or minimized
+
+* a constructor, which takes an optional json argument - if there is no argument, the constructor must provide default values
+* `add()` - this generates the component interface body, consisting of codemirror, handsontable, dat.gui, and possibly other HTML
+* `write()` - export to JSON
+* `getText()` - returns a text representation of the data contained within the component
+* `setText()` - sets the text representation of the data
+* `getData()` - returns the data in some sort of object format - a compiled function, a javascript object, a Uint8Array, etc
+* `setData()` - sets the data
+
+Internally, the component will usually have either or both of a `text` and `data` fields.  It will vary based on whether there is a textual or object representation of the data.  But this is an implementation detail, the only thing required of components is that they have `get/set Text/Data` functions.  Note that implementing these functions as a no-op is perfectly okay if the function isn't appropriate to a given component type.
+
+New components can be written as plugins - the component must implement the required functions and fields.
+
+Hyperdeck workbooks are stored in JSON format, as a list of component objects.  Any fields besides `type`, `name`, `visible`, `text`, and `data` are typically packaged into a `params` sub-object.
 
 
-##### Text
+##### Code
 
-Components whose data is best represented as text will display that text in a Codemirror instance.  Salient example types include `text`, `js`, `html`, and `css`.  Many other component types will not display their data as text by default, but can be toggled to present a text display for user editing.  For example, grids may be toggled to display their tabular data as tab-separated values in a Codemirror instance.  The data may then be modified and toggled back to a grid display.  This is a way for the user to paste in copied data from Excel, for instance.  It is also currently the only way to change column headers or add columns.  Other component types that normally expose their data via HTML (such as the Document component, which defines global document settings), can be toggled to show the data as JSON, then modified or pasted and toggled back.
+A Code component holds data that is best represented as text.  Currently supported types are javascript, html, markdown, css, and plain text, corresponding to the `type` fields `js`, `html`, `md`, `css`, and `txt`.  These types have slightly different behavior, but not different enough to warrant a completely separate class.  The text is displayed in a Codemirror instance with appropriate highlighting.  The Code component is the primary way for users to write and execute javascript code, and the primary way to construct an HTML document.
 
-The point is to strike a balance between GUI manipulation and programmatic manipulation.  GUI and JSON are two ways of representing the same underlying data, and the user is free to toggle between the representations.
+Here's what happens to the code contained in each of those 5 types:
 
-[Discuss `getText()`, etc.?]
+Code in a `js` component is NOT executed automatically - you have to click the `[Run Code]` button.  (if you want code to run automatically you can put it in a `<script>` tag in an `html` component)
 
+Code in a `html` component gets packaged into a `<div>` and added to `#output` - this happens automatically on load and on blur after editing
+Code in a `md` component gets converted from markdown to HTML, packaged into a `<div>`, and added to `#output`
+Code in a `css` component gets packaged into a `<style>` and added to `#output`
 
-##### Grids
+Code in a `txt` component is completely inert, it's just for taking notes or whatever
 
-One of the earliest motivations of this project was the frustration of not being able to properly name columns in Excel.  Here we have named columns, and grid data is properly referred to by name, rather than by A1 bullshit.  A grid typically consists of a list of objects - each row is an object (0-indexed) and each column is a field.  To refer to a data field, you write `get(componentName)[objectIndex].fieldName`, example `get('foo')[0].bar`.  We can also store the data as a list of lists, which we will call a `matrix`.  A matrix will be displayed without column headers.  Data can be accessed with `get(componentName)[objectIndex][fieldIndex]`, such as `get('foo')[0][0]`.
+We id `<div>`'s with the name of the component that created them.  So a component named "html1" creates a `<div id="html1">`
 
-Now, the implementation of various aspects of Handsontable present a lot of complications to our goals.  For instance, column headers are uneditable in normal operation.  That's sort of a good thing - other ways of implementing column headers would rely on convention (such as "column headers go in the first row"), but there wouldn't be anything special about the cells containing column headers.  What I wish happened is that column headers retain their special status, except that they can be selected and edited like any other cell.  But arrow keys, for instance, would not be able to move the selection to a column header.  It would have to be specially clicked on.  But I'd also like a pony.  What we have are fixed column headers, which means we need a means of changing those names if we want.  The way we do this is to toggle to TSV, change the name, and then toggle back.
-
-Another problem is that you can't add a column to a grid with column headers.  I wish Handsontable would provide a default column name, but that would imply editable column headers and they don't have that.  So the only way to add a column is again by toggling to TSV.
-
-Matrixes avoid all these problems - every cell is the same, every cell is editable, you can insert columns.  But the columns cannot have names, they must be indexed by numbers.
-
-In addition, Handsontable is limited to displaying 1000 rows.  If the data is larger, it displays an internally operated scrollbar.  This isn't terrible, but it's clear that Handsontable is not for big data.  In order to store and display larger amounts of data, we have a `tsv` component type, where the data is basically just displayed in TSV format in a `<pre>` element.  This is fairly lightweight as far as the DOM is concerned.
-
-This is a litany of compromises.
+Stuff is added to `#output` in the order it shows up in the components, so you can move stuff around in the document by reordering the components
 
 
+##### Data
+
+A Data component holds a plain acyclical javascript object.  This object may be displayed in different forms, depending on its structure.  Display as JSON and YAML is always available for an object of any structure.  If the object has a structure amenable to display in a grid, it can be displayed in a Handsontable.  Permitted structures are an object of primitives, a list of primitives, a list of objects of primitives, and a list of lists of primitives.  As a shorthand, we can refer to those forms as `{}`, `[]`, `[{}]`, and `[[]]`.  These gridlike structures can also be displayed as editable CSV, TSV, or TSV in a `<pre>` tag.
+
+One of the earliest motivations of this project was the frustration of not being able to properly name columns in Excel.  A `[{}]` will be displayed with named columns and can be referred to with field names by code, rather than by A1-style referencing.  If the underlying data is a list of objects, then each row is an object (0-indexed) and each column is a field.  To refer to a data cell, you write `getData(componentName)[objectIndex].fieldName`, e.g. `getData('foo')[0].bar`.  If the underlying data is a list of lists, it can be accessed with `getData(componentName)[rowIndex][colIndex]`, such as `getData('foo')[0][0]`.
+
+Now, the implementation of various aspects of Handsontable present a lot of complications to our goals.  For instance, column headers are uneditable in normal operation.  That's sort of a good thing - other ways of implementing column headers would rely on convention (such as "column headers go in the first row"), but there wouldn't be anything special about the cells containing column headers.  What I wish happened is that column headers retain their special status, except that they can be selected and edited like any other cell.  But arrow keys, for instance, would not be able to move the selection to a column header.  It would have to be specially clicked on.  But I'd also like a pony.  What we have are fixed column headers, which means we need a means of changing those names if we want.  The way we do this is to toggle the display to TSV, edit the column name, and then toggle back.
+
+When you add a column via the grid menu, the column will have a default A1-style name, which will probably need to be changed.
+
+Handsontable is limited to displaying 1000 rows.  If the data is larger, it displays an internally operated scrollbar.  This isn't terrible, but it's clear that Handsontable is not for big data.  In order to store and display larger amounts of data, we have a `pre` component type, where the data is basically just displayed in TSV format in a `<pre>` element.  This is fairly lightweight as far as the DOM is concerned.
+
+
+##### File
+
+The File component stores user-uploaded files such as javascript libraries or images.  These are treated specially, but any type of file may be uploaded and accessed as a Uint8Array.  The corresponding component types are `jsfile`, `imgfile`, and `file`.  A `jsfile` will be packaged into a `<script>` tag and added to `#output`.  For now, an `imgfile` will not be added to `#output` by default - but we may want to change that in the future.  To add an image to the output, the user will have to construct an `<img>` tag in an HTML component and then set `img.src = getText('imgFileName')` via javascript.  This is obviously clunky.
 
 
 ##### Codemirror
@@ -69,11 +84,25 @@ Codemirror, by Marijn Haverbeke, is the library used to display and edit text.
 Handsontable is the library used to display and edit grid data.
 
 
+##### dat.gui
+
+Many components use dat.gui as an interface for exposing their fields.
+
+One undesired feature of dat.gui is that guis are hidden upon pressing 'H'.  This is global and is not able to be turned off with an option.  So disabling it requires that the `HIDE_KEY_CODE` constant be set to -1.
+
+
+
+
+##### Programmatic manipulation
+
+At one point, I envisioned that every component would have a switch to toggle between an HTML interface and a JSON representation.  This would aid discoverability for programmatic manipulation.  But eventually I discarded that idea in favor of having the dat.gui folder structure mirror the field names.
+
+
 
 
 #### Canvas
 
-It is desirable to have a WYSIWYG document display that can be exported to PDF.  To implement this, Hyperbench has a canvas library that translates HTML Canvas commands to PDF commands.  Client code can just use the HTML Canvas interface, and the commands will both draw to a `<canvas>` element on screen as well as be converted to PDF commands and stored in a shadow PDF file.
+It is desirable to have a WYSIWYG document display that can be exported to PDF.  To implement this, Hyperdeck has a canvas library that translates HTML Canvas commands to PDF commands.  Client code can just use the HTML Canvas interface, and the commands will both draw to a `<canvas>` element on screen as well as be converted to PDF commands and stored in a shadow PDF file.
 
 Canvas also has limited SVG support, but this has been neglected in favor of PDF.
 
@@ -107,9 +136,28 @@ There is some support for MathJax via the `drawMath()` function.  I've managed t
 
 Alongside components that hold code and data, there are special component types that handle the specifics of documents.  These components will deal with document settings, page settings, and drawing onto the document.
 
+
+`Core.UploadWorkbook -> Document.exec -> Document.draw -> Section.draw`
+
+Document.exec runs through the objs, setting:
+
+`section.ctx = ctx;`
+`section.document = this;`
+`this.sections.push(section);`
+
+`obj.section = section;`
+`obj.ctx = ctx;`
+`section.widgets.push(obj);`
+
+
+style and fontFamily should both be dropdown boxes, based on available styles/fonts
+
+
+
+
 #### The Document component
 
-The presence of a Document component in a workbook indicates that a Canvas/PDF document will be drawn.  A Document component is optional - the workbook functions fine without one, and the user can just draw arbitrary HTML to the output <div>.  But I feel that breaking backwards compatibility with paper is the worst mistake HTML makes, and is a big part of why scientists and businesspeople don't use HTML to communicate.  Even if paper will finally be eliminated by iPads, you still need to use some sort of document format - PDF isn't going anywhere.
+The presence of a Document component in a workbook indicates that a Canvas/PDF document will be drawn.  A Document component is optional - the workbook functions fine without one, and the user can just draw arbitrary HTML to the output <div>.  But I feel that breaking backwards compatibility with paper is the worst mistake HTML makes, and is a big part why HTML has not completely supplanted PDF in science and business.  Even if paper will finally be eliminated by iPads, you still need to use some sort of document format - PDF isn't going anywhere.
 
 The variables defined in the Document component include page size, screen resolution, and userspace unit definition.  There are three measurement units that will be used in a document: *pixels* for displaying on the screen, *points* for displaying on the page, and what we call *cubits* for the unit used by user code.  The user defines the number of cubits that will make up an inch, centimeter, etc.  For example, a user may decide to define 1 inch = 100 cubits, which is easy to work with.  Points are fixed at 72 points per inch.  Pixels per inch can be set to an arbitrary number.
 
@@ -119,16 +167,15 @@ The Section component defines a sequence of continuous content, such as chapter 
 
 Variables defined in the Section component:
 
-* margin
-* internalMargin (gap between columns, possibly margin from images/captions)
-* nColumns
-* linePitch
-* indent
-* font
+* `margin`
+* `internalMargin` (gap between columns, possibly margin from images/captions)
+* `nColumns`
+* `linePitch`
+* `indent`
+* `font`
 * etc.
 
 It would be nice to have a way to directly edit the text displayed on the document.  The indirect method (of editing text on the components side, and then seeing it displayed on the document side) is fine, but it is serious change from the direct manipulation people do in Word.  But the whole notion of reimplementing direct manipulation text editors on a canvas is self-evidently a tarpit.
-
 
 #### Layout
 
@@ -139,17 +186,17 @@ The layout algorithm looks first at the block components in a section.  These ha
 
 Content is drawn to the document in the same order as their corresponding components.  To rearrange Sections, just rearrange the Section components, and the rendering of the document will follow.  Components like images, charts, etc. belong to the nearest Section above them.  As you read the components from top to bottom, the block components belong to the most-recently encountered Section.
 
-* Section 1
-* Image A
-* Section 2
-* Image B
+* `Section 1`
+* `Image A`
+* `Section 2`
+* `Image B`
 
 So if the components are ordered as above, Image A will be drawn in Section 1 and Image B will be drawn in Section 2.  If you want to move Image B to Section 1, just reorder the components like so:
 
-* Section 1
-* Image A
-* Image B
-* Section 2
+* `Section 1`
+* `Image A`
+* `Image B`
+* `Section 2`
 
 Since the Section is treated as one continuous sequence of pages, the page index of an image can just be encoded as the y-coordinate.
 
@@ -162,6 +209,52 @@ Block components include tables, lists, charts, and images.
 Component subclasses - additional constraints on the data
 Component.Grid -> BarChartData, LineChartData, TextData, Footnotes, Endnotes, SectionHeaders, Captions, etc.
 Component.Text -> Document, Markdown, ProseMirror, Graphviz, Variables, BarChartLinked, LineChartLinked
+
+
+##### Subcanvases
+
+We can't draw every conceivable document widget in-house.  There are dozens of charting libraries, for example - we want people to be able to use them.  But frequently these libraries aren't built to play nice with other things.  Many, for instance, expect an entire `<canvas>` for themselves, both for drawing and for setting event handlers.  We can't give them access to the full document `<canvas>`, lest they attempt to dominate it.
+
+So, we have a Subcanvas component which creates a separate, moveable `<canvas>` element as a sort of sandbox for third party libraries to draw on.
+
+Events:
+
+We want to be able to move the subcanvas using our own standard Box logic, but also allow the events to pass through to the subcanvas so that the events set by the library work properly.  A way to solve this is to put a transparent screen over the subcanvas, then remove it on click.
+
+
+A secondary use for subcanvases is to allow the user to directly write canvas drawing code, rather than having to create a component plugin.
+
+Although we might also want a way to let the user draw directly onto the document canvas, instead of going through a subcanvas.
+
+Should we use subcanvases to draw images, tables, and lists?  These are fundamental enough that I was planning to do them in-house, and we still could, but perhaps the subcanvas abstraction would help us and also allow for third party libraries to do the work.
+
+
+
+Document
+Section - Codemirror
+
+
+Page - same as a section, but without text (this serves mainly to de-clutter the Section component UI, which tbh is a luxury)
+
+
+Captions - Handsontable
+
+Image
+Table - Handsontable
+List - Codemirror
+
+Subcanvas - Codemirror
+
+
+Title is a single textual element
+Shape could also be a single visual element - have a Codemirror with an SVG path
+
+Captions (perhaps rename to Titles) is a grid of multiple visual elements - text, in this case
+Shapes is a grid of multiple visual elements - arbitrary
+
+the problem with grids of multiple visual elements is that one component must be associated with multiple widget boxes
+we have yet to work this out, and it is more cumbersome than one component = one widget box
+
 
 
 #### Charts
@@ -209,6 +302,7 @@ axis labels (and chart titles, etc.) and chart footnotes and such should be Text
 
 
 so there are 3 ways to store Text Content in the components:
+
 1. each Text gets its own component - this is pretty damned unwieldy, although it could be mitigated by single line text inputs rather than textareas
 2. the Texts get put into a grid, either one grid for the whole document, or one grid per section
 3. the Texts are put directly into the document JSON - this is, basically, not data-centric enough
@@ -216,10 +310,12 @@ so there are 3 ways to store Text Content in the components:
 then there's the possibilitiy of different text grids according to function: one for section titles, one for footnotes, one for endnotes, one for captions, etc.  in these cases, the Content added would be presented as different objects, but the corresponding Components would be of similar forms
 
 choices for storing Text data:
+
 1. store all Text info in the document JSON
 2. one grid for the entire document - specify section/page explicitly
 3. one grid for each section - specify page explicitly
 4. one component for each Text object
+
 for now, we'll go with 1
 but 2 would probably be a better option - subject Texts to formulas, variable replacement, etc
 AddText adds a line to the global table
@@ -282,15 +378,5 @@ Clearly, #1 is easier to implement but requires more storage space, and #2 is ha
 ##### Heroku
 
 ##### nginx/uWSGI
-
-
-
-#### Sandboxing
-
-If we are forced to draw the sandbox around the document, excluding components, that raises many questions:
-
-1. Newly uploaded component data still needs to be able to get into the sandbox somehow.  Perhaps this one-directional movement is easy.
-2. We will no longer be able to self-modify the components with user code.  Which, like, is fine.  There are other ways, like outputting intermediate data to the sandbox and then hand copypasting it back to the components.
-
 
 
