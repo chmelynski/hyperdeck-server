@@ -54,7 +54,7 @@ $(document).ready(function() {
           name = $sel.find('.namelink').text();
           filetype = (($sel.find('.namelink').attr('href').startsWith('/d')) ? 'Folder ' : 'Workbook ');
           $sel.remove();
-          $.alert(filetype + '"' + name + "\" was deleted.", 'success');
+          $.alert(filetype + "'" + name + "' was deleted.", 'success');
           $('#deleteModal').modal('hide');
         } else {
           $.alert("Sorry, something went wrong. Please try again later.");
@@ -99,6 +99,7 @@ $(document).ready(function() {
           name = $sel.find('.namelink').text();
           $sel.remove();
           $.alert("Workbook '" + name + "' was moved to '" + dest + "' folder.", 'success');
+          $('#moveModal').modal('hide');
         } else {
           $.alert("Sorry, something went wrong. Please try again later.");
         }
