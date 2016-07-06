@@ -3,208 +3,137 @@
 
 var Section = function(json) {
 	
+	if (!json)
+	{
+		json.type = 'section';
+		json.name = Griddl.Components.UniqueName('section', 1);
+		json.visible = true;
+		json.text = '';
+		json.params = {};
+		json.params.orientation = 'portrait';
+		json.params.margin = {};
+		json.params.margin.top = 100;
+		json.params.margin.left = 100;
+		json.params.margin.right = 100;
+		json.params.margin.bottom = 100;
+		json.params.pitch = 25;
+		json.params.indent = 25;
+		json.params.style = '';
+		//json.params.variables = this.variables;
+		json.params.font = '12pt serif';
+		json.params.fill = 'rgb(0,0,0)';
+		json.params.nColumns = 1;
+		json.params.interColumnMargin = 50;
+	}
+	
 	this.type = json.type;
 	this.name = json.name;
 	this.visible = json.visible;
 	
-	this.text = json.text;
-	this.words = null; // { text : string , line : null , box : Box } - this can be used for applications that require hovering over words
+	this.words = null; // { text : string , line : null , box : Box , style : {} , width : 0 } - this can be used for applications that require hovering over words
 	this.wordMetrics = null;
-	this.spaceWidth = null;
-	this.minSpaceWidth= null;
 	
-	this.div = null;
+	this._text = json.text;
+	
+	Object.defineProperty(this, 'text', { 
+		get : function() {
+			return this._text;
+		},
+		set : function(value) {
+			this._text = value;
+			if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+			this.codemirror.getDoc().setValue(this._text);
+			this.parse();
+			this.draw();
+		}
+	});
+	
+	// these could be made user-editable
+	this.spaceWidth = null;
+	this.minSpaceWidth = null;
 	
 	this.representationLabel = 'HTML';
 	
-	// set by GenerateDocument
-	this.ctx = null;
+	this.div = null;
+	this.ctx = null; // set by GenerateDocument
 	this.document = null;
 	
-	this.orientation = null;
-	this.margin = null;
+	this.page = json.params.page;
+	this.textStyle = json.params.textStyle;
+	this.textPositioning = json.params.textPositioning;
+	this.columns = json.params.columns;
+	this.margin = json.params.margin;
 	
-	this.style = null;
-	this.font = null;
-	this.fill = null;
-	this.pitch = null;
-	this.indent = null;
-	this.nColumns = null;
-	this.interColumnMargin = null;
-	
-	this.nPages = null;
-	
-	this.setData(json.params);
-	
-	// these are the HTML elements
 	this.textarea = null;
 	this.codemirror = null;
-	this.portraitRadio = null;
-	this.landscapRadio = null;
-	this.lfMargin = null;
-	this.rtMargin = null;
-	this.tpMargin = null;
-	this.btMargin = null;
-	this.pitchInput = null;
-	this.indentInput = null;
-	this.styleInput = null;
+	
+	this.nPages = null;
 	
 	this.section = null; // Canvas.Section
 	this.widgets = [];
 };
 Section.prototype.add = function() {
 	
-	this.addElements();
-	this.refresh();
-};
-Section.prototype.addElementsOld = function() {
-	
-	var table, tr, td;
-	
 	var section = this;
 	
-	this.textarea = $('<textarea></textarea>');
-	this.portraitRadio = $('<input type="radio" name="' + this.name + '-orientation" checked></input>');
-	this.landscapRadio = $('<input type="radio" name="' + this.name + '-orientation"        ></input>');
-	this.lfMargin = $('<input type="text"></input>');
-	this.rtMargin = $('<input type="text"></input>');
-	this.tpMargin = $('<input type="text"></input>');
-	this.btMargin = $('<input type="text"></input>');
-	this.pitchInput = $('<input type="text"></input>');
-	this.indentInput = $('<input type="text"></input>');
-	this.styleInput = $('<input type="text"></input>');
-	
-	//this.textarea[0].onchange = function(e) { section.text = this.value; };
-	this.portraitRadio[0].onchange = function(e) { section.orientation = this.checked ? 'portrait' : 'landscape'; };
-	this.landscapRadio[0].onchange = function(e) { section.orientation = this.checked ? 'landscape' : 'portrait'; };
-	this.lfMargin[0].onchange = function(e) { section.margin.lf = parseFloat(this.value); };
-	this.rtMargin[0].onchange = function(e) { section.margin.rt = parseFloat(this.value); };
-	this.tpMargin[0].onchange = function(e) { section.margin.tp = parseFloat(this.value); };
-	this.btMargin[0].onchange = function(e) { section.margin.bt = parseFloat(this.value); };
-	this.pitchInput[0].onchange = function(e) { section.pitch = parseFloat(this.value); };
-	this.indentInput[0].onchange = function(e) { section.indent = parseFloat(this.value); };
-	this.styleInput[0].onchange = function(e) { section.style = this.value; };
-	
-	//this.textarea.css('margin', '1em');
-	this.div.append(this.textarea);
-	
-	this.codemirror = CodeMirror.fromTextArea(section.textarea[0], { mode : 'plain' , smartIndent : false , lineNumbers : true , lineWrapping : true });
-	this.codemirror.on('blur', function() { section.text = section.codemirror.getValue();  });
-	this.codemirror.on('change', function() { MarkDirty(); });
-	
-	this.div.append($('<hr />'));
-	
-	table = $('<table></table>');
-	table.append($('<tr><td colspan="2" style="font-weight:bold">Page orientation</td></tr>'));
-	tr = table.append($('<tr></tr>'));
-	tr.append($('<td>portrait</td>'));
-	td = tr.append($('<td></td>'));
-	td.append(this.portraitRadio);
-	tr.append($('<td>landscape</td>'));
-	td = tr.append($('<td></td>'));
-	td.append(this.landscapRadio);
-	this.div.append(table);
-	
-	this.div.append($('<hr />'));
-	
-	table = $('<table></table>');
-	table.append($('<tr><td colspan="2" style="font-weight:bold">Page margin</td></tr>'));
-	tr = $('<tr></tr>');
-	tr.append($('<td style="text-align:right">left:</td>'));
-	td = $('<td></td>');
-	td.append(this.lfMargin);
-	tr.append(td);
-	table.append(tr);
-	tr = $('<tr></tr>');
-	tr.append($('<td style="text-align:right">right:</td>'));
-	td = $('<td></td>');
-	td.append(this.rtMargin);
-	tr.append(td);
-	table.append(tr);
-	tr = $('<tr></tr>');
-	tr.append($('<td style="text-align:right">top:</td>'));
-	td = $('<td></td>');
-	td.append(this.tpMargin);
-	tr.append(td);
-	table.append(tr);
-	tr = $('<tr></tr>');
-	tr.append($('<td style="text-align:right">bottom:</td>'));
-	td = $('<td></td>');
-	td.append(this.btMargin);
-	tr.append(td);
-	table.append(tr);
-	this.div.append(table);
-	
-	this.div.append($('<hr />'));
-	
-	table = $('<table></table>');
-	table.append($('<tr><td colspan="2" style="font-weight:bold">Text variables</td></tr>'));
-	tr = $('<tr><td style="text-align:right">pitch:</td></tr>');
-	td = $('<td></td>');
-	td.append(this.pitchInput);
-	tr.append(td);
-	table.append(tr);
-	tr = $('<tr><td style="text-align:right">indent:</td></tr>');
-	td = $('<td></td>');
-	td.append(this.indentInput);
-	tr.append(td);
-	table.append(tr);
-	tr = $('<tr><td style="text-align:right">style:</td></tr>');
-	td = $('<td></td>');
-	td.append(this.styleInput);
-	tr.append(td);
-	table.append(tr);
-	this.div.append(table);
-};
-Section.prototype.addElements = function() {
-	
-	var section = this;
+	this.div.html('');
 	
 	this.textarea = $('<textarea></textarea>');
 	this.div.append(this.textarea);
 	
-	this.codemirror = CodeMirror.fromTextArea(section.textarea[0], { mode : 'plain' , smartIndent : false , lineNumbers : true , lineWrapping : true });
-	this.codemirror.on('blur', function() { section.text = section.codemirror.getValue();  });
-	this.codemirror.on('change', function() { Griddl.Components.MarkDirty(); });
+	var options = {};
+	options.mode = 'plain';
+	options.smartIndent = false;
+	options.lineNumbers = true;
+	options.lineWrapping = true;
+	this.codemirror = CodeMirror.fromTextArea(this.textarea[0], options);
+	
+	// on 'change' or 'blur'
+	this.codemirror.on('blur', function() {
+		if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+		section._text = section.codemirror.getValue(); // we avoid a setter loop by setting this._text, not this.text
+		section.parse();
+		section.draw();
+	});
+	
+	this.codemirror.getDoc().setValue(this.text);
 	
 	this.div.append($('<hr />'));
+	
+	var controls = [];
 	
 	var gui = new dat.GUI({autoPlace:false, width:"100%"});
 	gui.add(this, 'generate');
 	gui.add(this, 'exportToPdf');
-	gui.add(this, 'orientation', ['portrait','landscape']);
+	var page = gui.addFolder('page');
+	controls.push(page.add(this.page, 'orientation', ['portrait','landscape']));
+	var textStyle = gui.addFolder('textStyle');
+	controls.push(textStyle.add(this.textStyle, 'style'));
+	controls.push(textStyle.add(this.textStyle, 'fontSize').min(0));
+	controls.push(textStyle.add(this.textStyle, 'fontFamily', ['serif','sans-serif']));
+	controls.push(textStyle.add(this.textStyle, 'bold'));
+	controls.push(textStyle.add(this.textStyle, 'italic'));
+	controls.push(textStyle.add(this.textStyle, 'color')); // problem here is that addColor does not handle nulls or empty strings
+	controls.push(textStyle.add(this.textStyle, 'substyles'));
+	var textPositioning = gui.addFolder('textPositioning');
+	controls.push(textPositioning.add(this.textPositioning, 'indent'));
+	controls.push(textPositioning.add(this.textPositioning, 'lineHeight'));
+	var columns = gui.addFolder('columns');
+	controls.push(columns.add(this.columns, 'numberOfColumns', [1, 2, 3, 4]));
+	controls.push(columns.add(this.columns, 'interColumnMargin').min(0));
 	var margin = gui.addFolder('margin');
-	margin.add(this.margin, 'lf');
-	margin.add(this.margin, 'rt');
-	margin.add(this.margin, 'tp');
-	margin.add(this.margin, 'bt');
+	controls.push(margin.add(this.margin, 'top').min(0));
+	controls.push(margin.add(this.margin, 'left').min(0));
+	controls.push(margin.add(this.margin, 'right').min(0));
+	controls.push(margin.add(this.margin, 'bottom').min(0));
 	
-	gui.add(this, 'style');
-	gui.add(this, 'font');
-	gui.addColor(this, 'fill');
-	gui.add(this, 'pitch');
-	gui.add(this, 'indent');
-	gui.add(this, 'nColumns', [1, 2, 3, 4]);
-	gui.add(this, 'interColumnMargin');
+	controls.forEach(function(control) {
+		control.onChange(function(value) {
+			section.draw();
+		});
+	});
 	
 	this.div[0].appendChild(gui.domElement);
-};
-Section.prototype.refresh = function() {
-	
-	// set the HTML buttons and such according to the object state - call this when the state changes from outside the HTML buttons
-	
-	//this.textarea[0].value = this.text; // we need to figure out whether the section contains the text or whether we put it in a paragraphs
-	//this.portraitRadio[0].checked = (this.orientation == 'portrait');
-	//this.landscapRadio[0].checked = (this.orientation == 'landscape');
-	//this.lfMargin[0].value = this.margin.lf;
-	//this.rtMargin[0].value = this.margin.rt;
-	//this.tpMargin[0].value = this.margin.tp;
-	//this.btMargin[0].value = this.margin.bt;
-	//this.pitchInput[0].value = this.pitch;
-	//this.indentInput[0].value = this.indent;
-	//this.styleInput[0].value = this.style;
-	
-	this.codemirror.getDoc().setValue(this.text);
 };
 Section.prototype.parse = function() {
 	
@@ -212,8 +141,9 @@ Section.prototype.parse = function() {
 };
 Section.prototype.calculateWordMetrics = function() {
 	
-	//this.ctx.SetStyle(this.style);
-	this.ctx.font = this.font;
+	if (this.textStyle.style) { Griddl.Components.SetStyle(this.ctx, this.textStyle.style); }
+	if (this.textStyle.fontSize) { this.ctx.setFontSize(this.textStyle.fontSize); }
+	if (this.textStyle.fontFamily) { this.ctx.setFont(this.textStyle.fontFamily, this.textStyle.bold, this.textStyle.italic); }
 	
 	this.wordMetrics = [];
 	
@@ -225,12 +155,8 @@ Section.prototype.calculateWordMetrics = function() {
 		this.wordMetrics.push(widthCu);
 	}
 	
-	//this.spaceWidth = 10; // this is a magic number that miraculously worked
-	
 	this.spaceWidth = this.ctx.fontSizeCu * 0.30;
 	this.minSpaceWidth = this.ctx.fontSizeCu * 0.20; // for justified text with stretched spacing
-	
-	//this.spaceWidth = this.ctx.measureText(' ').width; // the Opentype measureText doesn't work here
 };
 Section.prototype.generate = function() {
 	
@@ -258,8 +184,8 @@ Section.prototype.draw = function() {
 	this.clear();
 	
 	// perhaps check that orientation is either 'portrait' or 'landscape'
-	var wd = ((this.orientation == 'portrait') ? this.document.page.width : this.document.page.height) * this.document.cubitsPerUnit;
-	var hg = ((this.orientation == 'portrait') ? this.document.page.height : this.document.page.width) * this.document.cubitsPerUnit;
+	var wd = ((this.page.orientation == 'portrait') ? this.document.page.width : this.document.page.height) * this.document.cubitsPerUnit;
+	var hg = ((this.page.orientation == 'portrait') ? this.document.page.height : this.document.page.width) * this.document.cubitsPerUnit;
 	
 	if (hg < 1) { throw new Error('page size too small'); }
 	
@@ -276,15 +202,15 @@ Section.prototype.draw = function() {
 	
 	if (debug) { console.log(`pages needed by widgets: ${nPages}`); }
 	
-	var columnWidth = (wd - this.margin.lf - this.margin.rt - this.interColumnMargin * (this.nColumns - 1)) / this.nColumns;
+	var columnWidth = (wd - this.margin.left - this.margin.right - this.columns.interColumnMargin * (this.columns.numberOfColumns - 1)) / this.columns.numberOfColumns;
 	
 	// 2. create that number of blank page boxes
 	for (var i = 0; i < nPages; i++)
 	{
-		for (var k = 0; k < this.nColumns; k++)
+		for (var k = 0; k < this.columns.numberOfColumns; k++)
 		{
-			var lf = this.margin.lf + (columnWidth + this.interColumnMargin) * k;
-			boxes.push(Griddl.Components.MakeBox({lf:lf,rt:lf+columnWidth,tp:i*hg+this.margin.tp,bt:(i+1)*hg-this.margin.bt}));
+			var lf = this.margin.left + (columnWidth + this.columns.interColumnMargin) * k;
+			boxes.push(Griddl.Components.MakeBox({lf:lf,rt:lf+columnWidth,tp:i*hg+this.margin.top,bt:(i+1)*hg-this.margin.bottom}));
 		}
 	}
 	
@@ -301,7 +227,7 @@ Section.prototype.draw = function() {
 		
 		if (widget.margin)
 		{
-			var boxWithMargin = Griddl.Components.MakeBox({lf:widget.box.lf-widget.margin.lf,rt:widget.box.rt+widget.margin.rt,tp:widget.box.tp-widget.margin.tp,bt:widget.box.bt+widget.margin.bt});
+			var boxWithMargin = Griddl.Components.MakeBox({lf:widget.box.lf-widget.margin.left,rt:widget.box.rt+widget.margin.right,tp:widget.box.tp-widget.margin.top,bt:widget.box.bt+widget.margin.bottom});
 			boxes = Griddl.Components.Box.Occlude(boxes, boxWithMargin);
 		}
 		else
@@ -321,11 +247,11 @@ Section.prototype.draw = function() {
 	// Word { box : Box , text : "string" }
 	var lines = [];
 	
-	if (this.pitch < 0.01) { throw new Error('line pitch too small'); }
+	if (this.textPositioning.lineHeight < 0.01) { throw new Error('line height too small'); }
 	
 	var boxIndex = 0;
 	var box = boxes[boxIndex];
-	var bt = box.tp + this.pitch;
+	var bt = box.tp + this.textPositioning.lineHeight;
 	
 	while (true)
 	{
@@ -338,7 +264,7 @@ Section.prototype.draw = function() {
 			{
 				if (boxes[i].tp == box.bt)
 				{
-					boxes[i].tp = bt - this.pitch;
+					boxes[i].tp = bt - this.textPositioning.lineHeight;
 				}
 			}
 			
@@ -357,11 +283,11 @@ Section.prototype.draw = function() {
 			var line = {};
 			line.words = [];
 			line.box = new Griddl.Components.Box(null, false);
-			line.box.reconcile({lf : box.lf , bt : bt , wd : box.wd , hg : this.pitch });
+			line.box.reconcile({lf : box.lf , bt : bt , wd : box.wd , hg : this.textPositioning.lineHeight });
 			lines.push(line);
 		}
 		
-		bt += this.pitch;
+		bt += this.textPositioning.lineHeight;
 	}
 	
 	if (debug)
@@ -431,10 +357,10 @@ Section.prototype.draw = function() {
 		var excess = lineTexts.length - lines.length;
 		
 		// duplicated in loop below
-		var tp = nPages * hg + this.margin.tp;
-		var bt = tp + this.pitch;
+		var tp = nPages * hg + this.margin.top;
+		var bt = tp + this.textPositioning.lineHeight;
 		nPages++;
-		var pageBottom = nPages * hg - this.margin.bt; // note than nPages is incremented between the usage three lines above and the usage here
+		var pageBottom = nPages * hg - this.margin.bottom; // note than nPages is incremented between the usage three lines above and the usage here
 		
 		var currentColumn = 0;
 		
@@ -443,7 +369,7 @@ Section.prototype.draw = function() {
 			var line = {};
 			line.words = [];
 			line.box = new Griddl.Components.Box(null, false);
-			line.box.reconcile({ lf : this.margin.lf + (columnWidth + this.interColumnMargin) * currentColumn , bt : bt , wd : columnWidth , hg : this.pitch });
+			line.box.reconcile({ lf : this.margin.left + (columnWidth + this.columns.interColumnMargin) * currentColumn , bt : bt , wd : columnWidth , hg : this.textPositioning.lineHeight });
 			
 			if (usingPositions)
 			{
@@ -468,23 +394,23 @@ Section.prototype.draw = function() {
 			
 			lines.push(line);
 			
-			bt += this.pitch;
+			bt += this.textPositioning.lineHeight;
 			
 			if (bt > pageBottom)
 			{
 				currentColumn++;
 				
-				if (currentColumn >= this.nColumns)
+				if (currentColumn >= this.columns.numberOfColumns)
 				{
 					currentColumn = 0;
-					tp = nPages * hg + this.margin.tp;
-					bt = tp + this.pitch;
+					tp = nPages * hg + this.margin.top;
+					bt = tp + this.textPositioning.lineHeight;
 					nPages++;
-					pageBottom = nPages * hg - this.margin.bt; // note than nPages is incremented between the usage three lines above and the usage here
+					pageBottom = nPages * hg - this.margin.bottom; // note than nPages is incremented between the usage three lines above and the usage here
 				}
 				else
 				{
-					bt = tp + this.pitch;
+					bt = tp + this.textPositioning.lineHeight;
 				}
 			}
 		}
@@ -520,10 +446,6 @@ Section.prototype.draw = function() {
 	// if it's limited to color, we can just move the style setting below into the loop
 	// it the spans change the font, well.  then we need to change the whole linebreaking algo
 	
-	this.ctx.fillStyle = 'rgb(0,0,0)'; // this.fill
-	this.ctx.textAlign = 'left';
-	this.ctx.textBaseline = 'bottom'; // this is tied to how we use y in SetType
-	
 	var ctx = this.ctx;
 	if (graphicalDebug)
 	{
@@ -546,6 +468,13 @@ Section.prototype.draw = function() {
 		
 		return;
 	}
+	
+	if (this.textStyle.style) { Griddl.Components.SetStyle(this.ctx, this.textStyle.style); }
+	if (this.textStyle.fontSize) { this.ctx.setFontSize(this.textStyle.fontSize); }
+	if (this.textStyle.fontFamily) { this.ctx.setFont(this.textStyle.fontFamily, this.textStyle.bold, this.textStyle.italic); }
+	this.ctx.fillStyle = this.color;
+	this.ctx.textAlign = 'left';
+	this.ctx.textBaseline = 'bottom'; // this is tied to how we use y in SetType
 	
 	for (var i = 0; i < lines.length; i++)
 	{
@@ -613,8 +542,9 @@ Section.prototype.onhover = function() {
 				{
 					var sub = widget.subs[j];
 					
-					var tx = x - widget.box[sub.box.anchorX];
-					var ty = y - widget.box[sub.box.anchorY];
+					// this fails because we changed xAnchor to 'left','center','right', not 'lf','cx','rt'
+					//var tx = x - widget.box[sub.box.xAnchor];
+					//var ty = y - widget.box[sub.box.yAnchor];
 					
 					if (sub.box.lf <= tx && tx <= sub.box.rt && sub.box.tp <= ty && ty <= sub.box.bt)
 					{
@@ -644,8 +574,8 @@ Section.prototype.drawGridlines = function() {
 	var gridlineSpacing = this.document.snapGrid.gridlineSpacing * this.document.cubitsPerUnit;
 	var gridlineHighlight = this.document.snapGrid.gridlineHighlight * this.document.cubitsPerUnit;
 	
-	var wd = ((this.orientation == 'portrait') ? this.document.page.width : this.document.page.height) * this.document.cubitsPerUnit;
-	var hg = ((this.orientation == 'portrait') ? this.document.page.height : this.document.page.width) * this.document.cubitsPerUnit * this.nPages;
+	var wd = ((this.page.orientation == 'portrait') ? this.document.page.width : this.document.page.height) * this.document.cubitsPerUnit;
+	var hg = ((this.page.orientation == 'portrait') ? this.document.page.height : this.document.page.width) * this.document.cubitsPerUnit * this.nPages;
 	
 	// we could change the x and y loops below to start at the medians and radiate outward, in order to guarantee a median line
 	// as is, the x == medianX test below will fail if medianX is not a multiple of spacing
@@ -719,12 +649,12 @@ Section.prototype.write = function() {
 	json.visible = this.visible;
 	json.text = this.text;
 	json.params = {};
-	json.params.orientation = this.orientation;
+	json.params.orientation = this.page.orientation;
 	json.params.margin = {};
-	json.params.margin.top = this.margin.tp;
-	json.params.margin.left = this.margin.lf;
-	json.params.margin.right = this.margin.rt;
-	json.params.margin.bottom = this.margin.bt;
+	json.params.margin.top = this.margin.top;
+	json.params.margin.left = this.margin.left;
+	json.params.margin.right = this.margin.right;
+	json.params.margin.bottom = this.margin.bottom;
 	json.params.pitch = this.pitch;
 	json.params.indent = this.indent;
 	json.params.style = this.style;
@@ -735,21 +665,139 @@ Section.prototype.write = function() {
 	json.params.interColumnMargin = this.interColumnMargin;
 	return json;
 };
-Section.prototype.setData = function(params) {
-	this.orientation = params.orientation;
-	this.margin = {};
-	this.margin.tp = params.margin.top;
-	this.margin.lf = params.margin.left;
-	this.margin.rt = params.margin.right;
-	this.margin.bt = params.margin.bottom;
-	this.pitch = params.pitch;
-	this.indent = params.indent;
-	this.style = params.style;
-	this.nColumns = params.nColumns;
-	this.interColumnMargin = params.interColumnMargin;
-	this.font = params.font;
-	this.fill = params.fill;
+Section.prototype.wordize = function() {
+	
+	// Markdown syntax:
+	//
+	// Heading
+	// =======
+	// 
+	// Sub-heading
+	// -----------
+	// 
+	// ### Another deeper heading
+	// 
+	// Paragraphs are separated
+	// by a blank line.
+	// 
+	// Leave 2 spaces at the end of a line to do a  
+	// line break
+	// 
+	// *italic*, **bold**, `monospace`, ~~strikethrough~~
+	// 
+	// Shopping list:
+	// 
+	// * apples
+	// * oranges
+	// * pears
+	// 
+	// Numbered list:
+	// 
+	// 1. apples
+	// 2. oranges
+	// 3. pears
+	// 
+	// The rain---not the reign---in
+	// Spain.
+	// 
+	// A [link](http://example.com).
+	
+	
+	this.words = [];
+	var word = '';
+	
+	var k = 0;
+	
+	while (k < this.text.length)
+	{
+		var c = this.text[k];
+		var n = c.charCodeAt();
+		
+		if (n == 32 || n == 9 || n == 13 || n == 10)
+		{
+			if (word.length > 0) { this.words.push(word); }
+			
+			//if (n == 9) { this.words.push('\t'); }
+			//if (n == 10) { this.words.push('\n'); }
+			
+			word = '';
+		}
+		else
+		{
+			word += c;
+		}
+		
+		k++;
+	}
+	
+	if (word.length > 0)
+	{
+		this.words.push(word);
+	}
+	
+	for (var i = 0; i < this.words.length; i++)
+	{
+		var word = this.words[i];
+		
+		if (word == '--')
+		{
+			// m-dash
+		}
+		
+		if (word.length >= 2 && word[0] == '$')
+		{
+			var c = word.charCodeAt(1);
+			
+			if ((c <= 65 && c <= 90) || (c <= 97 && c <= 122))
+			{
+				// ^\$[a-zA-Z] = $ followed by a letter = indicates a variable
+			}
+		}
+		
+		if (word.length >= 3)
+		{
+			var c = word.charAt(0);
+			
+			// 61 = '=', 45 = '-', 35 = '#'
+			if (c == '=' || c == '-' || c == '#')
+			{
+				var allsame = true;
+				
+				for (var i = 1; i < word.length; i++)
+				{
+					if (word.charAt(i) != c)
+					{
+						allsame = false;
+						break;
+					}
+				}
+				
+				if (allsame)
+				{
+					// previous line (for = and -) or following text (for #) is a header
+				}
+			}
+		}
+		
+		// strip an ending period, and then replace it after checking for bold, italic, etc.?
+		var endPeriod = '';
+		if (word.endsWith('.'))
+		{
+			word = word.substring(0, word.length - 1);
+			endPeriod = '.';
+		}
+		
+		//if (word.startsWith('***') && word.endsWith('***')) { word.bold = true; word.italic = true; word = word.substring(3, word.length - 3); }
+		//if (word.startsWith('**') && word.endsWith('**')) { word.bold = true; word = word.substring(2, word.length - 2); }
+		//if (word.startsWith('*') && word.endsWith('*')) { word.italic = true; word = word.substring(1, word.length - 1); }
+		//if (word.startsWith('`') && word.endsWith('`')) { word.monospace = true; word = word.substring(1, word.length - 1); }
+		//if (word.startsWith('~~') && word.endsWith('~~')) { word.strikethrough = true; word = word.substring(1, word.length - 1); }
+		
+		word += endPeriod;
+	}
 };
+
+// the fate of representationToggle is uncertain
 Section.prototype.getText = function() {
 	var json = this.write();
 	var text = JSON.stringify(json.params);
@@ -803,96 +851,6 @@ Section.prototype.representationToggle = function() {
 	
 	return [ { label : obj.representationLabel , fn : TextToOther } , { label : 'JSON' , fn : OtherToText } ];
 };
-Section.prototype.wordize = function() {
-	
-	// Markdown syntax:
-	//
-	// Heading
-	// =======
-	// 
-	// Sub-heading
-	// -----------
-	// 
-	// ### Another deeper heading
-	// 
-	// Paragraphs are separated
-	// by a blank line.
-	// 
-	// Leave 2 spaces at the end of a line to do a  
-	// line break
-	// 
-	// *italic*, **bold**, `monospace`, ~~strikethrough~~
-	// 
-	// Shopping list:
-	// 
-	// * apples
-	// * oranges
-	// * pears
-	// 
-	// Numbered list:
-	// 
-	// 1. apples
-	// 2. oranges
-	// 3. pears
-	// 
-	// The rain---not the reign---in
-	// Spain.
-	// 
-	// A [link](http://example.com).
-	
-	
-	this.words = [];
-	var word = '';
-	
-	var k = 0;
-	
-	while (k < this.text.length)
-	{
-		var c = this.text[k];
-		var n = c.charCodeAt();
-		
-		if (n == 32 || n == 9 || n == 13 || n == 10)
-		{
-			if (word.length > 0) { this.words.push(word); }
-			word = '';
-		}
-		else
-		{
-			word += c;
-		}
-		
-		k++;
-	}
-	
-	if (word.length > 0)
-	{
-		this.words.push(word);
-	}
-};
-Section.New = function() {
-	
-	var json = {};
-	json.type = 'section';
-	json.name = Griddl.Components.UniqueName('section', 1);
-	json.visible = true;
-	json.text = '';
-	json.params = {};
-	json.params.orientation = 'portrait';
-	json.params.margin = {};
-	json.params.margin.top = 100;
-	json.params.margin.left = 100;
-	json.params.margin.right = 100;
-	json.params.margin.bottom = 100;
-	json.params.pitch = 25;
-	json.params.indent = 25;
-	json.params.style = '';
-	//json.params.variables = this.variables;
-	json.params.font = '12pt serif';
-	json.params.fill = 'rgb(0,0,0)';
-	json.params.nColumns = 1;
-	json.params.interColumnMargin = 50;
-	return json;
-};
 
 function LinebreakNaive(lineWidths, words, wordMetrics, spaceWidth) {
 	
@@ -918,6 +876,7 @@ function LinebreakNaive(lineWidths, words, wordMetrics, spaceWidth) {
 			lineText = '';
 			lineIndex++;
 			textWidth = 0;
+			i--;
 			
 			if (lineIndex >= lineWidths.length)
 			{
