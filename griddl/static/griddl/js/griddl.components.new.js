@@ -8,6 +8,9 @@ var TheComponents = (function() {
 var Components = {};
 
 var objs = [];
+Components.objs = objs; // UniqueName in elementIds.js needs this
+
+var lastDeletedObj = null;
 
 Components.Main = function(text) {
 	
@@ -18,7 +21,8 @@ Components.Main = function(text) {
 	
 	var json = JSON.parse(text);
 	
-	objs = Griddl.Components.objs = [];
+	objs = [];
+	Components.objs = objs; // UniqueName in elementIds.js needs this
 	
 	// merge with NewComponent?
 	
@@ -41,9 +45,11 @@ Components.Main = function(text) {
 	}
 	
 	MakeSortable();
+	Griddl.Components.MarkClean();
 };
-
-Components.NewComponent = function(obj) {
+Components.NewComponent = function(type) {
+	
+	var obj = new Griddl.Components[type](null, type);
 	obj.div = Components.CreateComponentDiv($('#cells'), obj);
 	obj.div.css('border', '1px solid gray');
 	obj.div.css('background-color', 'rgb(230,230,230)');
@@ -53,7 +59,6 @@ Components.NewComponent = function(obj) {
 	objs.push(obj);
 	MakeSortable();
 };
-
 var RenameObj = Components.RenameObj = function(obj, newname) {
 	delete objs[obj.name];
 	while (objs[newname]) { newname += ' - copy'; } // if there is a conflict, just add suffixes until there isn't
@@ -61,14 +66,28 @@ var RenameObj = Components.RenameObj = function(obj, newname) {
 	obj.name = newname;
 	objs[obj.name] = obj;
 };
-
 var DeleteObj = Components.DeleteObj = function(obj) {
+	lastDeletedObj = obj;
 	$('#'+obj.name).remove();
 	delete objs[obj.name];
 	var i = objs.indexOf(obj);
 	objs.splice(i, 1);
 };
-
+var RestoreObj = Components.RestoreObj = function() {
+	
+	// basically the same code as NewComponent
+	var obj = lastDeletedObj;
+	while (objs[obj.name]) { obj.name += ' - copy'; }
+	obj.div = Components.CreateComponentDiv($('#cells'), obj);
+	obj.div.css('border', '1px solid gray');
+	obj.div.css('background-color', 'rgb(230,230,230)');
+	obj.add();
+	if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+	objs[obj.name] = obj;
+	objs.push(obj);
+	MakeSortable();
+	lastDeletedObj = null;
+};
 var SaveToText = Components.SaveToText = function() { return JSON.stringify(objs.map(obj => obj.write())); };
 var MakeSortable = Components.MakeSortable = function() {
 	$('#cells').sortable({handle:'.reorder-handle',stop:function(event, ui) {
@@ -81,6 +100,7 @@ var MakeSortable = Components.MakeSortable = function() {
 		objs.forEach(function(obj) {
 			if (obj.type == 'html' || obj.type == 'md' || obj.type == 'css') // not ideal to dispatch on type here
 			{
+				obj.addOutputElements();
 				obj.exec();
 			}
 		});
@@ -101,7 +121,7 @@ var confirmDelete = Components.confirmDelete = function (event) {
   });
 
   modal.modal('show');
-}
+};
 
 // there's a case to be made that show/hide should destroy/recreate the component body, rather than just show/hide
 // Show2 and Hide2 implement the destroy/recreate variant
@@ -129,8 +149,8 @@ var Hide = Components.Hide = function(obj) {
 	obj.div.parent().find('.griddl-component-head-minmax').attr('value', '+');
 	obj.visible = false;
 };
-var ShowAll = Components.ShowAll = function() { objs.forEach(function(obj) { Show(obj); }); };
-var HideAll = Components.HideAll = function() { objs.forEach(function(obj) { Hide(obj); }); };
+Components.ShowAll = function() { objs.forEach(function(obj) { Show(obj); }); };
+Components.HideAll = function() { objs.forEach(function(obj) { Hide(obj); }); };
 
 // API - these functions can be used in user code - abbreviations are put in the global namespace
 var FetchObj = Components.FetchObj = function(name) {
@@ -138,27 +158,18 @@ var FetchObj = Components.FetchObj = function(name) {
 	if (!objs[name]) { throw new Error("Error: there is no object named '" + name + "'"); }
 	return objs[name];
 };
-Components.GetData = function(name) { return FetchObj(name).getData(); };
-Components.SetData = function(name, data) { FetchObj(name).setData(data); };
-Components.GetText = function(name) { return FetchObj(name).getText(); };
-Components.SetText = function(name, text) { FetchObj(name).setText(text); };
-Components.Get = function(name) { return FetchObj(name); };
-Components.Run = function(name) { FetchObj(name).exec(); };
-Components.New = function(json) { Components.NewComponent(new Components[json.type]()); };
-Components.Rem = function(name) { DeleteObj(FetchObj(name)); };
+Griddl.GetData = function(name) { return FetchObj(name).getData(); };
+Griddl.SetData = function(name, data) { FetchObj(name).setData(data); };
+Griddl.GetText = function(name) { return FetchObj(name).getText(); };
+Griddl.SetText = function(name, text) { FetchObj(name).setText(text); };
+Griddl.Get = function(name) { return FetchObj(name); };
+Griddl.Run = function(name) { FetchObj(name).exec(); };
+Griddl.New = function(json) { Components.NewComponent(new Components[json.type]()); };
+Griddl.Rem = function(name) { DeleteObj(FetchObj(name)); };
 
 return Components;
 
 })();
-
-var getData = TheComponents.GetData;
-var setData = TheComponents.SetData;
-var getText = TheComponents.GetText;
-var setText = TheComponents.SetText;
-var get = TheComponents.Get;
-var run = TheComponents.Run;
-// new?
-// rem?
 
 if (typeof window !== 'undefined') {
 	//if (typeof Griddl === 'undefined') { var Griddl = {}; } // Griddl must be defined before this module is loaded
