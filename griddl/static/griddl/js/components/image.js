@@ -3,6 +3,27 @@
 
 var Image = function(json) {
 	
+	if (!json)
+	{
+		json = {};
+		json.type = 'image';
+		json.name = Griddl.Components.UniqueName('image', 1);
+		json.visible = true;
+		json.data = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAIAAAAC64paAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAERJREFUOE9j3LJlCwMMeHt7w9lbt24lKM4A1AwH/5EAMeIDqJlUpyKrZxiimomJElxeG8CoosjZQzSqKHI2RQE2NDUDAEVWy5NpqgO1AAAAAElFTkSuQmCC';
+		json.params = {};
+		json.params.x = 0; // we need some knowledge of the units and scale to set reasonable initial values for the coordinates
+		json.params.y = 0;
+		json.params.hAlign = 'center';
+		json.params.vAlign = 'center';
+		json.params.width = 200;
+		json.params.height = 200;
+		json.params.source = {};
+		json.params.source.left = 0;
+		json.params.source.top = 0;
+		json.params.source.width = 20;
+		json.params.source.height = 20;
+	}
+	
 	this.type = json.type;
 	this.name = json.name;
 	this.visible = json.visible;
@@ -21,25 +42,21 @@ var Image = function(json) {
 	
 	this.load(json.data);
 	
-	this.box = new Griddl.Components.Box(this, true);
+	this.box = new Proxy(new Griddl.Components.Box(this, true), Griddl.Components.DefaultProxyHandler);
+	//this.box = new Griddl.Components.Box(this, true);
 	this.box.x = json.params.x;
 	this.box.y = json.params.y;
 	this.box.hAlign = json.params.hAlign;
 	this.box.vAlign = json.params.vAlign;
-	this.box.wd = json.params.width;
-	this.box.hg = json.params.height;
+	this.box.wd = json.params.wd;
+	this.box.hg = json.params.hg;
 	this.box.align();
 	
-	this.sx = json.params.sx ? json.params.sx : 0;
-	this.sy = json.params.sy ? json.params.sy : 0;
-	this.sw = json.params.sw ? json.params.sw : this.imageElement.width;
-	this.sh = json.params.sh ? json.params.sh : this.imageElement.height;
+	this.source = new Proxy(json.params.source, Griddl.Components.DefaultProxyHandler);
+	//this.source = json.params.source;
 	
-	this.margin = {};
-	this.margin.tp = json.params.margin.top;
-	this.margin.lf = json.params.margin.left;
-	this.margin.rt = json.params.margin.right;
-	this.margin.bt = json.params.margin.bottom;
+	this.margin = new Proxy(json.params.margin, Griddl.Components.DefaultProxyHandler);
+	//this.margin = json.params.margin;
 };
 Image.prototype.add = function() {
 	
@@ -47,6 +64,8 @@ Image.prototype.add = function() {
 	this.refresh();
 };
 Image.prototype.addElements = function() {
+	
+	var comp = this;
 	
 	this.div.html('');
 	
@@ -62,29 +81,32 @@ Image.prototype.addElements = function() {
 	var gui = new dat.GUI({autoPlace:false, width:"100%"});
 	gui.add(this, 'download');
 	gui.add(this, 'upload');
-	gui.add(this.box, 'x'); // add handlers to align the box on change
-	gui.add(this.box, 'y');
-	gui.add(this.box, 'wd'); // need a way to add a label 'width'
-	gui.add(this.box, 'hg');
-	gui.add(this.box, 'hAlign', ['left','center','right']);
-	gui.add(this.box, 'vAlign', ['top','center','bottom']);
-	//gui.add(this, 'sx');
-	//gui.add(this, 'sy');
-	//gui.add(this, 'sw');
-	//gui.add(this, 'sh');
 	
-	var margin = gui.addFolder('margin');
-	margin.add(this.margin, 'lf');
-	margin.add(this.margin, 'rt');
-	margin.add(this.margin, 'tp');
-	margin.add(this.margin, 'bt');
+	this.box.addElements(gui, ['x','y','wd','hg','hAlign','vAlign']);
+	
+	var controls = [];
+	
+	var source = gui.addFolder('source');
+	controls.push(source.add(this.source, 'left'));
+	controls.push(source.add(this.source, 'top'));
+	controls.push(source.add(this.source, 'width'));
+	controls.push(source.add(this.source, 'height'));
+	
+	controls.forEach(function(control) {
+		control.onChange(function(value) {
+			comp.box.clear();
+			comp.draw();
+		});
+	});
+	
+	Griddl.Components.AddMarginElements(gui, this, this.margin);
 	
 	this.div[0].appendChild(gui.domElement);
 	
 	// for (var i in gui.__controllers) { gui.__controllers[i].updateDisplay(); } // how to update display on external change of value
 };
 Image.prototype.draw = function() {
-	this.ctx.drawImage(this.imageElement, this.sx, this.sy, this.sw, this.sh, this.box.lf, this.box.tp, this.box.wd, this.box.hg);
+	this.ctx.drawImage(this.imageElement, this.source.left, this.source.top, this.source.width, this.source.height, this.box.lf, this.box.tp, this.box.wd, this.box.hg);
 };
 Image.prototype.download = function() {
 	var a = document.createElement('a');
@@ -169,28 +191,10 @@ Image.prototype.write = function() {
 	json.params.width = this.width;
 	json.params.height = this.height;
 	json.params.margin = {};
-	json.params.margin.top = this.margin.tp;
-	json.params.margin.left = this.margin.lf;
-	json.params.margin.right = this.margin.rt;
-	json.params.margin.bottom = this.margin.bt;
-	return json;
-};
-Image.New = function() {
-	
-	// we need some knowledge of the units and scale to set reasonable initial values for the coordinates
-	
-	var json = {};
-	json.type = 'image';
-	json.name = Griddl.Components.UniqueName('image', 1);
-	json.visible = true;
-	json.data = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAIAAAAC64paAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAERJREFUOE9j3LJlCwMMeHt7w9lbt24lKM4A1AwH/5EAMeIDqJlUpyKrZxiimomJElxeG8CoosjZQzSqKHI2RQE2NDUDAEVWy5NpqgO1AAAAAElFTkSuQmCC';
-	json.params = {};
-	json.params.x = 0;
-	json.params.y = 0;
-	json.params.hAlign = 'center';
-	json.params.vAlign = 'center';
-	json.params.width = 200;
-	json.params.height = 200;
+	json.params.margin.top = this.margin.top;
+	json.params.margin.left = this.margin.left;
+	json.params.margin.right = this.margin.right;
+	json.params.margin.bottom = this.margin.bottom;
 	return json;
 };
 
