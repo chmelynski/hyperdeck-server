@@ -149,10 +149,10 @@ def directory(request, userid, path=None):
                                             args=(request.user.account.pk,
                                                   '',)))
 
+    # open question: is there a better place for this?
     if 'saveas' in request.session:  # saveas resolution for logged-out users
         with transaction.atomic():
             wbs = Workbook.objects.filter(pk=request.user.account.pk)
-            # wbs.filter(name='My First Workbook').delete()
             data = request.session['saveas']
             clone = Workbook.objects.get(pk=data['wb'])
             clone.owner = request.user.account
@@ -167,17 +167,24 @@ def directory(request, userid, path=None):
     if path:
         path = path.strip('/')
 
+#  this stuff pending a decision on pathing
+#    this = Workbook.objects.get(owner=request.user.account.pk,
+#                                path=path,
+#                                name=path
+#                                )
+
     wbs = Workbook.objects.filter(owner=request.user.account.pk, path=path) \
         .order_by('filetype', 'name')
 
     # sorry, i know this is ugly
+    # todo: should be obviated by better parent tracking
     if request.path == reverse(directory, args=(request.user.account.pk, '')):
         parentdir = False
     else:
         try:
-            this = Workbook.objects.get(owner=request.user.account.pk,
-                                        name=request.path.split('/')[-1])
-            parentdir = this.parent.uri
+            parent = Workbook.objects.get(owner=request.user.account.pk,
+                                          name=request.path.split('/')[-1])
+            parentdir = parent.uri
         except Exception:  # todo: more specific
             parentdir = reverse(directory, args=(request.user.account.pk, ''))
 
@@ -196,6 +203,7 @@ def directory(request, userid, path=None):
         }
     if path:
         context["path"] = path
+
     return render(request, 'griddl/directory.htm', context)
 
 
@@ -351,11 +359,21 @@ def create(request):
     try:
         wb = Workbook()
         wb.owner = request.user.account
-        wb.name = request.POST['name']
+        wb.name = request.POST.get('name')
+        if not wb.name:
+            raise exceptions.ValidationError('request missing param "name"')
+
         wb.public = False
-        wb.parent = None  # todo: need to figure this one out
-        wb.filetype = 'F'
         wb.path = request.POST.get('path', '')
+        if not wb.path:
+            wb.parent = None
+        else:
+            try:
+                wb.parent = Workbook.objects.get(owner=request.user.account.pk,
+                                                 name=wb.path.split('/')[-1])
+            except:
+                wb.parent = None  # todo: not sure if this should be an error?
+        wb.filetype = 'F'
         wb.save()
         return HttpResponseRedirect(wb.uri)
     except Exception:
@@ -379,12 +397,15 @@ def createDir(request):
         if not name:
             raise exceptions.ValidationError('request missing param "name"')
 
-        if request.path == '/d/{}'.format(request.user.account.pk):
+        path = request.POST.get('path', False)
+        logger.debug(path)
+        if path == '/d/{}'.format(request.user.account.pk):
             parent = None
         else:
             try:
                 parent = Workbook.objects.get(owner=request.user.account.pk,
-                                              name=request.path.split('/')[-1])
+                                              path=path.split('/')[:-1],
+                                              name=path.split('/')[-1])
             except Exception:  # todo: more specific
                 parent = None
 
@@ -398,7 +419,7 @@ def createDir(request):
         wb.save()
         return JsonResponse({'success': True, 'redirect': wb.uri})
     except exceptions.ValidationError:
-        return JsonResponse({'success': False})
+        return JsonResponse({'success': False})  # todo: send error message
     except Exception:
         logger.error(traceback.format_exc())
         return JsonResponse({'success': False})
