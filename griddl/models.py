@@ -2,7 +2,6 @@ import json
 import logging
 
 from django.db import models
-from django.contrib.auth.models import User
 from django.template.defaultfilters import slugify
 
 from mysite import settings
@@ -19,10 +18,10 @@ BASE_WORKBOOK = [
         "name": "My First Workbook",
         "visible": False,
         "params": {
-            "unit": "in",
             "pageDimensions": {
                 "width": 8.5,
-                "height": 11
+                "height": 11,
+                "unit": "in"
             },
             "pixelsPerUnit": 50,
             "cubitsPerUnit": 100,

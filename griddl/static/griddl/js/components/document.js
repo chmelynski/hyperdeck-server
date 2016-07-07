@@ -9,35 +9,45 @@
 
 var Document = function(json) {
 	
-	if (!json)
-	{
-		json.type = 'document';
-		json.name = Griddl.Components.UniqueName('document', 1);
-		json.visible = true;
-		json.params = {};
-		json.params.pageSize = {};
-		json.params.pageSize.unit = 'in';
-		json.params.pageSize.width = 850;
-		json.params.pageSize.height = 1100;
-		json.params.scale = {};
-		json.params.scale.pixelsPerUnit = 100;
-		json.params.scale.cubitsPerUnit = 100;
-		json.params.snapGrid = {};
-		json.params.snapGrid.gridlineSpacing = 25;
-		json.params.snapGrid.gridlineHighlight = 100;
-		json.params.pageNumbering = {};
-		json.params.pageNumbering.doPageNumbering = true;
-		json.params.pageNumbering.firstPage = false;
-		json.params.pageNumbering.hAlign = 'center';
-		json.params.pageNumbering.vAlign = 'bottom';
-		json.params.pageNumbering.hOffset = 0;
-		json.params.pageNumbering.vOffset = 50;
-		json.params.pageNumbering.fontSize = 12;
-		json.params.pageNumbering.fontFamily = 'serif';
-		json.params.pageNumbering.bold = false;
-		json.params.pageNumbering.italic = false;
-		json.params.pageNumbering.color = 'rgb(0,0,0)';
+ var defaults = {
+		type: 'document',
+		name: Griddl.Components.UniqueName('document', 1),
+		visible: true,
+		params: {
+		  pageSize: {
+		    unit: 'in',
+		    width: 850,
+		    height: 1100
+      },
+		  scale: {
+		    pixelsPerUnit: 100,
+		    cubitsPerUnit: 100
+      },
+		  snapGrid: {
+		    gridlineSpacing: 25,
+		    gridlineHighlight: 100
+      },
+		  pageNumbering: {
+		    doPageNumbering: true,
+		    firstPage: false,
+		    hAlign: 'center',
+		    vAlign: 'bottom',
+		    hOffset: 0,
+		    vOffset: 50,
+		    fontSize: 12,
+		    fontFamily: 'serif',
+		    bold: false,
+		    italic: false,
+		    color: 'rgb(0,0,0)'
+      }
+    }
 	}
+
+  if (!json) {
+    json = defaults;
+  } else {
+    json = $.extend(true, {}, defaults, json);
+  }
 	
 	this.type = json.type;
 	this.name = json.name;
