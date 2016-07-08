@@ -172,12 +172,13 @@ Document.prototype.add = function() {
 	var gui = new dat.GUI({autoPlace:false, width:"100%"});
 	gui.add(this, 'generate');
 	gui.add(this, 'exportToPdf');
-	controls.push(gui.add(this, 'unit', ['in','pt','cm','mm']));
 	var page = gui.addFolder('page');
-	controls.push(page.add(this.page, 'width').min(0));
-	controls.push(page.add(this.page, 'height').min(0));
-	controls.push(gui.add(this, 'pixelsPerUnit').min(0));
-	controls.push(gui.add(this, 'cubitsPerUnit').min(0));
+	controls.push(page.add(this.pageSize, 'unit', ['in','pt','cm','mm']));
+	controls.push(page.add(this.pageSize, 'width').min(0));
+	controls.push(page.add(this.pageSize, 'height').min(0));
+	var scale = gui.addFolder('scale');
+	controls.push(scale.add(this.scale, 'pixelsPerUnit').min(0));
+	controls.push(scale.add(this.scale, 'cubitsPerUnit').min(0));
 	var snapGrid = gui.addFolder('snapGrid');
 	controls.push(snapGrid.add(this.snapGrid, 'gridlineSpacing').min(0));
 	controls.push(snapGrid.add(this.snapGrid, 'gridlineHighlight').min(0));
