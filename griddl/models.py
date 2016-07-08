@@ -30,16 +30,17 @@ class MaxWorkbookSizeException(Exception):
 
 class Workbook(models.Model):
     owner = models.ForeignKey("Account")
-    name = models.CharField(max_length=200)
-    text = models.TextField(blank=True, default=MY_FIRST_WORKBOOK)
-    public = models.BooleanField(default=False)
-    parent = models.ForeignKey('self', null=True, blank=True,
-                               on_delete=models.SET_NULL)
     filetype = models.CharField(max_length=1, choices=FILE_TYPES,
                                 default='F')
+    parent = models.ForeignKey('self', null=True, blank=True,
+                               on_delete=models.SET_NULL)
+    name = models.CharField(max_length=200)
+    slug = models.SlugField()
+    text = models.TextField(blank=True, default=MY_FIRST_WORKBOOK)
+    public = models.BooleanField(default=False)
     deleted = models.BooleanField(default=False)  # user-initiated removal
     locked = models.BooleanField(default=False)  # automated/administrative
-    slug = models.SlugField()
+    
 
     class Meta:
         unique_together = ("owner", "parent", "name")
