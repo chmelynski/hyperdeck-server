@@ -14,7 +14,6 @@ staging = os.getenv('staging')
 if noahDev or staging:
     developmentServer = False
 
-
 if developmentServer or noahDev or staging:
     DEBUG = True
 else:
@@ -308,7 +307,7 @@ if DEBUG:
 
 # debug toolbar settings
 DEBUG_TOOLBAR_PATCH_SETTINGS = False
-INTERNAL_IPS = ['127.0.0.1', '24.177.237.106']  # (not actually just for debug toolbar tho)
+INTERNAL_IPS = ['127.0.0.1', '24.177.237.106', '192.241.210.119']
 
 # subdomain settings
 SUBDOMAINS = {

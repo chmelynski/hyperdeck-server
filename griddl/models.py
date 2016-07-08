@@ -2,8 +2,8 @@ import json
 import logging
 
 from django.db import models
-from django.contrib.auth.models import User
 from django.template.defaultfilters import slugify
+from django.utils.functional import cached_property
 
 from mysite import settings
 
@@ -90,21 +90,32 @@ class Workbook(models.Model):
     locked = models.BooleanField(default=False)  # automated/administrative
     slug = models.SlugField()
 
-    # path to containing directory
-    path = models.CharField(max_length=2000, blank=True)
-
     class Meta:
-        unique_together = ("owner", "path", "name")  # filesystem-style unique
+        unique_together = ("owner", "parent", "name")
+
+    @cached_property
+    def path_to_file(self):
+        """climb the inheritance tree to build filepath"""
+        if self.parent:
+            current_wb = self.parent
+            parents = [self.parent.slug]
+            while current_wb.parent is not None:
+                parents.insert(0, current_wb.parent.slug)
+                current_wb = current_wb.parent
+            return '/'.join(parents).replace('//', '/')
+        else:
+            return ''
+
+    @property
+    def path(self):
+        return '/'.join([self.path_to_file, self.slug]).replace('//', '/')
 
     @property
     def uri(self):
         """convenience for redirects & such"""
-        if len(self.path):
-            sep = '/'
-        else:
-            sep = ''
-        return '/{}/{}/{}{}{}'.format(self.filetype.lower(), self.owner.pk,
-                                      self.path, sep, self.slug)
+        return '/'.join(['', self.filetype.lower(),
+                         str(self.owner.pk), self.path])\
+                  .replace('//', '/')
 
     @property
     def size(self):
