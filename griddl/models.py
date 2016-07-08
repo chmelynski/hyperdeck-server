@@ -12,56 +12,7 @@ FILE_TYPES = (
     ('L', 'Link')
 )
 
-BASE_WORKBOOK = [
-    {
-        "type": "document",
-        "name": "My First Workbook",
-        "visible": False,
-        "params": {
-            "pageDimensions": {
-                "width": 8.5,
-                "height": 11,
-                "unit": "in"
-            },
-            "pixelsPerUnit": 50,
-            "cubitsPerUnit": 100,
-            "snapGrid": {
-                "gridlineSpacing": 0.25,
-                "gridlineHighlight": 1.00
-            },
-            "pageNumbering": {
-                "hAlign": "center",
-                "vAlign": "bottom",
-                "hOffset": 0,
-                "vOffset": 50,
-                "firstPage": False
-            }
-        }
-    },
-    {
-        "type": "section",
-        "name": "section1",
-        "visible": True,
-        "text": "Welcome to your first Workbook!\
-                 Edit this text or add a new component to get started.",
-        "params": {
-            "orientation": "portrait",
-            "margin": {
-                "top": 100,
-                "left": 100,
-                "right": 100,
-                "bottom": 100
-            },
-            "nColumns": 1,
-            "interColumnMargin": 50,
-            "indent": 25,
-            "pitch": 20,
-            "style": "serif",
-            "font": "12pt serif",
-            "fill": "rgb(0,0,0)"
-        }
-    }
-]
+BASE_WORKBOOK = []
 
 MY_FIRST_WORKBOOK = json.dumps(BASE_WORKBOOK)
 
