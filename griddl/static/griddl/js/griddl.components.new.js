@@ -48,9 +48,9 @@ Components.Main = function(text) {
 	MakeSortable();
 	Griddl.Components.MarkClean();
 };
-Components.NewComponent = function(type) {
+Components.NewComponent = function(obj) {
 	
-	var obj = new Griddl.Components[type](null, type);
+	//var obj = new Griddl.Components[type](null, type);
 	obj.div = Components.CreateComponentDiv($('#cells'), obj);
 	obj.div.css('border', '1px solid gray');
 	obj.div.css('background-color', 'rgb(230,230,230)');
