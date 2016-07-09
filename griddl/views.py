@@ -554,4 +554,4 @@ def results(request, userid, path, slug):
 
 def index(request):
     context = {}
-    return render(request, 'griddl/index.htm', context)
+    return render(request, 'griddl/index2.htm', context)
