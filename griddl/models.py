@@ -33,7 +33,7 @@ class Workbook(models.Model):
     filetype = models.CharField(max_length=1, choices=FILE_TYPES,
                                 default='F')
     parent = models.ForeignKey('self', null=True, blank=True,
-                               on_delete=models.SET_NULL, limit_choices_to={'filetype':'D'})
+                               on_delete=models.CASCADE, limit_choices_to={'filetype':'D'})
     name = models.CharField(max_length=200)
     slug = models.SlugField()
     text = models.TextField(blank=True, default=MY_FIRST_WORKBOOK)
