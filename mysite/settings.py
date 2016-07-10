@@ -115,7 +115,7 @@ MEDIA_URL = ''
 # Don't forget to use absolute paths, not relative paths.
 
 if developmentServer:
-    STATIC_ROOT = ''
+    STATIC_ROOT = 'griddl/static'
     STATIC_URL = '/static/'
     STATICFILES_DIRS = ()
 else:
@@ -185,11 +185,11 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',  # enable static files
     # 'django.contrib.admindocs', # enable admin documentation
 
-    'stored_messages',
-    'bootstrap3',  # django-bootstrap3
-    'crispy_forms',
-    'password_reset',
-    'debug_toolbar',
+    'stored_messages', # django-stored-messages
+    'bootstrap3',      # django-bootstrap3
+    'crispy_forms',    # django-crispy-forms
+    'password_reset',  # django-password-reset
+    'debug_toolbar',   # django-debug-toolbar
 
     'griddl',
     'billing'
