@@ -190,8 +190,8 @@ Document.prototype.add = function() {
 	controls.push(pageNumbering.add(this.pageNumbering, 'vAlign', ['top','center','bottom']));
 	controls.push(pageNumbering.add(this.pageNumbering, 'hOffset').min(0));
 	controls.push(pageNumbering.add(this.pageNumbering, 'vOffset').min(0));
-	controls.push(pageNumbering.add(this.pageNumbering, 'font'));
-	controls.push(pageNumbering.addColor(this.pageNumbering, 'fill'));
+	controls.push(pageNumbering.add(this.pageNumbering, 'fontFamily'));
+	controls.push(pageNumbering.addColor(this.pageNumbering, 'color'));
 	
 	controls.forEach(function(control) {
 		control.onChange(function(value) {
