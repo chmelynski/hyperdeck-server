@@ -11,7 +11,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 noahDev = os.getenv('griddlDev')
 staging = os.getenv('staging')
-herokuDev = os.getenv("herokuDev")
+herokuDev = os.getenv('herokuDev')
 if noahDev or staging or herokuDev:
     developmentServer = False
 
