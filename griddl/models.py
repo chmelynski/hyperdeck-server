@@ -13,7 +13,13 @@ FILE_TYPES = (
     ('L', 'Link')
 )
 
-BASE_WORKBOOK = []
+BASE_WORKBOOK = [{
+    'type': 'md',
+    'visible': 'true',
+    'name': 'md1',
+    'text': '# Welcome to your first workbook!\n\n \
+             Edit this component or add more to get started.'
+}]
 
 MY_FIRST_WORKBOOK = json.dumps(BASE_WORKBOOK)
 
@@ -33,14 +39,14 @@ class Workbook(models.Model):
     filetype = models.CharField(max_length=1, choices=FILE_TYPES,
                                 default='F')
     parent = models.ForeignKey('self', null=True, blank=True,
-                               on_delete=models.CASCADE, limit_choices_to={'filetype':'D'})
+                               on_delete=models.CASCADE,
+                               limit_choices_to={'filetype': 'D'})
     name = models.CharField(max_length=200)
     slug = models.SlugField()
     text = models.TextField(blank=True, default=MY_FIRST_WORKBOOK)
     public = models.BooleanField(default=False)
     deleted = models.BooleanField(default=False)  # user-initiated removal
     locked = models.BooleanField(default=False)  # automated/administrative
-    
 
     class Meta:
         unique_together = ("owner", "parent", "name")
