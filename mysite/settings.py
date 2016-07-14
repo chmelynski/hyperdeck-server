@@ -11,7 +11,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 noahDev = os.getenv('griddlDev')
 staging = os.getenv('staging')
-if noahDev or staging:
+herokuDev = os.getenv('herokuDev')
+if noahDev or staging or herokuDev:
     developmentServer = False
 
 if developmentServer or noahDev or staging:
@@ -315,7 +316,7 @@ SUBDOMAINS = {
     'sandbox': 'griddl'
 }
 
-if noahDev:
+if noahDev or herokuDev:
     SUBDOMAINS = {
         'main': 'dev',
         'sandbox': 'griddl-dev'
