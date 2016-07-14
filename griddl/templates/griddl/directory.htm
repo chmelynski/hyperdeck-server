@@ -107,17 +107,6 @@
               </div>
 
               <div class="form-group">
-                <label class="col-sm-2 control-label" for="type">Type:</label>
-                <div class="col-sm-10">
-                  <select class="form-control" name="type">
-                    {% for defaultWorkbook in defaultWorkbooks %}
-                      <option>{{ defaultWorkbook.name }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-              </div>
-
-              <div class="form-group">
                 <div class="col-sm-12">
                   <div class="pull-right">
                     <input class="btn btn-success" type="submit" value="Create"></input>
