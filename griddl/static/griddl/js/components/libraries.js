@@ -8,7 +8,7 @@
 
 var Libraries = function(json) {
 	
-	// maybe check to see if there's a Libraries already in Griddl.Core.objs - if so, throw an alert or something - no need for duplicate Libraries
+	// maybe check to see if there's a Libraries already in Griddl.Components.objs - if so, throw an alert or something - no need for duplicate Libraries
 	
 	if (!json)
 	{
@@ -202,7 +202,12 @@ Libraries.prototype.doAddFile = function(text, filename, id) {
 	var folder = this.fileFolder.addFolder(filename);
 	
 	var fnobj = {};
-	fnobj.download = function() { };
+	fnobj.download = function() { 
+		var a = document.createElement('a');
+		a.href = window.URL.createObjectURL(new Blob([text], {type : 'text/plain'}));
+		a.download = filename;
+		a.click();
+	};
 	fnobj.delete = function() {
 		delete comp.data.files[filename];
 		$('#' + id).remove();

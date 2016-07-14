@@ -25,6 +25,11 @@ var File = function(json, type) {
 			json.data = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAIAAAAC64paAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAERJREFUOE9j3LJlCwMMeHt7w9lbt24lKM4A1AwH/5EAMeIDqJlUpyKrZxiimomJElxeG8CoosjZQzSqKHI2RQE2NDUDAEVWy5NpqgO1AAAAAElFTkSuQmCC';
 			json.filename = json.name + '.png';
 		}
+		else if (type == 'zipfile')
+		{
+			json.data = 'data:text/plain;base64,UEsDBAoAAAAAAHd+2EgAAAAAAAAAAAAAAAAHAAAAZm9vLnR4dFBLAQI/AAoAAAAAAHd+2EgAAAAAAAAAAAAAAAAHACQAAAAAAAAAIAAAAAAAAABmb28udHh0CgAgAAAAAAABABgAACFS1lHO0QEAIVLWUc7RAdqZSNZRztEBUEsFBgAAAAABAAEAWQAAACUAAAAAAA==';
+			json.filename = json.name + '.zip';
+		}
 		else
 		{
 			throw new Error();
@@ -38,8 +43,10 @@ var File = function(json, type) {
 	this.div = null;
 	this.span = null;
 	
-	this._b64 = json.data;
-	this._uint8array = Base64StringToUint8Array(this._b64.substr(this._b64.indexOf(','))); // data:application/binary;base64,
+	//this._b64 = json.data;
+	this._uint8array = Base64StringToUint8Array(json.data.substr(json.data.indexOf(','))); // data:text/plain;base64,
+	
+	this.files = null; // for zipfile only - { filename  : String , uint8array : Uint8Array , size : String }
 	
 	this.filenameControl = null;
 	this._filename = json.filename;
@@ -64,11 +71,13 @@ var File = function(json, type) {
 	
 	Object.defineProperty(this, 'b64', { 
 		get : function() {
-			return this._b64;
+			//return this._b64;
+			return 'data:text/plain;base64,' + Uint8ArrayToBase64String(this._uint8array);
 		},
 		set : function(value) {
-			this._b64 = value;
-			this._uint8array = Base64StringToUint8Array(this._b64.substr(this._b64.indexOf(','))); // data:application/binary;base64,
+			//this._b64 = value;
+			//this._uint8array = Base64StringToUint8Array(this._b64.substr(this._b64.indexOf(',')));
+			this._uint8array = Base64StringToUint8Array(value.substr(value.indexOf(','))); // data:text/plain;base64,
 			this.add();
 			if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
 		}
@@ -80,13 +89,15 @@ var File = function(json, type) {
 		},
 		set : function(value) {
 			this._uint8array = value;
-			this._b64 = 'data:text/plain;base64,' + Uint8ArrayToBase64String(this._uint8array);
+			//this._b64 = 'data:text/plain;base64,' + Uint8ArrayToBase64String(this._uint8array);
 			this.add();
 			if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
 		}
 	});
 };
 File.prototype.add = function() {
+	
+	var comp = this;
 	
 	this.div.html('');
 	
@@ -108,7 +119,8 @@ File.prototype.add = function() {
 	else if (this.type == 'jsfile')
 	{
 		// do we load now or some other time?
-		$('#output').append($('<script></script>').text(atob(this.b64.substr(this.b64.indexOf(',')+1)))); // jQuery encodes the text
+		var b64 = this.b64;
+		$('#output').append($('<script></script>').text(atob(b64.substr(b64.indexOf(',')+1)))); // jQuery encodes the text
 	}
 	else if (this.type == 'imgfile')
 	{
@@ -127,6 +139,119 @@ File.prototype.add = function() {
 		this.div.append(urlDiv);
 		this.div.append(dimensionDiv);
 		this.div.append(imgdiv);
+	}
+	else if (this.type == 'zipfile')
+	{
+		var zip = new JSZip(this.uint8array.buffer);
+		
+		this.files = []; // Proxy this
+		
+		for (var filename in zip.files)
+		{
+			if (!filename.endsWith('/'))
+			{
+				var file = zip.files[filename];
+				//file.asArrayBuffer() => ArrayBuffer
+				//file.asBinary() => String
+				//file.asText() => String
+				//file.asUint8Array() => Uint8Array
+				
+				var fileobj = {}; // Proxy this
+				fileobj.filename = filename;
+				fileobj.size = file._data.uncompressedSize.toString();
+				fileobj.file = file;
+				fileobj.text = null;
+				fileobj.uint8array = null;
+				
+				fileobj.upload = function() {
+					
+					var fileChooser = $(document.createElement('input'));
+					fileChooser.attr('type', 'file');
+					
+					fileChooser.on('change', function() {
+						
+						var fileReader = new FileReader();
+						
+						fileReader.onload = function(event)
+						{
+							var uint8array = new Uint8Array(event.target.result);
+							fileobj.file = zip.file(fileobj.filename, uint8array); // or just add a uint8array to the fileobj
+							fileobj.size = uint8array.length.toString();
+							// refresh tablegui, somehow
+						};
+						
+						if (fileChooser[0].files.length > 0)
+						{
+							var f = fileChooser[0].files[0];
+							fileobj.filename = f.name;
+							fileReader.readAsArrayBuffer(f);
+						}
+					});
+					
+					fileChooser.click();
+				};
+				fileobj.download = function() {
+					
+					var filename = null;
+					
+					if (this.filename.endsWith('.js'))
+					{
+						filename = this.filename.substring(0, this.filename.length - 3) + '.txt'; // chrome blocks downloading of js files
+					}
+					else
+					{
+						filename = this.filename;
+					}
+					
+					var reader = new FileReader();
+					reader.readAsDataURL(new Blob([this.file.asUint8Array()], {type:'text/plain'})); 
+					reader.onloadend = function() {
+						var a = document.createElement('a');
+						a.href = reader.result;
+						a.download = filename;
+						a.click();
+					};
+				};
+				
+				this.files.push(fileobj);
+			}
+		}
+		
+		this.div.append($('<button>Upload File</button>').on('click', function() {
+			
+			var fileChooser = $('<input type="file"></input>');
+			
+			fileChooser.on('change', function() {
+				
+				if (fileChooser[0].files.length > 0)
+				{
+					var f = fileChooser[0].files[0];
+					
+					var fileobj = {}; // Proxy?
+					fileobj.filename = f.name;
+					
+					var fileReader = new FileReader();
+					
+					fileReader.onload = function(event)
+					{
+						fileobj.uint8array = new Uint8Array(event.target.result);
+						fileobj.size = fileobj.uint8array.length.toString();
+						comp.files.push(fileobj); // refresh tablegui, somehow
+					};
+					
+					fileReader.readAsArrayBuffer(f);
+				}
+			});
+			
+			fileChooser.click();
+		}));
+		
+		var tablegui = new TableGui(this.files);
+		//tablegui.add('upload', 'button', {header:''});
+		tablegui.add('download', 'button', {header:''});
+		tablegui.add('filename', 'text', {size:30});
+		tablegui.add('size', 'label');
+		this.div[0].appendChild(tablegui.table);
 	}
 	else
 	{
@@ -172,7 +297,7 @@ File.prototype.upload = function() {
 File.prototype.download = function() {
 	
 	var a = document.createElement('a');
-	a.href = this.b64;
+	a.href = this.compile();
 	
 	var filename = null;
 	
@@ -187,6 +312,22 @@ File.prototype.download = function() {
 	
 	a.download = filename;
 	a.click();
+};
+File.prototype.compile = function() {
+	
+	if (this.type == 'zipfile')
+	{
+		var zip = new JSZip();
+		
+		for (var i = 0; i < this.files.length; i++)
+		{
+			var fileobj = this.files[i];
+			var uint8array = fileobj.uint8array ? fileobj.uint8array : fileobj.file.asUint8Array();
+			zip.file(fileobj.filename, uint8array);
+		}
+		
+		this.b64 = 'data:application/zip;base64,' + zip.generate();
+	}
 };
 
 File.prototype.getText = function() { return this.b64; };
@@ -251,6 +392,7 @@ function Uint8ArrayToBase64String(uint8array) {
 Griddl.Components.file = File;
 Griddl.Components.jsfile = File;
 Griddl.Components.imgfile = File;
+Griddl.Components.zipfile = File;
 
 })();
 

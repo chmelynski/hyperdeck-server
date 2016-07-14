@@ -1,15 +1,15 @@
 
 (function() {
 
-var Key = function(ctx, chart, params) {
+var Key = function(parent, json) {
 	
-	this.ctx = ctx;
-	this.chart = chart;
-	this.params = params;
+	this.parent = parent;
 	
-	this.page = null; // Widget.setPage(page) should be a thing.  then the widget can set the page field of its subs
+	this.section = null;
 	
 	this.labelColors = params.data;
+	
+	this.ctx = ctx;
 	
 	this.text = {};
 	this.text.font = params.font ? params.font : '10pt sans-serif';
@@ -30,8 +30,8 @@ var Key = function(ctx, chart, params) {
 	this.box.hAlign = params.hAlign;
 	this.box.vAlign = params.vAlign;
 	this.box.parent = this.chart.box;
-	this.box.anchorX = 'rt';
-	this.box.anchorY = 'cy';
+	this.box.xAnchor = 'right';
+	this.box.yAnchor = 'center';
 	
 	this.box.wd = 100; // we need to measure text to do this correctly
 	this.box.hg = this.labelColors.length * this.boxSize + (this.labelColors.length - 1) * this.vGap;
@@ -43,8 +43,9 @@ Key.prototype.draw = function() {
 	
 	for (var i = 0; i < this.labelColors.length; i++)
 	{
-		var x = this.box.parent[this.box.anchorX] + this.box.lf;
-		var y = this.box.parent[this.box.anchorY] + this.box.tp + i * (this.boxSize + this.vGap);
+		// this needs to be changed to the current anchor usage
+		var x = this.box.parent[this.box.xAnchor] + this.box.lf;
+		var y = this.box.parent[this.box.yAnchor] + this.box.tp + i * (this.boxSize + this.vGap);
 		
 		this.ctx.fillStyle = this.labelColors[i].color;
 		this.ctx.fillRect(x, y, this.boxSize, this.boxSize);

@@ -207,12 +207,20 @@ Code.prototype.displayError = function(e) {
 			evalLine = lines[i];
 		}
 	}
-	var fnLineCol = evalLine.split(',')[1]; // ' <anonymous>:7:1)'
-	var fnLineColArray = fnLineCol.substring(1, fnLineCol.length - 1).split(':'); // [ '<anonymous' , '7' , '1' ]
-	var functionName = fnLineColArray[0];
-	var lineNumber = fnLineColArray[1] - 2; // not sure why the line number is 2 off
-	var colNumber = fnLineColArray[2];
-	this.errorSpan.text('Error: ' + e.message + ' (at line ' + lineNumber + ', column ' + colNumber + ')');
+	
+	if (evalLine == null)
+	{
+		this.errorSpan.text(e);
+	}
+	else
+	{
+		var fnLineCol = evalLine.split(',')[1]; // ' <anonymous>:7:1)'
+		var fnLineColArray = fnLineCol.substring(1, fnLineCol.length - 1).split(':'); // [ '<anonymous' , '7' , '1' ]
+		var functionName = fnLineColArray[0];
+		var lineNumber = fnLineColArray[1] - 2; // not sure why the line number is 2 off
+		var colNumber = fnLineColArray[2];
+		this.errorSpan.text('Error: ' + e.message + ' (at line ' + lineNumber + ', column ' + colNumber + ')');
+	}
 };
 Code.prototype.write = function() {
 	

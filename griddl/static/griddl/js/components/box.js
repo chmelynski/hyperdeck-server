@@ -1,12 +1,28 @@
 
 (function() {
 
+var xAnchorTranslate = {left:'lf',center:'cx',right:'rt'};
+var yAnchorTranslate = {top:'tp',center:'cy',bottom:'bt'};
+var xAnchorSign = {left:1,center:1,right:-1};
+var yAnchorSign = {top:1,center:1,bottom:-1};
+
 // Box is primarily for top-level, movable widgets.  it should probably not be necessary for sub-widgets
 // which means that BarChart should govern the onhover and dehover of its Controls, not the Controls themselves
 // a Control won't have an associated Box, of course
 var Box = function(obj, hasHandles) {
 	
+	this.ctx = null; // obj.ctx?
 	this.obj = obj;
+	
+	this.guiFolder = null;
+	
+	// this is for if the box is a subbox of something else - if it can be dragged along with the parent
+	// in that case, the coordinate variables are relative to one of the 9 anchor points of the parent, selected by xAnchor and yAnchor
+	this.parent = null; // Box
+	this.xAnchor = null; // left,center,right
+	this.yAnchor = null; // top,center,bottom
+	
+	this.subs = [];
 	
 	this.x = 0;
 	this.y = 0;
@@ -23,12 +39,6 @@ var Box = function(obj, hasHandles) {
 	this.bt = 0;
 	this.hg = 0;
 	this.hr = 0;
-	
-	// this is for if the box is a subbox of something else - if it can be dragged along with the parent
-	// in that case, the coordinate variables are relative to one of the 9 anchor points of the parent, selected by anchorX and anchorY
-	this.parent = null; // Box
-	this.anchorX = null; // lf,cx,rt
-	this.anchorY = null; // tp,cy,bt
 	
 	// this is not going be used under the current assumption that a Box is only for top-level, moveable widgets
 	this.moveable = false;
@@ -51,6 +61,10 @@ var Box = function(obj, hasHandles) {
 		this.handles.push(new Handle(this, 'right', 'bottom'));
 	}
 };
+Box.prototype.clear = function() {
+	var {lf,tp} = this.rootCoordinates();
+	this.obj.ctx.clearRect(lf, tp, this.wd, this.hg);
+}
 Box.prototype.draw = function() {
 	
 	if (this.drawHandles)
@@ -69,6 +83,7 @@ Box.prototype.draw = function() {
 		//}
 	}
 };
+
 Box.prototype.onhover = function() {
 	
 	//console.log('Box.onhover');
@@ -92,14 +107,7 @@ Box.prototype.dehover = function() {
 };
 Box.prototype.onmousemove = function(e) {
 	
-	var x = e.offsetX * this.obj.ctx.cubitsPerPixel;
-	var y = e.offsetY * this.obj.ctx.cubitsPerPixel;
-	
-	if (this.parent)
-	{
-		x -= this.parent[this.anchorX];
-		y -= this.parent[this.anchorY];
-	}
+	var {x,y} = this.absoluteToRelative(e.offsetX * this.obj.ctx.cubitsPerPixel, e.offsetY * this.obj.ctx.cubitsPerPixel);
 	
 	// check for handles before checking for leaving, because the handles extend slightly outside the box bounds
 	for (var i = 0; i < this.handles.length; i++)
@@ -137,6 +145,41 @@ Box.prototype.onmousemove = function(e) {
 	
 	this.obj.onmousemove(e);
 };
+
+Box.prototype.rootCoordinates = function() {
+	
+	var {x,y} = this.relativeToAbsolute(this.lf, this.tp);
+	return {lf:x,tp:y};
+};
+Box.prototype.relativeToAbsolute = function(rx, ry) {
+	
+	if (this.parent)
+	{
+		var p = this.parent.relativeToAbsolute(this.parent[xAnchorTranslate[this.xAnchor]], this.parent[yAnchorTranslate[this.yAnchor]]);
+		var ax = p.x + rx * xAnchorSign[this.xAnchor];
+		var ay = p.y + ry * yAnchorSign[this.yAnchor];
+		return {x:ax,y:ay};
+	}
+	else
+	{
+		return {x:rx,y:ry};
+	}
+};
+Box.prototype.absoluteToRelative = function(ax, ay) {
+	
+	if (this.parent)
+	{
+		var p = this.parent.absoluteToRelative(this.parent[xAnchorTranslate[this.xAnchor]], this.parent[yAnchorTranslate[this.yAnchor]]);
+		var rx = ax - xAnchorSign[this.xAnchor] * p.x;
+		var ry = ay - yAnchorSign[this.yAnchor] * p.y;
+		return {x:rx,y:ry};
+	}
+	else
+	{
+		return {x:ax,y:ay};
+	}
+};
+
 Box.prototype.reconcile = function(params) {
 	ReconcileBox(this, params);
 	this.reconcileHandles();
@@ -180,11 +223,19 @@ Box.prototype.move = function(dx, dy) {
 	
 	MoveBox(this, dx, dy);
 	this.handles.forEach(function(handle) { handle.x += dx; handle.y += dy; });
+	for (var key in this.guiFolder.__controllers) { this.guiFolder.__controllers[key].updateDisplay(); }
 };
 Box.prototype.changeAlignment = function(hAlign, vAlign) {
 	
 	this.hAlign = hAlign;
 	this.vAlign = vAlign;
+	this.resetXY();
+};
+
+Box.prototype.resetAnchor = function() {
+	
+};
+Box.prototype.resetXY = function() {
 	
 	if (this.hAlign == 'left')
 	{
@@ -219,6 +270,103 @@ Box.prototype.changeAlignment = function(hAlign, vAlign) {
 	{
 		throw new Error();
 	}
+	
+	for (var key in this.guiFolder.__controllers) { this.guiFolder.__controllers[key].updateDisplay(); }
+};
+
+Box.prototype.addElements = function(gui, fieldList) {
+	
+	var box = this;
+	
+	var folder = gui.addFolder('box');
+	this.guiFolder = folder;
+	
+	for (var i = 0; i < fieldList.length; i++)
+	{
+		var field = fieldList[i];
+		var control = null;
+		
+		if (field == 'hAlign')
+		{
+			control = folder.add(this, field, ['left','center','right']);
+			
+			control.onChange(function(value) {
+				box.resetXY();
+				box.align();
+				//box.obj.section.draw();
+			});
+		}
+		else if (field == 'vAlign')
+		{
+			control = folder.add(this, field, ['top','center','bottom']);
+			
+			control.onChange(function(value) {
+				box.resetXY();
+				box.align();
+				//box.obj.section.draw();
+			});
+		}
+		else if (field == 'xAnchor')
+		{
+			control = folder.add(this, field, ['left','center','right']);
+			
+			control.onChange(function(value) {
+				box.resetAnchor();
+				box.align();
+				//box.obj.section.draw();
+			});
+		}
+		else if (field == 'yAnchor')
+		{
+			control = folder.add(this, field, ['top','center','bottom']);
+			
+			// this could be a setter on xAnchor
+			control.onChange(function(value) {
+				box.resetAnchor();
+				box.align();
+				//box.obj.section.draw();
+			});
+		}
+		else
+		{
+			control = folder.add(this, field);
+			
+			control.onChange(function(value) {
+				box.align();
+				box.obj.section.draw();
+			});
+		}
+	}
+};
+
+
+Box.MakeRoot = function(ctx) {
+	
+	// this replaces the stuff that Section did before
+	
+	var box = new Box(null, false);
+	box.ctx = ctx;
+	box.reconcile({lf:0,wd:ctx.canvas.width,tp:0,hg:ctx.canvas.height});
+};
+Box.prototype.initHandlers = function() {
+	
+};
+
+Griddl.Components.AddMarginElements = function(gui, obj, margin) {
+	
+	var controls = [];
+	
+	var folder = gui.addFolder('margin');
+	controls.push(folder.add(margin, 'top'));
+	controls.push(folder.add(margin, 'left'));
+	controls.push(folder.add(margin, 'right'));
+	controls.push(folder.add(margin, 'bottom'));
+	
+	controls.forEach(function(control) {
+		control.onChange(function(value) {
+			obj.section.draw();
+		});
+	});
 };
 
 var Occlude = Box.Occlude = function(boxes, occ) {
@@ -272,29 +420,39 @@ var Occlude = Box.Occlude = function(boxes, occ) {
 		}
 		else if (occ.lf > box.lf && occ.rt >= box.rt && occ.tp <= box.tp && occ.bt < box.bt) // rt tp edges bocked
 		{
-			newboxes.push(MakeBox({tp:occ.bt,bt:box.bt,lf:box.lf,rt:box.rt})); // bt
 			newboxes.push(MakeBox({tp:box.tp,bt:occ.bt,lf:box.lf,rt:occ.lf})); // tp lf
+			newboxes.push(MakeBox({tp:occ.bt,bt:box.bt,lf:box.lf,rt:box.rt})); // bt
 		}
 		else if (occ.lf <= box.lf && occ.rt < box.rt && occ.tp <= box.tp && occ.bt < box.bt) // lf tp edges bocked
 		{
-			newboxes.push(MakeBox({tp:occ.bt,bt:box.bt,lf:box.lf,rt:box.rt})); // bt
 			newboxes.push(MakeBox({tp:box.tp,bt:occ.bt,lf:occ.rt,rt:box.rt})); // tp rt
+			newboxes.push(MakeBox({tp:occ.bt,bt:box.bt,lf:box.lf,rt:box.rt})); // bt
+		}
+		else if (occ.lf > box.lf && occ.rt < box.rt && occ.tp <= box.tp && occ.bt >= box.bt) // tp bt edges bocked (vertical severance)
+		{
+			newboxes.push(MakeBox({tp:box.tp,bt:box.bt,lf:box.lf,rt:occ.lf})); // lf
+			newboxes.push(MakeBox({tp:box.tp,bt:box.bt,lf:occ.rt,rt:box.rt})); // rt
+		}
+		else if (occ.lf <= box.lf && occ.rt >= box.rt && occ.tp > box.tp && occ.bt < box.bt) // lf rt edges bocked (horizontal severance)
+		{
+			newboxes.push(MakeBox({tp:box.tp,bt:occ.tp,lf:box.lf,rt:box.rt})); // tp
+			newboxes.push(MakeBox({tp:occ.bt,bt:box.bt,lf:box.lf,rt:box.rt})); // bt
 		}
 		else if (occ.lf <= box.lf && occ.rt >= box.rt && occ.tp > box.tp && occ.bt >= box.bt) // lf rt bt edges blocked
 		{
-			newboxes.push(MakeBox({tp:box.tp,bt:occ.tp,lf:box.lf,rt:box.rt}));
+			newboxes.push(MakeBox({tp:box.tp,bt:occ.tp,lf:box.lf,rt:box.rt})); // tp
 		}
 		else if (occ.lf > box.lf && occ.rt >= box.rt && occ.tp <= box.tp && occ.bt >= box.bt) // tp bt rt edges blocked
 		{
-			newboxes.push(MakeBox({tp:box.tp,bt:box.bt,lf:box.lf,rt:occ.lf}));
+			newboxes.push(MakeBox({tp:box.tp,bt:box.bt,lf:box.lf,rt:occ.lf})); // lf
 		}
 		else if (occ.lf <= box.lf && occ.rt < box.rt && occ.tp <= box.tp && occ.bt >= box.bt) // tp bt lf edges blocked
 		{
-			newboxes.push(MakeBox({tp:box.tp,bt:box.bt,lf:occ.rt.lf,rt:box.rt}));
+			newboxes.push(MakeBox({tp:box.tp,bt:box.bt,lf:occ.rt.lf,rt:box.rt})); // rt
 		}
 		else if (occ.lf <= box.lf && occ.rt >= box.rt && occ.tp <= box.tp && occ.bt < box.bt) // lf rt tp edges blocked
 		{
-			newboxes.push(MakeBox({tp:occ.bt,bt:box.bt,lf:box.lf,rt:box.rt}));
+			newboxes.push(MakeBox({tp:occ.bt,bt:box.bt,lf:box.lf,rt:box.rt})); // bt
 		}
 		else if (occ.lf <= box.lf && occ.rt >= box.rt && occ.tp <= box.tp && occ.bt >= box.bt)
 		{
@@ -638,9 +796,10 @@ Handle.prototype.onhover = function() {
 	// also, this move function needs to be able to access the Section variables that control the gridline spacing, in order to snap correctly
 	
 	//Debug('Handle.onhover');
-	
-	var bx = (this.box.parent ? this.box.parent[this.box.anchorX] : 0);
-	var by = (this.box.parent ? this.box.parent[this.box.anchorY] : 0);
+	var bx = (this.box.parent ? this.box.parent[xAnchorTranslate[this.box.xAnchor]] : 0);
+	var by = (this.box.parent ? this.box.parent[yAnchorTranslate[this.box.yAnchor]] : 0);
+	var xSign = xAnchorSign[this.box.xAnchor];
+	var ySign = yAnchorSign[this.box.yAnchor];
 	
 	this.box.obj.ctx.canvas.style.cursor = 'move';
 	
@@ -667,8 +826,8 @@ Handle.prototype.onhover = function() {
 		handle.box.activeHandle = handle;
 		handle.box.changeAlignment(handle.hAlign, handle.vAlign);
 		
-		var ax = bx + handle.x;
-		var ay = by + handle.y;
+		var ax = bx + xSign * handle.x;
+		var ay = by + ySign * handle.y;
 		
 		handle.box.obj.section.drawGridlines();
 		

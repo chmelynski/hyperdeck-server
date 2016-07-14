@@ -22,6 +22,7 @@ from mysite.settings import SUBDOMAINS
 from .decorators import require_subdomain
 from .models import Workbook, Account, Plan
 from .models import AccountSizeException, MaxWorkbookSizeException
+from .utils import resolve_ancestry
 
 logger = logging.getLogger(__name__)
 
@@ -149,10 +150,10 @@ def directory(request, userid, path=None):
                                             args=(request.user.account.pk,
                                                   '',)))
 
+    # open question: is there a better place for this?
     if 'saveas' in request.session:  # saveas resolution for logged-out users
         with transaction.atomic():
             wbs = Workbook.objects.filter(pk=request.user.account.pk)
-            # wbs.filter(name='My First Workbook').delete()
             data = request.session['saveas']
             clone = Workbook.objects.get(pk=data['wb'])
             clone.owner = request.user.account
@@ -163,39 +164,37 @@ def directory(request, userid, path=None):
             clone.save()
             del(request.session['saveas'])
 
-    # remove trailing slash for sanity's sake
-    if path:
-        path = path.strip('/')
+    try:
+        this = resolve_ancestry(userid, path)[0]
+    except TypeError:  # NoneType has no indices -- returned no ancestry
+        this = None
 
-    wbs = Workbook.objects.filter(owner=request.user.account.pk, path=path) \
+    wbs = Workbook.objects.filter(owner=request.user.account.pk, parent=this) \
         .order_by('filetype', 'name')
 
-    # sorry, i know this is ugly
-    if request.path == reverse(directory, args=(request.user.account.pk, '')):
-        parentdir = False
-    else:
-        try:
-            this = Workbook.objects.get(owner=request.user.account.pk,
-                                        name=request.path.split('/')[-1])
-            parentdir = this.parent.uri
-        except Exception:  # todo: more specific
-            parentdir = reverse(directory, args=(request.user.account.pk, ''))
-
     dirs = Workbook.objects.filter(owner=request.user.account.pk, filetype='D') \
-        .order_by('path')
+        .order_by('parent', 'name')
 
     acctdirs = [{'val': 'root', 'display': 'Account Root'}]
+    # todo: replace with tree-building func i guess
     for d in dirs:
-        display = '-- ' * len(d.path.split('/')) + d.name
+        display = '-- ' * len(d.path_to_file.split('/')) + d.name
         acctdirs.append({'val': d.pk, 'display': display})
 
     context = {
         "workbooks": wbs,
-        "parentdir": parentdir,
-        "acctdirs": acctdirs
+        "acctdirs": acctdirs,
         }
-    if path:
-        context["path"] = path
+    try:
+        context['path'] = this.path
+        context['parentdir'] = this.parent.uri
+    except:
+        uri = reverse(directory, kwargs={'userid': request.user.account.pk,
+                                         'path': ''})
+        if request.path != uri:  # set "Up" link if not root dir
+            context['parentdir'] = uri
+            context['path'] = this.path
+
     return render(request, 'griddl/directory.htm', context)
 
 
@@ -346,16 +345,24 @@ def saveas(request):
 @require_subdomain(SUBDOMAINS['main'])
 def create(request):
     '''
-    lawd we gotta refactor this at some point. not at all DRY
+    specifically, create a workbook file, not a "dir"
     '''
     try:
         wb = Workbook()
         wb.owner = request.user.account
-        wb.name = request.POST['name']
+        wb.name = request.POST.get('name')
+        if not wb.name:
+            raise exceptions.ValidationError('request missing param "name"')
+
         wb.public = False
-        wb.parent = None  # todo: need to figure this one out
+        path = request.POST.get('path', '')
+
+        try:
+            wb.parent = resolve_ancestry(wb.owner.pk, path)[0]
+        except TypeError:
+            wb.parent = None
+
         wb.filetype = 'F'
-        wb.path = request.POST.get('path', '')
         wb.save()
         return HttpResponseRedirect(wb.uri)
     except Exception:
@@ -379,14 +386,18 @@ def createDir(request):
         if not name:
             raise exceptions.ValidationError('request missing param "name"')
 
-        if request.path == '/d/{}'.format(request.user.account.pk):
-            parent = None
+        # note: this is "path" in the griddl.urls sense --
+        #     i.e. everything between "/d/" and the last piece
+        path = request.POST.get('path', None)
+        logger.debug(path)
+
+        family = resolve_ancestry(request.user.account.pk, path)
+        if family:
+            logger.debug("family yes - path = ".format(path))
+            parent = family[0]
         else:
-            try:
-                parent = Workbook.objects.get(owner=request.user.account.pk,
-                                              name=request.path.split('/')[-1])
-            except Exception:  # todo: more specific
-                parent = None
+            logger.debug("family no :( - path = ".format(path))
+            parent = None
 
         wb = Workbook()
         wb.owner = request.user.account
@@ -398,7 +409,7 @@ def createDir(request):
         wb.save()
         return JsonResponse({'success': True, 'redirect': wb.uri})
     except exceptions.ValidationError:
-        return JsonResponse({'success': False})
+        return JsonResponse({'success': False})  # todo: send error message
     except Exception:
         logger.error(traceback.format_exc())
         return JsonResponse({'success': False})
@@ -467,12 +478,9 @@ def move(request):
             raise exceptions.ValidationError('request missing param "parent"')
 
         if parent == 'root':  # special case, sorry
-            wb.path = ''
             wb.parent = None
         else:
-            parent_dir = Workbook.objects.get(pk=parent)
-            wb.parent = parent_dir
-            wb.path = '/'.join([parent_dir.path, parent_dir.name]).strip('/')
+            wb.parent = Workbook.objects.get(pk=parent)
 
         wb.save()
         return JsonResponse({'success': True, 'slug': wb.slug})
@@ -485,10 +493,8 @@ def move(request):
 
 def workbook(request, userid, path, slug):
     try:
-        user = User.objects.get(account=userid)
-        # todo: we use filter mostly bc this isn't guaranteed unique lol
-        wb = Workbook.objects.filter(owner=user.account,
-                                     path=path, slug=slug)[0]
+        family = resolve_ancestry(userid, '/'.join([path, slug]))
+        wb = family[0]
     except Exception:
         return HttpResponse('Not found')  # todo? more specific maybe.
 
@@ -499,25 +505,12 @@ def workbook(request, userid, path, slug):
         else:
             return HttpResponse('Access denied')
 
-    if user == request.user:
-        try:
-            this = Workbook.objects.get(owner=request.user.account.pk,
-                                        name=request.path.split('/')[-1])
-            parentdir = this.parent.uri
-        except Exception:  # todo: more specific
-            parentdir = reverse(directory, args=(request.user.account.pk, ''))
-    else:
-        parentdir = None
-
     context = {
         "workbook": wb,
         "path": path,
         "userid": userid,
         "sandbox": SUBDOMAINS['sandbox']
         }
-
-    if parentdir:
-        context['parentdir'] = parentdir
 
     tpl = loader.get_template('griddl/workbook.htm').render(context, request)
     response = HttpResponse(tpl, content_type='text/html')
@@ -529,11 +522,11 @@ def workbook(request, userid, path, slug):
 @require_subdomain(SUBDOMAINS['sandbox'])
 def results(request, userid, path, slug):
     # todo: this is now WET wrt views.workbook :'(
+    #        AND views.directory ;_;
+    #        well, tbh it was probably worse before
     try:
-        user = User.objects.get(account=userid)
-        # todo: we use filter mostly bc this isn't guaranteed unique lol
-        wb = Workbook.objects.filter(owner=user.account,
-                                     path=path, slug=slug)[0]
+        family = resolve_ancestry(userid, '/'.join([path, slug]))
+        wb = family[0]
     except Exception:
         return HttpResponse('Not found')  # todo? more specific maybe.
 
@@ -544,26 +537,21 @@ def results(request, userid, path, slug):
         else:
             return HttpResponse('Access denied')
 
-    if user == request.user:
-        try:
-            this = Workbook.objects.get(owner=request.user.account.pk,
-                                        name=request.path.split('/')[-1])
-            parentdir = this.parent.uri
-        except Exception:  # todo: more specific
-            parentdir = reverse(directory, args=(request.user.account.pk, ''))
-    else:
-        parentdir = None
-
     context = {
         "workbook": wb
     }
-
-    if parentdir:
-        context['parentdir'] = parentdir
+    if request.user.account == wb.owner:
+        if wb.parent:
+            context['parentdir'] = wb.parent.uri
+        else:
+            uri = reverse(directory,
+                          kwargs={'userid': request.user.account.pk,
+                                  'path': ''})
+            context['parentdir'] = uri
 
     return render(request, 'griddl/results.htm', context)
 
 
 def index(request):
     context = {}
-    return render(request, 'griddl/index.htm', context)
+    return render(request, 'griddl/index2.htm', context)

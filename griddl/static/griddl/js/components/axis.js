@@ -1,13 +1,16 @@
 
 (function() {
 
-var Axis = function(ctx, chart, params, axis) {
+var Axis = function(chart, json, axis) {
 	
-	this.ctx = ctx;
+	
+	// this.placement = json.params.placement; // ['start','zero','end'] - where the axis goes
+	
+	this.ctx = null;
 	this.chart = chart;
 	this.params = params;
 	this.axis = axis;
-	this.anti = ((axis == 'x') ? 'y' : 'x');
+	this.anti = ((axis == 'x') ? 'y' : 'x'); // we need to incorporate the z axis here
 	
 	this.strokeStyle = params.strokeStyle ? params.strokeStyle : 'black';
 	this.tickLabelFont = params.tickLabelFont ? params.tickLabelFont : '10pt sans-serif';

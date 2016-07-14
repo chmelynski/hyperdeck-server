@@ -92,12 +92,14 @@ var TheCanvas = (function() {
 		this.styleStack = [];
 		
 		this.fontFamily = 'serif';
+		this.bold = false;
+		this.italic = false;
 		this.fontSize = 10; // this is what we display in font UI
 		this.fontSizePt = 10;
 		this.fontSizePx = this.fontSizePt * this.cubitsPerPoint * this.pixelsPerCubit;
 		this.fontSizeCu = this.fontSizePt * this.cubitsPerPoint;
 		this.fontSizeUnits = 'pt';
-		this.fontObject = Canvas.fontDict[this.fontFamily]; // type TrueTypeFont or OpenTypeFont
+		this.fontObject = Canvas.fontDict[this._fontFamily]; // type TrueTypeFont or OpenTypeFont
 		
 		this._textAlign = 'left'; // start (default), end, left, right, center - we should change this from left to start.  does opentype.js support RTL?
 		this._textBaseline = 'alphabetic'; // alphabetic (default), top, hanging, middle, ideographic, bottom
@@ -240,6 +242,8 @@ var TheCanvas = (function() {
 			get : function() { return this.fontSize.toString() + this.fontSizeUnits + ' ' + this.fontFamily; },
 			set : function(str) {
 				
+				if (!str) { return; } // this catches null, undefined, and empty string
+				
 				var letterIndex = str.search(/[A-Za-z]/);
 				var spaceIndex = str.search(' ');
 				
@@ -282,19 +286,31 @@ var TheCanvas = (function() {
 					throw new Error('Unsupported font size type: "' + this.fontSizeUnits + '"');
 				}
 				
-				this.fontFamily = part2;
+				// we split into words, search for 'bold' and 'italic', and remove those words if present
 				
-				// parse default font if it hasn't been parsed yet
-				if (!Canvas.fontDict[this.fontFamily] && Canvas.defaultFonts[this.fontFamily])
+				var words = part2.split(' ');
+				
+				var bold = false;
+				var italic = false;
+				
+				for (var i = 0; i < words.length; i++)
 				{
-					var uint8array = Base64StringToUint8Array(Canvas.defaultFonts[this.fontFamily]);
-					Canvas.fontDict[this.fontFamily] = opentype.parse(uint8array.buffer); // this is in Canvas rather than the instance because components needs access to it
-					Canvas.fontNameToUint8Array[this.fontFamily] = uint8array;
+					if (words[i] == 'bold')
+					{
+						bold = true;
+						words[i] = '';
+					}
+					
+					if (words[i] == 'italic')
+					{
+						italic = true;
+						words[i] = '';
+					}
 				}
 				
-				this.fontObject = Canvas.fontDict[this.fontFamily] ? Canvas.fontDict[this.fontFamily] : Canvas.fontDict['serif'];
+				var fontFamily = words.join('').trim();
 				
-				// in theory, we could dump the font command to PDF here, rather than doing it in each fillText call
+				this.setFont(fontFamily, bold, italic);
 				
 				if (typeof window != 'undefined')
 				{
@@ -311,6 +327,7 @@ var TheCanvas = (function() {
 			this.savedCanvasContext.font = this.font;
 		}
 	}
+	
 	Canvas.prototype.SetActiveSection = function(nameOrIndexOrSection) {
 	
 		var type = typeof(nameOrIndexOrSection);
@@ -400,7 +417,7 @@ var TheCanvas = (function() {
 		{
 			var div = document.createElement('div');
 			div.style.border = '1px solid #c3c3c3';
-			div.style.margin = '1em';
+			//div.style.margin = '1em'; // any subcanvases will be children of this div, which means the top-level canvas has to be flush with this div on the left top so that the absolute positioning on the subcanvas works.  however, we want gaps between the sections - don't know how best to do that now
 			div.style.width = this.pxWidth;
 			div.style.height = this.pxHeight * this.nPages;
 			this.div = div;
@@ -471,6 +488,63 @@ var TheCanvas = (function() {
 			pageCommands.push(this.parent.pointsPerCubit.toString() + ' 0 0 -' + this.parent.pointsPerCubit.toString() + ' 0 0 cm');
 			this.pdfCommands.push(pageCommands);
 		}
+	};
+	
+	Canvas.prototype.setFontSize = function(fontSize) {
+		
+		// this should be a setter, but requires deletion of this.fontSize or creation of a shadow variable
+		
+		this.fontSize = fontSize;
+		this.fontSizePt = fontSize;
+		this.fontSizePx = this.fontSizePt * this.cubitsPerPoint * this.pixelsPerCubit;
+		this.fontSizeCu = this.fontSizePt * this.cubitsPerPoint;
+	};
+	Canvas.prototype.setFont = function(fontFamily, bold, italic) {
+		
+		this.fontFamily = fontFamily;
+		this.bold = bold;
+		this.italic = italic;
+		
+		var suffix = '';
+		
+		if (bold && italic)
+		{
+			suffix = 'Z';
+		}
+		else if (bold)
+		{
+			suffix = 'B';
+		}
+		else if (italic)
+		{
+			suffix = 'I';
+		}
+		
+		var filename = fontFamily + suffix;
+		
+		this.setFontObject(filename);
+	};
+	Canvas.prototype.setFontObject = function(filename) {
+		
+		// parse default font if it hasn't been parsed yet
+		if (!Canvas.fontDict[filename] && Canvas.defaultFonts[filename])
+		{
+			var uint8array = Base64StringToUint8Array(Canvas.defaultFonts[filename]);
+			Canvas.fontDict[filename] = opentype.parse(uint8array.buffer); // fontDict is in Canvas rather than the instance because components needs access to it
+			Canvas.fontNameToUint8Array[filename] = uint8array;
+		}
+		
+		// we can't load fonts lazily because that would introduce an asynchronity (fonts are set by user code, we can't just inject a callback)
+		// so we're going to have to do synchronous fonts.  various solutions:
+		// 1. load fonts on page load - this is slow, but oh well
+		//  a. packaging fonts into a js file is nice because we know they go into the browser cache.  could deliver fonts as font files, but would they be cached?
+		//  b. failing that, maybe cache them in localstorage - this duplicates the storage for each url, but that's probably not an issue
+		// 2. opt-in fonts - either in a Font component or a font section of the Document or a global font settings or something - just like opt-in js libs
+		// 3. user uploaded fonts - again, just like Libraries
+		
+		this.fontObject = Canvas.fontDict[filename] ? Canvas.fontDict[filename] : Canvas.fontDict['serif']; // serif is the default
+		
+		// in theory, we could dump the font command to PDF here, rather than doing it in each fillText call
 	};
 	
 	// there seems to be a case for folding all pdf stuff into Canvas.  the rationale for a separate pdf module was that it would take just a list of commands and then spit out a pdf.  but it's not really that simple - you also need to pass in fonts and images.  which means that the pdf handling is much less separable from the Canvas as a whole

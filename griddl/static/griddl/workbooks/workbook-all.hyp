@@ -50,22 +50,38 @@
 		}
 	},
 	{
-		"type": "title",
-		"name": "title1",
+		"type": "text",
+		"name": "text1",
 		"visible": true,
-		"text": "AVAVAVAV",
+		"text": "Adam Chmelynski\n1261 Bethel Green Dr.\nBethel Park, PA 15102\n",
 		"params": {
-			"x": 425,
-			"y": 200,
-			"hAlign": "center",
-			"vAlign": "center",
-			"width": 200,
-			"style": null,
-			"font": "72pt serif",
-			"stroke": "rgb(0,0,0)",
-			"fill": "rgb(0,0,0)",
-			"lineWidth": 0,
-			"pitch": 100,
+			"indent": 20,
+			"lineHeight": 25,
+			"textMargin": 5,
+			"textAlign": "left",
+			"textStyle": {
+				"styles": "",
+				"fontSize": 24,
+				"fontFamily": "serif",
+				"bold": false,
+				"italic": false,
+				"fill": "rgb(0,0,0)",
+				"stroke": "rgb(0,0,0)",
+				"lineWidth": 0
+			},
+			"markerStyle": {
+				"shape": "circle",
+				"diameter": 10
+			},
+			"box": {
+				"hAlign": "center",
+				"vAlign": "center",
+				"xAnchor": "center",
+				"yAnchor": "center",
+				"x": 0,
+				"y": 0,
+				"wd": 200
+			},
 			"margin": {
 				"top": 100,
 				"left": 100,
@@ -115,11 +131,17 @@
 			"vAlign": "center",
 			"width": 200,
 			"height": 200,
+			"source": {
+				"left": 0,
+				"top": 0,
+				"width": 20,
+				"height": 20
+			},
 			"margin": {
-				"top": 100,
-				"left": 100,
-				"right": 100,
-				"bottom": 100
+				"top": 25,
+				"left": 25,
+				"right": 25,
+				"bottom": 25
 			}
 		}
 	},
@@ -149,7 +171,7 @@
 		"type": "subcanvas",
 		"name": "subcanvas1",
 		"visible": true,
-		"text": "this.fillStyle = 'rgb(128,128,128)';\nthis.fillRect(0, 0, this.canvas.width, this.canvas.height);",
+		"text": "this.fillStyle = 'rgb(128,128,128)';\nthis.fillRect(10, 10, 100, 100);",
 		"params": {
 			"x": 425,
 			"y": 200,
@@ -158,10 +180,10 @@
 			"hAlign": "center",
 			"vAlign": "top",
 			"margin": {
-				"top": 100,
-				"left": 100,
-				"right": 100,
-				"bottom": 100
+				"top": 25,
+				"left": 25,
+				"right": 25,
+				"bottom": 25
 			}
 		}
 	},
@@ -191,24 +213,71 @@
 		"type": "table",
 		"name": "table1",
 		"visible": true,
-		"data": [
+		"values": [
 			["A", "B", "C"],
 			["a", "d", "g"],
-			["b", "e", "h"],
-			["c", "f", "i"]
+			["b", "e", "h"]
+		],
+		"formulas": [
+			["", "", ""],
+			["", "", ""],
+			["", "", ""]
+		],
+		"formatStrings": [
+			["", "", ""],
+			["", "", ""],
+			["", "", ""]
+		],
+		"style": [
+			["", "", ""],
+			["", "", ""],
+			["", "", ""]
+		],
+		"font": [
+			["10pt serif", "10pt serif", "10pt serif"],
+			["10pt serif", "10pt serif", "10pt serif"],
+			["10pt serif", "10pt serif", "10pt serif"]
+		],
+		"fill": [
+			["rgb(0,0,0)", "rgb(0,0,0)", "rgb(0,0,0)"],
+			["rgb(0,0,0)", "rgb(0,0,0)", "rgb(0,0,0)"],
+			["rgb(0,0,0)", "rgb(0,0,0)", "rgb(0,0,0)"]
+		],
+		"hAlign": [
+			["center", "center", "center"],
+			["center", "center", "center"],
+			["center", "center", "center"]
+		],
+		"vAlign": [
+			["center", "center", "center"],
+			["center", "center", "center"],
+			["center", "center", "center"]
+		],
+		"backgroundColor": [
+			["rgb(255,255,255)", "rgb(255,255,255)", "rgb(255,255,255)"],
+			["rgb(255,255,255)", "rgb(255,255,255)", "rgb(255,255,255)"],
+			["rgb(255,255,255)", "rgb(255,255,255)", "rgb(255,255,255)"]
+		],
+		"border": [
+			["", "", ""],
+			["", "", ""],
+			["", "", ""]
 		],
 		"params": {
+			"display": "values",
 			"x": 200,
 			"y": 200,
 			"hAlign": "center",
 			"vAlign": "center",
-			"rowSizes": [50, 30, 30, 30],
+			"rowSizes": [50, 30, 30],
 			"colSizes": [100, 100, 100],
+			"hMargin": 5,
+			"vMargin": 4,
 			"margin": {
-				"top": 100,
-				"left": 100,
-				"right": 100,
-				"bottom": 100
+				"top": 25,
+				"left": 25,
+				"right": 25,
+				"bottom": 25
 			}
 		}
 	},
@@ -235,8 +304,8 @@
 		}
 	},
 	{
-		"type": "list",
-		"name": "list1",
+		"type": "text",
+		"name": "text1",
 		"visible": true,
 		"text": "1. foo\n a. bar\n b. baz\n2. huh",
 		"params": {
@@ -254,10 +323,10 @@
 			"markerStyle": "circle",
 			"markerDiameter": 10,
 			"margin": {
-				"top": 100,
-				"left": 100,
-				"right": 100,
-				"bottom": 100
+				"top": 25,
+				"left": 25,
+				"right": 25,
+				"bottom": 25
 			}
 		}
 	}

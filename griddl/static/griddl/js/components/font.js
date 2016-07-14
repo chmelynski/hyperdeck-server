@@ -8,6 +8,15 @@ var Font = function(json) {
 	
 	// single canvas, 8 columns, 16 rows, labeled in hex
 	
+	if (!json)
+	{
+		json = {};
+		json.type = 'font';
+		json.name = Griddl.Components.UniqueName('font', 1);
+		json.visible = true;
+		json.data = null;
+	}
+	
 	this.type = json.type;
 	this.name = json.name;
 	this.visible = json.visible;
@@ -46,7 +55,7 @@ Font.prototype.load = function(b64) {
 	// init -> constructor -> load -> setData
 	// upload -> load -> setData
 	
-	if (!b64) { return; } // Font.New doesn't have a default font
+	if (!b64) { return; } // a newly-created Font object has no default
 	
 	this.b64 = b64;
 	
@@ -114,15 +123,6 @@ Font.prototype.add = function() {
 	this.canvas = canvas;
 	
 	this.refresh();
-};
-Font.New = function() {
-	
-	var json = {};
-	json.type = 'font';
-	json.name = Griddl.Components.UniqueName('font', 1);
-	json.visible = true;
-	json.data = null;
-	return json;
 };
 
 Griddl.Components.font = Font;

@@ -1,0 +1,283 @@
+[
+	{
+		"type": "document",
+		"name": "document",
+		"visible": false,
+		"params": {
+			"unit": "in",
+			"pageDimensions": {
+				"width": 8.5,
+				"height": 11
+			},
+			"pixelsPerUnit": 50,
+			"cubitsPerUnit": 100,
+			"snapGrid": {
+				"gridlineSpacing": 0.25,
+				"gridlineHighlight": 1.00
+			},
+			"pageNumbering" : {
+				"doPageNumbering": true,
+				"hAlign": "center",
+				"vAlign": "bottom",
+				"hOffset": 0,
+				"vOffset": 50,
+				"firstPage": false,
+				"font": "12pt serif",
+				"fill": "rgb(0,0,0)"
+			}
+		}
+	},
+	{
+		"type": "data",
+		"name": "lineChartData",
+		"visible": false,
+		"data": [{
+			"xAxis": 60,
+			"cars": 50,
+			"trucks": 100,
+			"vans": 200,
+			"buses": 300
+		}, {
+			"xAxis": 90,
+			"cars": 40,
+			"trucks": 90,
+			"vans": 190,
+			"buses": 350
+		}, {
+			"xAxis": 120,
+			"cars": 50,
+			"trucks": 100,
+			"vans": 200,
+			"buses": 325
+		}, {
+			"xAxis": 150,
+			"cars": 70,
+			"trucks": 120,
+			"vans": 180,
+			"buses": 375
+		}, {
+			"xAxis": 180,
+			"cars": 60,
+			"trucks": 140,
+			"vans": 190,
+			"buses": 395
+		}, {
+			"xAxis": 210,
+			"cars": 90,
+			"trucks": 130,
+			"vans": 210,
+			"buses": 385
+		}, {
+			"xAxis": 240,
+			"cars": 80,
+			"trucks": 140,
+			"vans": 220,
+			"buses": 405
+		}, {
+			"xAxis": 270,
+			"cars": 110,
+			"trucks": 120,
+			"vans": 210,
+			"buses": 375
+		}, {
+			"xAxis": 300,
+			"cars": 120,
+			"trucks": 100,
+			"vans": 240,
+			"buses": 385
+		}, {
+			"xAxis": 330,
+			"cars": 140,
+			"trucks": 100,
+			"vans": 220,
+			"buses": 415
+		}, {
+			"xAxis": 360,
+			"cars": 150,
+			"trucks": 80,
+			"vans": 200,
+			"buses": 395
+		}, {
+			"xAxis": 390,
+			"cars": 170,
+			"trucks": 100,
+			"vans": 190,
+			"buses": 385
+		}, {
+			"xAxis": 420,
+			"cars": 160,
+			"trucks": 80,
+			"vans": 190,
+			"buses": 365
+		}, {
+			"xAxis": 450,
+			"cars": 150,
+			"trucks": 110,
+			"vans": 160,
+			"buses": 355
+		}, {
+			"xAxis": 480,
+			"cars": 150,
+			"trucks": 100,
+			"vans": 180,
+			"buses": 345
+		}, {
+			"xAxis": 510,
+			"cars": 150,
+			"trucks": 70,
+			"vans": 170,
+			"buses": 365
+		}, {
+			"xAxis": 540,
+			"cars": 150,
+			"trucks": 80,
+			"vans": 180,
+			"buses": 365
+		}, {
+			"xAxis": 570,
+			"cars": 150,
+			"trucks": 110,
+			"vans": 150,
+			"buses": 385
+		}, {
+			"xAxis": 600,
+			"cars": 150,
+			"trucks": 100,
+			"vans": 140,
+			"buses": 405
+		}, {
+			"xAxis": 630,
+			"cars": 170,
+			"trucks": 120,
+			"vans": 150,
+			"buses": 435
+		}, {
+			"xAxis": 660,
+			"cars": 200,
+			"trucks": 130,
+			"vans": 170,
+			"buses": 445
+		}, {
+			"xAxis": 690,
+			"cars": 200,
+			"trucks": 160,
+			"vans": 180,
+			"buses": 465
+		}, {
+			"xAxis": 720,
+			"cars": 220,
+			"trucks": 140,
+			"vans": 180,
+			"buses": 465
+		}],
+		"params": {
+			"format": "json",
+			"headers": ["xAxis", "cars", "trucks", "vans", "buses"],
+			"display": "grid",
+			"form": null
+		}
+	},
+	{
+		"type": "section",
+		"name": "section2",
+		"visible": false,
+		"text": "",
+		"params": {
+			"orientation": "portrait",
+			"margin": {
+				"top": 100,
+				"left": 100,
+				"right": 100,
+				"bottom": 100
+			},
+			"nColumns": 1,
+			"interColumnMargin": 50,
+			"indent": 25,
+			"pitch": 20,
+			"style": "serif",
+			"font": "12pt serif",
+			"fill": "rgb(0,0,0)"
+		}
+	},
+	{
+		"type": "lineChart",
+		"name": "lineChart1",
+		"visible": true,
+		"params": {
+			"dataSource": "lineChartData",
+			"drawLines": true,
+			"drawPoints": true,
+			"xKey": "xAxis",
+			"zKey": "",
+			"yKeys": "cars,trucks,vans,buses",
+			"radiusKey": "",
+			"colorKey": "",
+			"shapeKey": "",
+			"labelKey": "",
+			"radiusScale": 1,
+			"colorMap": {
+				"cars": "rgb(255,0,0)",
+				"trucks": "rgb(0,255,0)",
+				"vans": "rgb(0,0,255)",
+				"buses": "rgb(255,150,0)"
+			},
+			"shapeMap": {
+				"cars": "circle",
+				"trucks": "square",
+				"vans": "triangle",
+				"buses": "cross"
+			},
+			"xMap": "linear",
+			"xMin": 50,
+			"xMax": 800,
+			"yMap": "linear",
+			"yMin": 0,
+			"yMax": 600,
+			"zMap": "linear",
+			"zMin": 0,
+			"zMax": 600,
+			"labelPlacement": {
+				"xAnchor": "center",
+				"yAnchor": "center",
+				"zAnchor": "center",
+				"dx": 0,
+				"dy": 0,
+				"dz": 0
+			},
+			"textStyle": {
+				"margin": 9
+			},
+			"key": {
+				"x": -100,
+				"y": 0,
+				"hAlign": "left",
+				"vAlign": "center",
+				"hAnchor": "right",
+				"vAnchor": "center"
+			},
+			"box": {
+				"hAlign": "center",
+				"vAlign": "center",
+				"xAnchor": "left",
+				"yAnchor": "top",
+				"x": 425,
+				"y": 550,
+				"wd": 400,
+				"hg": 300
+			},
+			"padding": {
+				"top": 50,
+				"left": 50,
+				"right": 50,
+				"bottom": 50
+			},
+			"margin": {
+				"top": 25,
+				"left": 25,
+				"right": 25,
+				"bottom": 25
+			}
+		}
+	}
+]
+

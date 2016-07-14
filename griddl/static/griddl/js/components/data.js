@@ -30,13 +30,14 @@ var Data = function(json) {
 	this._data = json.data;
 	this.htData = null; // in many cases, we have to convert the data to a different form to get HT to display it the way we want - this holds the converted data
 	
+	// the top of the undo stack is the current state - new states get pushed on add and on setting this.data
 	this.undo = {};
-	this.undo.stack = []; // { data , headers }
+	this.undo.stack = []; // { data , headers } - entirely possible that we should store display and form as well
 	this.undo.index = -1;
 	this.undo.size = 0;
 	this.undo.sizes = [];
-	this.undo.capacity = 1000000;
-	this.undo.currentDataSize = null; // this is set in add() and passed to pushUndo()
+	this.undo.capacity = 50;
+	this.undo.pushOnAdd = true;
 	
 	Object.defineProperty(this, 'data', { 
 		get : function() {
@@ -49,13 +50,12 @@ var Data = function(json) {
 			
 			if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
 			
-			this.pushUndo(this.undo.currentDataSize);
-			
 			this._data = value;
 			this.determineDataForm();
 			this.introspectHeaders();
 			
-			if (this.visible) { this.add(); } else { this.undo.currentDataSize = JSON.stringify(this._data); }
+			// pushUndo is called from add - problem is, if we set this.data while hidden, and then trigger an add() by changing to visible, we'll push twice
+			if (this.visible) { this.add(); } else { this.pushUndo(JSON.stringify(this._data).length); }
 		}
 	});
 	
@@ -157,11 +157,13 @@ Data.prototype.add = function() {
 		displayOptions.push('pre');
 	}
 	
+	if (displayOptions.indexOf(this.display) == -1) { this.display = 'json'; }
+	
 	var gui = new dat.GUI({autoPlace:false, width:"100%"});
 	var displayControl = gui.add(this, 'display', displayOptions);
 	
 	var comp = this;
-	displayControl.onChange(function(value) { comp.add(); });
+	displayControl.onChange(function(value) { comp.undo.pushOnAdd = false; comp.add(); comp.undo.pushOnAdd = true; });
 	
 	// upload and download folders?  also, restrict based on form
 	var uploadFolder = gui.addFolder('upload');
@@ -178,7 +180,7 @@ Data.prototype.add = function() {
 	var tools = gui.addFolder('tools');
 	tools.add(this, 'Undo');
 	tools.add(this, 'Redo');
-	tools.add(this, 'AddHeaders');
+	//tools.add(this, 'AddHeaders');
 	//downloadFolder.add(this, 'downloadXLSX');
 	
 	this.div[0].appendChild(gui.domElement);
@@ -192,13 +194,13 @@ Data.prototype.add = function() {
 	
 	var comp = this;
 	
+	var initText = null;
+	
 	if (this.display == 'json' || this.display == 'yaml' || this.display == 'csv' || this.display == 'tsv')
 	{
 		var textbox = $(document.createElement('textarea'));
 		this.tableDiv.append(textbox);
 		this.codemirror = CodeMirror.fromTextArea(textbox[0], { mode : 'javascript' , smartIndent : false , lineNumbers : true , lineWrapping : true });
-		
-		var initText = null;
 		
 		if (this.display == 'json')
 		{
@@ -229,12 +231,6 @@ Data.prototype.add = function() {
 			comp.errorSpan.text('');
 			
 			var text = comp.codemirror.getValue();
-			
-			// the problem with calling pushUndo here is, what if there is a parse error?
-			// then codemirror is not recreated, so the undo handlers will conflict
-			// perhaps we could roll back the undo push if the parse is unsuccessful
-			comp.pushUndo(comp.undo.currentDataSize);
-			comp.undo.currentDataSize = text.length;
 			
 			var success = false;
 			
@@ -349,12 +345,15 @@ Data.prototype.add = function() {
 			throw new Error();
 		}
 		
-		this.tableDiv[0].innerHTML = '<pre>' + l.join('\n') + '</pre>';
+		initText = '<pre>' + l.join('\n') + '</pre>';
+		this.tableDiv[0].innerHTML = initText;
 	}
 	else
 	{
 		throw new Error();
 	}
+	
+	if (this.undo.pushOnAdd) { this.pushUndo(initText.length); }
 };
 Data.prototype.write = function() {
 	
@@ -707,17 +706,9 @@ function Download(text, ext) {
 	};
 }
 
-// load
-// edit
-// undo
-// redo
-
-// load
-// edit
-// undo
-// edit
-
 Data.prototype.pushUndo = function(size) {
+	
+	//console.log('----------');
 	
 	if (size > this.undo.capacity) { return; }
 	
@@ -727,41 +718,36 @@ Data.prototype.pushUndo = function(size) {
 	for (var i = this.undo.stack.length - 1; i > this.undo.index; i--)
 	{
 		this.undo.stack.pop();
-		this.undo.size -= this.undo.stack.sizes.pop();
+		this.undo.size -= this.undo.sizes.pop();
+		//console.log('pop');
 	}
 	
 	this.undo.stack.push({ data : this._data , headers : this.headers });
 	this.undo.index = this.undo.stack.length - 1;
 	this.undo.sizes.push(size);
 	this.undo.size += size;
+	//console.log('push');
 	
 	while (this.undo.size > this.undo.capacity)
 	{
 		this.undo.stack.shift();
 		this.undo.size -= this.undo.sizes.shift();
 		this.undo.index--;
+		//console.log('shift');
 	}
+	
+	//console.log('----------');
 };
 Data.prototype.Undo = function() {
 	
-	if (this.undo.index < 0) { return; }
-	
-	if (this.undo.index == this.undo.stack.length - 1)
-	{
-		// as it stands, the current data is not stored on the undo stack
-		// data gets pushed to the undo stack only when it is supplanted by other data
-		// that means that the current data, if it is the result of an edit (and not an undo/redo), needs to be pushed
-		
-		this.pushUndo(this.undo.currentDataSize);
-		// now is the index where it should be?
-		this.undo.currentDataSize = this.undo.sizes[this.undo.index]; // so then what do we do here?
-	}
-	
+	if (this.undo.index == 0) { return; }
+	this.undo.index--;
 	this._data = this.undo.stack[this.undo.index].data;
 	this.headers = this.undo.stack[this.undo.index].headers;
-	this.undo.index--;
 	if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+	this.undo.pushOnAdd = false;
 	this.add();
+	this.undo.pushOnAdd = true;
 };
 Data.prototype.Redo = function() {
 	
@@ -770,26 +756,10 @@ Data.prototype.Redo = function() {
 	this._data = this.undo.stack[this.undo.index].data;
 	this.headers = this.undo.stack[this.undo.index].headers;
 	if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+	this.undo.pushOnAdd = false;
 	this.add();
+	this.undo.pushOnAdd = true;
 };
-
-// the yaml and json parsers convert numbers and bools automatically, but of course don't automatically convert dates/functions/etc
-// but the csv and tsv parsers read all entries as a string and so conversion must be done explicitly for all
-
-// things are easier on the writer side because all writers call some variant of .toString() for Date
-
-// JSON.stringify ignores Function objects (which is good, because it means we can write classes to JSON and it will do basically the correct thing)
-// JSON.stringify({d:new Date(),f:function(a) { }) => '{"d":"2016-06-18T15:43:34.068Z"}' - f simply disappears
-// however this poses a problem if we want to have Function objects in the data
-
-// none of the system/library-supplied functions are aware that we use ordered headers
-// so sometimes we need to recreate the objects before writing so that the fields are added in the correct order
-// it appears that "for (key in obj)" iterates over the keys in the order they were added
-// this implementation is obvious enough to probably be consistent across JS engines, but of course the language provides no guarantees
-
-
-// if you want an entry to begin with a double quote, you're going to have to quote it
-// meaning, 	"abc"	 will be interpreted as 'abc' while 	"\"abc\"" will be interpreted as '"abc"'
 
 function ReadJson(text) {
 	
@@ -1106,36 +1076,14 @@ function WriteSeparatedValues(delimiter) {
 	return ls.join('\n') + '\n';
 }
 
-// ([0-9]{1,3}(,?[0-9]{3})*)?(\.[0-9]+)?
-// '[+-]?([0-9]{1,3}((,[0-9]{3})*|([0-9]{3})*))?(\\.[0-9]+)?'
-// this matches a number of things besides numbers, such as "", "+", "%", "-%", and so forth
-// it supports +/-, %, commas in the number, etc.
-// (note that it requires "." as the decimal and "," as the digit separator, and not the reverse as europeans are wont to use)
-// spaces before or after are allowed, but otherwise it must match the whole line
-// one thing this number regex misses is "0." - if there is a decimal, there must be digits after the decimal
-
 var numberRegex = new RegExp('^\\s*[+-]?([0-9]{1,3}((,[0-9]{3})*|([0-9]{3})*))?(\\.[0-9]+)?%?\\s*$');
 var digitRegex = new RegExp('[0-9]');
 var trueRegex = new RegExp('^true$', 'i');
 var falseRegex = new RegExp('^false$', 'i');
 
-// http://stackoverflow.com/questions/15491894/regex-to-validate-date-format-dd-mm-yyyy
-// seems like they were concerned primarily with validating leap years
-// this is actually a concern, even though we're just testing to see if it's worth passing the string to Date, because the Date parser does this:
-// new Date('2/29/2015') => Sun Mar 01 2015 00:00:00 GMT-0500 (Eastern Standard Time)
-// not great.
-// however, our main concern is allowing lots of different date formats, which this does not necessarily do
-//var dateRegex = new RegExp('^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]|(?:Jan|Mar|May|Jul|Aug|Oct|Dec)))\1|(?:(?:29|30)(\/|-|\.)(?:0?[1,3-9]|1[0-2]|(?:Jan|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)(?:0?2|(?:Feb))\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9]|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep))|(?:1[0-2]|(?:Oct|Nov|Dec)))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})$');
-
 // require ISO 8601 dates - this regex reads yyyy-mm-ddThh:mm:ss.fffZ, with each component after yyyy-mm being optional
 // note this means that yyyy alone will be interpreted as an int, not a date
 var dateRegex = new RegExp('[0-9]{4}-[0-9]{2}(-[0-9]{2}(T[0-9]{2}(:[0-9]{2}(:[0-9]{2}(.[0-9]+)?)?)?(Z|([+-][0-9]{1-2}:[0-9]{2})))?)?');
-
-// if we're going to parse dates and functions and such to objects, we need to make sure that the json/yaml/csv/tsv writers stringify them correctly
-// JSON.stringify(new Date()) => '"2016-06-18T15:08:45.000Z"'
-// $.csv.fromObjects([{foo:new Date()}]) => "foo\nSat Jun 18 2016 11:13:34 GMT-0400 (Eastern Daylight Time)"
-// jsyaml.dump(new Date()) => "2016-06-18T15:14:28.246Z\n"
-// and our own tsv functions call .toString() on every object
 
 var WriteObjToString = function(obj) {
 	
@@ -1313,6 +1261,50 @@ function ParseFunction(str) {
 	
 	return fn;
 }
+
+// the yaml and json parsers convert numbers and bools automatically, but of course don't automatically convert dates/functions/etc
+// but the csv and tsv parsers read all entries as a string and so conversion must be done explicitly for all
+
+// things are easier on the writer side because all writers call some variant of .toString() for Date
+
+// JSON.stringify ignores Function objects (which is good, because it means we can write classes to JSON and it will do basically the correct thing)
+// JSON.stringify({d:new Date(),f:function(a) { }) => '{"d":"2016-06-18T15:43:34.068Z"}' - f simply disappears
+// however this poses a problem if we want to have Function objects in the data
+
+// none of the system/library-supplied functions are aware that we use ordered headers
+// so sometimes we need to recreate the objects before writing so that the fields are added in the correct order
+// it appears that "for (key in obj)" iterates over the keys in the order they were added
+// this implementation is obvious enough to probably be consistent across JS engines, but of course the language provides no guarantees
+
+// if you want an entry to begin with a double quote, you're going to have to quote it
+// meaning, 	"abc"	 will be interpreted as 'abc' while 	"\"abc\"" will be interpreted as '"abc"'
+
+
+// ([0-9]{1,3}(,?[0-9]{3})*)?(\.[0-9]+)?
+// '[+-]?([0-9]{1,3}((,[0-9]{3})*|([0-9]{3})*))?(\\.[0-9]+)?'
+// this matches a number of things besides numbers, such as "", "+", "%", "-%", and so forth
+// it supports +/-, %, commas in the number, etc.
+// (note that it requires "." as the decimal and "," as the digit separator, and not the reverse as europeans are wont to use)
+// spaces before or after are allowed, but otherwise it must match the whole line
+// one thing this number regex misses is "0." - if there is a decimal, there must be digits after the decimal
+
+
+// http://stackoverflow.com/questions/15491894/regex-to-validate-date-format-dd-mm-yyyy
+// seems like they were concerned primarily with validating leap years
+// this is actually a concern, even though we're just testing to see if it's worth passing the string to Date, because the Date parser does this:
+// new Date('2/29/2015') => Sun Mar 01 2015 00:00:00 GMT-0500 (Eastern Standard Time)
+// not great.
+// however, our main concern is allowing lots of different date formats, which this does not necessarily do
+//var dateRegex = new RegExp('^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]|(?:Jan|Mar|May|Jul|Aug|Oct|Dec)))\1|(?:(?:29|30)(\/|-|\.)(?:0?[1,3-9]|1[0-2]|(?:Jan|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)(?:0?2|(?:Feb))\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9]|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep))|(?:1[0-2]|(?:Oct|Nov|Dec)))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})$');
+
+
+// if we're going to parse dates and functions and such to objects, we need to make sure that the json/yaml/csv/tsv writers stringify them correctly
+// JSON.stringify(new Date()) => '"2016-06-18T15:08:45.000Z"'
+// $.csv.fromObjects([{foo:new Date()}]) => "foo\nSat Jun 18 2016 11:13:34 GMT-0400 (Eastern Daylight Time)"
+// jsyaml.dump(new Date()) => "2016-06-18T15:14:28.246Z\n"
+// and our own tsv functions call .toString() on every object
+
+
 
 // to detect object vs list: (see http://blog.niftysnippets.org/2010/09/say-what.html)
 // Object.prototype.toString.call([])                => "[object Array]"

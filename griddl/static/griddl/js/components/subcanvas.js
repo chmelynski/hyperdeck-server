@@ -1,7 +1,26 @@
 
 (function() {
 
+// two options - one is to add a real extra <canvas> element
+// but the other option is just to draw on the existing canvas
+
 var Subcanvas = function(json) {
+	
+	if (!json)
+	{
+		json = {};
+		json.type = 'subcanvas';
+		json.name = Griddl.Components.UniqueName('subcanvas', 1);
+		json.visible = true;
+		json.text = '';
+		json.params = {};
+		json.params.x = 0;
+		json.params.y = 0;
+		json.params.hAlign = 'center';
+		json.params.vAlign = 'center';
+		json.params.width = 300;
+		json.params.height = 200;
+	}
 	
 	this.type = json.type;
 	this.name = json.name;
@@ -19,6 +38,8 @@ var Subcanvas = function(json) {
 	this.errorSpan = null;
 	this.errorMessage = null;
 	
+	this.useNewCanvasElement = json.params.useNewCanvasElement;
+	
 	this.box = new Griddl.Components.Box(this, true);
 	this.box.x = json.params.x;
 	this.box.y = json.params.y;
@@ -28,10 +49,10 @@ var Subcanvas = function(json) {
 	this.box.hg = json.params.height;
 	
 	this.margin = {};
-	this.margin.tp = json.params.margin.top;
-	this.margin.lf = json.params.margin.left;
-	this.margin.rt = json.params.margin.right;
-	this.margin.bt = json.params.margin.bottom;
+	this.margin.top = json.params.margin.top;
+	this.margin.left = json.params.margin.left;
+	this.margin.right = json.params.margin.right;
+	this.margin.bottom = json.params.margin.bottom;
 	
 	this.parent = null; // $(<div>)
 	this.canvas = null; // $(<canvas>)
@@ -49,7 +70,12 @@ Subcanvas.prototype.addElements = function() {
 	comp.textarea = $('<textarea></textarea>');
 	comp.div.append(comp.textarea);
 	comp.codemirror = CodeMirror.fromTextArea(comp.textarea[0], { mode : 'javascript' , smartIndent : false , lineNumbers : true , lineWrapping : true });
-	comp.codemirror.on('blur', function() { comp.text = comp.codemirror.getValue(); comp.compile();  });
+	comp.codemirror.on('blur', function() {
+		comp.text = comp.codemirror.getValue();
+		comp.compile();
+		comp.box.clear();
+		comp.draw();
+	});
 	comp.codemirror.on('change', function() { Griddl.Components.MarkDirty(); });
 	
 	comp.refresh();
@@ -62,18 +88,10 @@ Subcanvas.prototype.addElements = function() {
 	this.div.append($('<hr />'));
 	
 	var gui = new dat.GUI({autoPlace:false, width:"100%"});
-	gui.add(this.box, 'x');
-	gui.add(this.box, 'y');
-	gui.add(this.box, 'wd');
-	gui.add(this.box, 'hg');
-	gui.add(this.box, 'hAlign', ['left','center','right']);
-	gui.add(this.box, 'vAlign', ['top','center','bottom']);
 	
-	var margin = gui.addFolder('margin');
-	margin.add(this.margin, 'lf');
-	margin.add(this.margin, 'rt');
-	margin.add(this.margin, 'tp');
-	margin.add(this.margin, 'bt');
+	this.box.addElements(gui, ['x','y','wd','hg','hAlign','vAlign']);
+	
+	Griddl.Components.AddMarginElements(gui, this, this.margin);
 	
 	this.div[0].appendChild(gui.domElement);
 };
@@ -86,37 +104,49 @@ Subcanvas.prototype.refresh = function() {
 };
 Subcanvas.prototype.draw = function() {
 	
-	if (this.parent === null || this.parent.length == 0)
+	if (this.useNewCanvasElement)
 	{
-		this.parent = $(this.ctx.currentSection.div);
-		this.canvas = $('<canvas></canvas>');
-		this.parent.append(this.canvas);
+		if (this.parent === null || this.parent.length == 0)
+		{
+			this.parent = $(this.ctx.currentSection.div);
+			this.canvas = $('<canvas></canvas>');
+			this.parent.append(this.canvas);
+			
+			var lf = Math.floor(this.box.lf * this.ctx.pixelsPerCubit, 1);
+			var tp = Math.floor(this.box.tp * this.ctx.pixelsPerCubit, 1);
+			var wd = Math.floor(this.box.wd * this.ctx.pixelsPerCubit, 1);
+			var hg = Math.floor(this.box.hg * this.ctx.pixelsPerCubit, 1);
+			
+			// getting the subcanvas to be in the right spot is kind of a mess
+			this.canvas.css('position', 'relative');
+			this.canvas.css('left', lf + 'px');
+			this.canvas.css('top', (tp - this.ctx.currentSection.div.clientHeight).toString() + 'px'); 
+			this.canvas[0].width = wd;
+			this.canvas[0].height = hg;
+			
+			this.context = this.canvas[0].getContext('2d');
+		}
 		
-		var lf = Math.floor(this.box.lf * this.ctx.pixelsPerCubit, 1);
-		var tp = Math.floor(this.box.tp * this.ctx.pixelsPerCubit, 1);
-		var wd = Math.floor(this.box.wd * this.ctx.pixelsPerCubit, 1);
-		var hg = Math.floor(this.box.hg * this.ctx.pixelsPerCubit, 1);
-		
-		// getting the subcanvas to be in the right spot is kind of a mess
-		this.canvas.css('position', 'relative');
-		this.canvas.css('left', lf + 'px');
-		this.canvas.css('top', (tp - this.ctx.currentSection.div.clientHeight).toString() + 'px'); 
-		this.canvas[0].width = wd;
-		this.canvas[0].height = hg;
-		
-		this.context = this.canvas[0].getContext('2d');
+		this.context.clearRect(0, 0, this.context.canvas.width, this.context.canvas.height);
+		this.fn.apply(this.context);
 	}
-	
-	this.context.clearRect(0, 0, this.context.canvas.width, this.context.canvas.height);
-	this.fn.apply(this.context);
+	else
+	{
+		this.ctx.save();
+		this.ctx.translate(this.box.lf, this.box.tp);
+		this.ctx.clearRect(0, 0, this.box.wd, this.box.hg);
+		// clip to box
+		this.fn.apply(this.ctx);
+		this.ctx.restore();
+	}
 };
 Subcanvas.prototype.onhover = function() {
-	this.canvas.css('border', '1px solid gray');
+	//this.canvas.css('border', '1px solid gray');
 	this.box.onhover();
 };
 Subcanvas.prototype.dehover = function() {
 	//this.ctx.canvas.style.cursor = 'default';
-	this.canvas.css('border', '');
+	//this.canvas.css('border', '');
 };
 Subcanvas.prototype.onmousemove = function(e) {
 	
@@ -147,28 +177,10 @@ Subcanvas.prototype.write = function() {
 	json.params.width = this.box.wd;
 	json.params.height = this.box.hg;
 	json.params.margin = {};
-	json.params.margin.top = this.margin.tp;
-	json.params.margin.left = this.margin.lf;
-	json.params.margin.right = this.margin.rt;
-	json.params.margin.bottom = this.margin.bt;
-	return json;
-};
-Subcanvas.New = function() {
-	
-	// we need some knowledge of the units and scale to set reasonable initial values for the coordinates
-	
-	var json = {};
-	json.type = 'subcanvas';
-	json.name = Griddl.Components.UniqueName('subcanvas', 1);
-	json.visible = true;
-	json.text = '';
-	json.params = {};
-	json.params.x = 0;
-	json.params.y = 0;
-	json.params.hAlign = 'center';
-	json.params.vAlign = 'center';
-	json.params.width = 300;
-	json.params.height = 200;
+	json.params.margin.top = this.margin.top;
+	json.params.margin.left = this.margin.left;
+	json.params.margin.right = this.margin.right;
+	json.params.margin.bottom = this.margin.bottom;
 	return json;
 };
 

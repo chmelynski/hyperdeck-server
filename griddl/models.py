@@ -2,8 +2,8 @@ import json
 import logging
 
 from django.db import models
-from django.contrib.auth.models import User
 from django.template.defaultfilters import slugify
+from django.utils.functional import cached_property
 
 from mysite import settings
 
@@ -13,56 +13,7 @@ FILE_TYPES = (
     ('L', 'Link')
 )
 
-BASE_WORKBOOK = [
-    {
-        "type": "document",
-        "name": "My First Workbook",
-        "visible": False,
-        "params": {
-            "unit": "in",
-            "pageDimensions": {
-                "width": 8.5,
-                "height": 11
-            },
-            "pixelsPerUnit": 50,
-            "cubitsPerUnit": 100,
-            "snapGrid": {
-                "gridlineSpacing": 0.25,
-                "gridlineHighlight": 1.00
-            },
-            "pageNumbering": {
-                "hAlign": "center",
-                "vAlign": "bottom",
-                "hOffset": 0,
-                "vOffset": 50,
-                "firstPage": False
-            }
-        }
-    },
-    {
-        "type": "section",
-        "name": "section1",
-        "visible": True,
-        "text": "Welcome to your first Workbook!\
-                 Edit this text or add a new component to get started.",
-        "params": {
-            "orientation": "portrait",
-            "margin": {
-                "top": 100,
-                "left": 100,
-                "right": 100,
-                "bottom": 100
-            },
-            "nColumns": 1,
-            "interColumnMargin": 50,
-            "indent": 25,
-            "pitch": 20,
-            "style": "serif",
-            "font": "12pt serif",
-            "fill": "rgb(0,0,0)"
-        }
-    }
-]
+BASE_WORKBOOK = []
 
 MY_FIRST_WORKBOOK = json.dumps(BASE_WORKBOOK)
 
@@ -79,32 +30,44 @@ class MaxWorkbookSizeException(Exception):
 
 class Workbook(models.Model):
     owner = models.ForeignKey("Account")
-    name = models.CharField(max_length=200)
-    text = models.TextField(blank=True, default=MY_FIRST_WORKBOOK)
-    public = models.BooleanField(default=False)
-    parent = models.ForeignKey('self', null=True, blank=True,
-                               on_delete=models.SET_NULL)
     filetype = models.CharField(max_length=1, choices=FILE_TYPES,
                                 default='F')
+    parent = models.ForeignKey('self', null=True, blank=True,
+                               on_delete=models.CASCADE, limit_choices_to={'filetype':'D'})
+    name = models.CharField(max_length=200)
+    slug = models.SlugField()
+    text = models.TextField(blank=True, default=MY_FIRST_WORKBOOK)
+    public = models.BooleanField(default=False)
     deleted = models.BooleanField(default=False)  # user-initiated removal
     locked = models.BooleanField(default=False)  # automated/administrative
-    slug = models.SlugField()
-
-    # path to containing directory
-    path = models.CharField(max_length=2000, blank=True)
+    
 
     class Meta:
-        unique_together = ("owner", "path", "name")  # filesystem-style unique
+        unique_together = ("owner", "parent", "name")
+
+    @cached_property
+    def path_to_file(self):
+        """climb the inheritance tree to build filepath"""
+        if self.parent:
+            current_wb = self.parent
+            parents = [self.parent.slug]
+            while current_wb.parent is not None:
+                parents.insert(0, current_wb.parent.slug)
+                current_wb = current_wb.parent
+            return '/'.join(parents).replace('//', '/')
+        else:
+            return ''
+
+    @property
+    def path(self):
+        return '/'.join([self.path_to_file, self.slug]).replace('//', '/')
 
     @property
     def uri(self):
         """convenience for redirects & such"""
-        if len(self.path):
-            sep = '/'
-        else:
-            sep = ''
-        return '/{}/{}/{}{}{}'.format(self.filetype.lower(), self.owner.pk,
-                                      self.path, sep, self.slug)
+        return '/'.join(['', self.filetype.lower(),
+                         str(self.owner.pk), self.path])\
+                  .replace('//', '/')
 
     @property
     def size(self):
