@@ -29,7 +29,7 @@ var BarChart = function(json) {
 	this.barWidth = json.params.barWidth ? json.params.barWidth : 72 * cubitsPerPoint;
 	this.barGap = json.params.barGap ? json.params.barGap : 36 * cubitsPerPoint;
 	
-	this.box = new Griddl.Components.Box(this, true);
+	this.box = new Hyperdeck.Components.Box(this, true);
 	this.box.x = json.params.x;
 	this.box.y = json.params.y;
 	this.box.hAlign = json.params.hAlign ? json.params.hAlign : 'center';
@@ -98,7 +98,7 @@ BarChart.prototype.addElements = function() {
 	controls.push(padding.add(this.padding, 'right'));
 	controls.push(padding.add(this.padding, 'bottom'));
 	
-	Griddl.Components.AddMarginElements(gui, this, this.margin);
+	Hyperdeck.Components.AddMarginElements(gui, this, this.margin);
 	
 	controls.forEach(function(control) {
 		control.onChange(function(value) {
@@ -140,7 +140,7 @@ BarChart.prototype.calculateDimensions = function() {
 };
 BarChart.prototype.renewData = function() {
 	
-	var data = Griddl.Core.GetData(this.dataSource);
+	var data = Hyperdeck.Core.GetData(this.dataSource);
 	
 	var valueKeyList = this.valueKeys.split(',').map(x => x.trim());
 	
@@ -188,10 +188,10 @@ BarChart.prototype.renewData = function() {
 	//this.textMarginControls = [];
 	
 	//var chart = this;
-	//this.columns.forEach(function(column) { chart.scaleControls.push(new Griddl.Components.Arrow({parent:chart,ctx:chart.ctx,vert:true,field:'scale',scale:0.01,min:0.01})); }); // scale
-	//for (var i = 0; i < this.columns.length - 1; i++) { chart.gapControls.push(new Griddl.Components.Arrow({parent:chart,ctx:chart.ctx,hori:true,field:'widthBetweenBars',scale:1,min:0})); } // widthBetweenBars (gap)
-	//this.columns.forEach(function(column) { chart.barWidthControls.push(new Griddl.Components.Arrow({parent:chart,ctx:chart.ctx,hori:true,field:'barWidth',scale:1,min:1})); }); // barWidth
-	//this.columns.forEach(function(column) { chart.textMarginControls.push(new Griddl.Components.Arrow({parent:chart,ctx:chart.ctx,vert:true,field:'textMargin',scale:1,min:0})); }); // textMargin
+	//this.columns.forEach(function(column) { chart.scaleControls.push(new Hyperdeck.Components.Arrow({parent:chart,ctx:chart.ctx,vert:true,field:'scale',scale:0.01,min:0.01})); }); // scale
+	//for (var i = 0; i < this.columns.length - 1; i++) { chart.gapControls.push(new Hyperdeck.Components.Arrow({parent:chart,ctx:chart.ctx,hori:true,field:'widthBetweenBars',scale:1,min:0})); } // widthBetweenBars (gap)
+	//this.columns.forEach(function(column) { chart.barWidthControls.push(new Hyperdeck.Components.Arrow({parent:chart,ctx:chart.ctx,hori:true,field:'barWidth',scale:1,min:1})); }); // barWidth
+	//this.columns.forEach(function(column) { chart.textMarginControls.push(new Hyperdeck.Components.Arrow({parent:chart,ctx:chart.ctx,vert:true,field:'textMargin',scale:1,min:0})); }); // textMargin
 	
 	//this.scaleControls.forEach(function(control) { chart.controls.push(control); });
 	//this.gapControls.forEach(function(control) { chart.controls.push(control); });
@@ -368,12 +368,12 @@ BarChart.prototype.write = function() {
 	return json;
 };
 
-BarChart.prototype.clear = Griddl.Components.Clear;
-BarChart.prototype.onhover = Griddl.Components.OnHover;
-BarChart.prototype.dehover = Griddl.Components.DeHover;
-BarChart.prototype.onmousemove = Griddl.Components.OnMouseMove;
+BarChart.prototype.clear = Hyperdeck.Components.Clear;
+BarChart.prototype.onhover = Hyperdeck.Components.OnHover;
+BarChart.prototype.dehover = Hyperdeck.Components.DeHover;
+BarChart.prototype.onmousemove = Hyperdeck.Components.OnMouseMove;
 
-Griddl.Components.barChart = BarChart;
+Hyperdeck.Components.barChart = BarChart;
 
 })();
 
