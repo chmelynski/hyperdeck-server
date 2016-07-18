@@ -10,7 +10,7 @@ var Subcanvas = function(json) {
 	{
 		json = {};
 		json.type = 'subcanvas';
-		json.name = Griddl.Components.UniqueName('subcanvas', 1);
+		json.name = Hyperdeck.Components.UniqueName('subcanvas', 1);
 		json.visible = true;
 		json.text = '';
 		json.params = {};
@@ -40,7 +40,7 @@ var Subcanvas = function(json) {
 	
 	this.useNewCanvasElement = json.params.useNewCanvasElement;
 	
-	this.box = new Griddl.Components.Box(this, true);
+	this.box = new Hyperdeck.Components.Box(this, true);
 	this.box.x = json.params.x;
 	this.box.y = json.params.y;
 	this.box.hAlign = json.params.hAlign;
@@ -76,7 +76,7 @@ Subcanvas.prototype.addElements = function() {
 		comp.box.clear();
 		comp.draw();
 	});
-	comp.codemirror.on('change', function() { Griddl.Components.MarkDirty(); });
+	comp.codemirror.on('change', function() { Hyperdeck.Components.MarkDirty(); });
 	
 	comp.refresh();
 	
@@ -91,7 +91,7 @@ Subcanvas.prototype.addElements = function() {
 	
 	this.box.addElements(gui, ['x','y','wd','hg','hAlign','vAlign']);
 	
-	Griddl.Components.AddMarginElements(gui, this, this.margin);
+	Hyperdeck.Components.AddMarginElements(gui, this, this.margin);
 	
 	this.div[0].appendChild(gui.domElement);
 };
@@ -184,7 +184,7 @@ Subcanvas.prototype.write = function() {
 	return json;
 };
 
-Griddl.Components.subcanvas = Subcanvas;
+Hyperdeck.Components.subcanvas = Subcanvas;
 
 })();
 
