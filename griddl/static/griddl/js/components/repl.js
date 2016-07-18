@@ -7,7 +7,7 @@ var Repl = function(json, type) {
 	{
 		json = {};
 		json.type = type;
-		json.name = Griddl.Components.UniqueName(type, 1);
+		json.name = Hyperdeck.Components.UniqueName(type, 1);
 		json.visible = true;
 		json.snips = [ '' ];
 	}
@@ -176,8 +176,8 @@ Repl.prototype.write = function() {
 	return json;
 };
 
-Griddl.Components.repl = Repl;
-Griddl.Components.snips = Repl;
+Hyperdeck.Components.repl = Repl;
+Hyperdeck.Components.snips = Repl;
 
 })();
 
