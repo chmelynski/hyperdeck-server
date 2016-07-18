@@ -54,7 +54,7 @@ var LineChart = function(json) {
 	this.key = json.params.key;
 	//this.key = new Key(this, json.params.key);
 	
-	this.box = new Griddl.Components.Box(this, true);
+	this.box = new Hyperdeck.Components.Box(this, true);
 	this.box.x = json.params.box.x;
 	this.box.y = json.params.box.y;
 	this.box.wd = json.params.box.wd;
@@ -323,10 +323,10 @@ LineChart.prototype.write = function() {
 	return json;
 };
 
-LineChart.prototype.clear = Griddl.Components.Clear;
-LineChart.prototype.onhover = Griddl.Components.OnHover;
-LineChart.prototype.dehover = Griddl.Components.DeHover;
-LineChart.prototype.onmousemove = Griddl.Components.OnMouseMove;
+LineChart.prototype.clear = Hyperdeck.Components.Clear;
+LineChart.prototype.onhover = Hyperdeck.Components.OnHover;
+LineChart.prototype.dehover = Hyperdeck.Components.DeHover;
+LineChart.prototype.onmousemove = Hyperdeck.Components.OnMouseMove;
 
 function RegularPolygon(ctx, cx, cy, r, n, angle) {
 	
@@ -364,7 +364,7 @@ function Cross(ctx, cx, cy, r, w) {
 	ctx.closePath();
 }
 
-Griddl.Components.lineChart = LineChart;
+Hyperdeck.Components.lineChart = LineChart;
 
 })();
 
