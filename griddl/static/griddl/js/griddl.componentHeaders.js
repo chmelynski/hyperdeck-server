@@ -1,5 +1,5 @@
 
-var CreateComponentDiv = Griddl.Components.CreateComponentDiv = function(parent, obj) {
+var CreateComponentDiv = Hyperdeck.Components.CreateComponentDiv = function(parent, obj) {
 	
 	var div = $(document.createElement('div'));
 	var headerDiv = $(document.createElement('div'));
@@ -80,9 +80,9 @@ function AddNameBox(obj) {
 	nameBox.addClass('griddl-component-head-name form-control input-sm');
 	
 	nameBox.on('blur', function(e) {
-		Griddl.Components.RenameObj(obj, this.value);
+		Hyperdeck.Components.RenameObj(obj, this.value);
 		obj.div.parent().attr('id', obj.name + 'Component');
-		Griddl.Components.MarkDirty();
+		Hyperdeck.Components.MarkDirty();
 	});
 	
 	return nameBox;
@@ -106,12 +106,12 @@ function AddMinimizeButton(obj) {
 	button.on('click', function() {
 		if (obj.visible) { 
       $("i.fa", this).removeClass(minus).addClass(plus);
-      Griddl.Components.Hide(obj); 
+      Hyperdeck.Components.Hide(obj); 
     } else { 
       $("i.fa", this).removeClass(plus).addClass(minus);
-      Griddl.Components.Show(obj); 
+      Hyperdeck.Components.Show(obj); 
     }
-		//Griddl.Components.MarkDirty();
+		//Hyperdeck.Components.MarkDirty();
 	});
 	
 	return button;
@@ -125,7 +125,7 @@ function AddDestroyButton(obj) {
 	button.addClass('griddl-component-head-remove btn btn-default btn-sm');
   button.append($("<i class='fa fa-lg fa-trash-o'></i>"));
 	
-	button.on('click', null, obj, Griddl.Components.confirmDelete);
+	button.on('click', null, obj, Hyperdeck.Components.confirmDelete);
 	
 	return button;
 }
