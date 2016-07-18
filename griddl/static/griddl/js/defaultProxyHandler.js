@@ -1,15 +1,15 @@
 
 //var obj = new Proxy(new Components[type](), Components.DefaultProxyHandler);
 
-Griddl.Components.DefaultProxyHandler = {
+Hyperdeck.Components.DefaultProxyHandler = {
 	set: function(target, property, value, receiver) {
 		
 		target[property] = value;
 		
-		if (!Griddl.dirty)
+		if (!Hyperdeck.dirty)
 		{
-			Griddl.dirty = true;
-			Griddl.Components.MarkDirty();
+			Hyperdeck.dirty = true;
+			Hyperdeck.Components.MarkDirty();
 		}
 		
 		return true; // i was getting a bug when trying to set a property to false
