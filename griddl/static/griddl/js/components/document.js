@@ -11,7 +11,7 @@ var Document = function(json) {
 	
  var defaults = {
 		type: 'document',
-		name: Griddl.Components.UniqueName('document', 1),
+		name: Hyperdeck.Components.UniqueName('document', 1),
 		visible: true,
 		params: {
 		  pageSize: {
@@ -93,8 +93,8 @@ Document.prototype.generate = function() {
 		this.sections.forEach(function(section) { section.section = null; }); // all Component.Section -> Canvas.Section links need to be broken
 	}
 	
-	var ctx = new Griddl.Canvas(params);
-	Griddl.Canvas.griddlCanvas = ctx;
+	var ctx = new Hyperdeck.Canvas(params);
+	Hyperdeck.Canvas.HyperdeckCanvas = ctx;
 	this.ctx = ctx;
 	
 	// probably should parametrize this - store the component name in the JSON
@@ -103,9 +103,9 @@ Document.prototype.generate = function() {
 	var section = null;
 	this.sections = [];
 	
-	for (var i = 0; i < Griddl.Core.objs.length; i++)
+	for (var i = 0; i < Hyperdeck.Core.objs.length; i++)
 	{
-		var obj = Griddl.Core.objs[i];
+		var obj = Hyperdeck.Core.objs[i];
 		
 		if (obj.type == 'document')
 		{
@@ -142,14 +142,14 @@ Document.prototype.exportToPdf = function() {
 	
 	var doc = this;
 	
-	Griddl.Canvas.drawPdf = true;
+	Hyperdeck.Canvas.drawPdf = true;
 	this.generate();
 	
 	var RenderPdf = function() {
 		
-		Griddl.Canvas.drawPdf = false;
+		Hyperdeck.Canvas.drawPdf = false;
 		
-		//var text = new Griddl.Pdf(Griddl.Canvas.griddlCanvas).text; // the Canvas constructor sets Griddl.griddlCanvas whenever it is invoked
+		//var text = new Hyperdeck.Pdf(Hyperdeck.Canvas.HyperdeckCanvas).text; // the Canvas constructor sets Hyperdeck.HyperdeckCanvas whenever it is invoked
 		var text = doc.ctx.ExportToPdf();
 		
 		var downloadLink = document.createElement('a');
@@ -308,7 +308,7 @@ Document.prototype.representationToggle = function() {
 		obj.addElements();
 		obj.refresh();
 		
-		Griddl.Components.MarkDirty();
+		Hyperdeck.Components.MarkDirty();
 	};
 	
 	var OtherToText = function() {
@@ -316,14 +316,14 @@ Document.prototype.representationToggle = function() {
 		obj.div.html('');
 		
 		var textbox = $(document.createElement('textarea'));
-		textbox.addClass('griddl-component-body-radio-textarea');
+		textbox.addClass('Hyperdeck-component-body-radio-textarea');
 		obj.div.append(textbox);
 		
 		var text = obj.getText();
 		codemirror = CodeMirror.fromTextArea(textbox[0], { smartIndent : false , lineNumbers : true });
 		codemirror.getDoc().setValue(text);
 		
-		Griddl.Components.MarkDirty();
+		Hyperdeck.Components.MarkDirty();
 	};
 	
 	return [ { label : obj.representationLabel , fn : TextToOther } , { label : 'JSON' , fn : OtherToText } ];
@@ -331,7 +331,7 @@ Document.prototype.representationToggle = function() {
 
 function UnitSize(unit) { return {in:1,cm:1/2.54,mm:1/25.4,pt:1/72}[unit]; }
 
-Griddl.Components.document = Document;
+Hyperdeck.Components.document = Document;
 
 })();
 
