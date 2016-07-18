@@ -13,7 +13,7 @@ var Code = function(json, type) {
 	{
 		json = {};
 		json.type = type;
-		json.name = Griddl.Components.UniqueName(type, 1);
+		json.name = Hyperdeck.Components.UniqueName(type, 1);
 		json.visible = true;
 		json.text = '';
 	}
@@ -35,7 +35,7 @@ var Code = function(json, type) {
 		},
 		set : function(value) {
 			this._text = value;
-			if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+			if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
 			this.codemirror.getDoc().setValue(this._text);
 			this.compile();
 		}
@@ -53,7 +53,7 @@ var Code = function(json, type) {
 			// textify(object) => string
 			
 			this._data = value;
-			if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+			if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
 			this.textify();
 		}
 	});
@@ -79,11 +79,14 @@ Code.prototype.add = function() {
 	options.smartIndent = false;
 	options.lineNumbers = true;
 	options.lineWrapping = true;
+	options.foldGutter = true;
+	options.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"];
+	options.extraKeys = {"Ctrl-Q": function(cm) { cm.foldCode(cm.getCursor()); }};
 	this.codemirror = CodeMirror.fromTextArea(textarea[0], options);
 	
 	// on 'change' or 'blur'
 	this.codemirror.on('blur', function() {
-		if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+		if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
 		comp._text = comp.codemirror.getValue(); // we avoid a setter loop by setting this._text, not this.text
 		comp.compile();
 	});
@@ -239,11 +242,11 @@ Code.prototype.setText = function(text) { this.text = text; };
 Code.prototype.getData = function() { return this.data; };
 Code.prototype.setData = function(data) { this.data = data };
 
-Griddl.Components.txt = Code;
-Griddl.Components.js = Code;
-Griddl.Components.html = Code;
-Griddl.Components.css = Code;
-Griddl.Components.md = Code;
+Hyperdeck.Components.txt = Code;
+Hyperdeck.Components.js = Code;
+Hyperdeck.Components.html = Code;
+Hyperdeck.Components.css = Code;
+Hyperdeck.Components.md = Code;
 
 })();
 
