@@ -17,7 +17,7 @@ var Text = function(json) {
 	{
 		json = {};
 		json.type = 'list';
-		json.name = Griddl.Components.UniqueName('list', 1);
+		json.name = Hyperdeck.Components.UniqueName('list', 1);
 		json.visible = true;
 		json.text = '1. foo\n a. bar\n b. baz\n2. huh';
 		json.params = {};
@@ -53,7 +53,7 @@ var Text = function(json) {
 		},
 		set : function(value) {
 			this._text = value;
-			if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+			if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
 			this.codemirror.getDoc().setValue(this._text);
 			this.parse();
 			this.section.draw();
@@ -73,7 +73,7 @@ var Text = function(json) {
 	this.textStyle = json.params.textStyle;
 	this.markerStyle = json.params.markerStyle; // shape : 'none' , 'circle' , 'square' , diameter
 	
-	this.box = new Griddl.Components.Box(this, true);
+	this.box = new Hyperdeck.Components.Box(this, true);
 	this.box.hAlign = json.params.box.hAlign;
 	this.box.vAlign = json.params.box.vAlign;
 	this.box.xAnchor = json.params.box.xAnchor;
@@ -104,7 +104,7 @@ Text.prototype.add = function() {
 	
 	// on 'blur' or 'change'
 	this.codemirror.on('change', function() {
-		if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+		if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
 		comp._text = comp.codemirror.getValue(); // we avoid a setter loop by setting this._text, not this.text
 		comp.parse();
 		comp.section.draw();
@@ -141,7 +141,7 @@ Text.prototype.add = function() {
 	// i think we need to call setSize after changing wd, and box only calls section.draw()
 	this.box.addElements(gui, ['hAlign','vAlign','xAnchor','yAnchor','x','y','wd']);
 	
-	Griddl.Components.AddMarginElements(gui, this, this.margin);
+	Hyperdeck.Components.AddMarginElements(gui, this, this.margin);
 	
 	controls.forEach(function(control) {
 		control.onChange(function(value) {
@@ -215,7 +215,7 @@ Text.prototype.setSize = function() {
 		
 		if (indent == 0)
 		{
-			if (styles) { Griddl.Components.SetStyle(ctx, styles[indent]); }
+			if (styles) { Hyperdeck.Components.SetStyle(ctx, styles[indent]); }
 			if (this.textStyle.fontSize) { ctx.setFontSize(this.textStyle.fontSize); }
 			if (this.textStyle.fontFamily) { ctx.setFont(this.textStyle.fontFamily, this.textStyle.bold, this.textStyle.italic); }
 			
@@ -241,7 +241,7 @@ Text.prototype.setSize = function() {
 		
 		var indentWidth = indent * this.textPositioning.indent;
 		
-		if (styles) { Griddl.Components.SetStyle(ctx, styles[datum.indent]); }
+		if (styles) { Hyperdeck.Components.SetStyle(ctx, styles[datum.indent]); }
 		if (this.textStyle.fontSize) { ctx.setFontSize(this.textStyle.fontSize); }
 		if (this.textStyle.fontFamily) { ctx.setFont(this.textStyle.fontFamily, this.textStyle.bold, this.textStyle.italic); }
 		
@@ -255,7 +255,7 @@ Text.prototype.setSize = function() {
 		
 		datum.tabStop = firstTabStop + indentWidth;
 		
-		datum.lines = Griddl.Components.LinebreakNaive([availableWidth], words, wordMetrics, this.ctx.fontSizeCu * 0.30); // spaceWidth is pretty arbitrary
+		datum.lines = Hyperdeck.Components.LinebreakNaive([availableWidth], words, wordMetrics, this.ctx.fontSizeCu * 0.30); // spaceWidth is pretty arbitrary
 		
 		var pitch = Math.max(this.textPositioning.lineHeight, this.ctx.fontSizeCu);
 		
@@ -283,7 +283,7 @@ Text.prototype.draw = function() {
 	{
 		var datum = this.data[i];
 		
-		if (styles) { Griddl.Components.SetStyle(ctx, styles[datum.indent]); }
+		if (styles) { Hyperdeck.Components.SetStyle(ctx, styles[datum.indent]); }
 		if (this.textStyle.fontSize) { ctx.setFontSize(this.textStyle.fontSize); }
 		if (this.textStyle.fontFamily) { ctx.setFont(this.textStyle.fontFamily, this.textStyle.bold, this.textStyle.italic); }
 		if (this.textStyle.fill) { ctx.fillStyle = this.textStyle.fill; }
@@ -376,9 +376,9 @@ Text.prototype.write = function() {
 
 //Text.prototype.onhover = function() { this.box.onhover(); };
 //Text.prototype.dehover = function() { this.ctx.canvas.style.cursor = 'default'; };
-Text.prototype.onhover = Griddl.Components.OnHover;
-Text.prototype.dehover = Griddl.Components.DeHover;
-Text.prototype.onmousemove = Griddl.Components.OnMouseMove;
+Text.prototype.onhover = Hyperdeck.Components.OnHover;
+Text.prototype.dehover = Hyperdeck.Components.DeHover;
+Text.prototype.onmousemove = Hyperdeck.Components.OnMouseMove;
 Text.prototype.onmousemove2 = function(e) {
 	
 	// this sets up a text styling popup - a combination of direct and indirect manipulation - click directly on the text, get a popup with HTML inputs
@@ -433,7 +433,7 @@ Text.prototype.onmousemove2 = function(e) {
 		// how do we remove a checked attr?
 		$('#alignment-selector-' + alignmentDict[this.hAlign][this.vAlign]).attr('checked', '');
 		
-		Griddl.UI.ShowTextStyle();
+		Hyperdeck.UI.ShowTextStyle();
 	};
 	text.ctx.canvas.onmouseup = function(e) {
 		text.ctx.canvas.onmousedown = null;
@@ -477,7 +477,7 @@ function Wordize(text) {
 	return words;
 }
 
-Griddl.Components.text = Text;
+Hyperdeck.Components.text = Text;
 
 })();
 
