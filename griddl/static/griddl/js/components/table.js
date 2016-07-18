@@ -24,7 +24,7 @@ var Table = function(json) {
 	this.section = null; // set by Canvas.GenerateDocument
 	
 	// the mechanics of row and col resizing work best if the grid's anchor is mandated to be tp/lf, but users might want centering
-	this.box = new Griddl.Components.Box(this, true);
+	this.box = new Hyperdeck.Components.Box(this, true);
 	this.box.x = json.params.x;
 	this.box.y = json.params.y;
 	this.box.hAlign = json.params.hAlign;
@@ -60,7 +60,7 @@ Table.prototype.addElements = function() {
 	//options.colWidths = [ 50 , 10 , 10 , 10 , 10 , 10 , 20 , 10 ];
 	options.contextMenu = false;
 	options.manualColumnResize = true;
-	//options.afterChange = function(changes, source) { if (this.firstChange) { this.firstChange = false; } else { Griddl.Components.MarkDirty(); } };
+	//options.afterChange = function(changes, source) { if (this.firstChange) { this.firstChange = false; } else { Hyperdeck.Components.MarkDirty(); } };
 	
 	this.tableDiv = $('<div></div>');
 	this.div.append(this.tableDiv);
@@ -458,7 +458,7 @@ var Cell = function(parent) {
 	this.string = null;
 	this.datatype = null;
 	
-	this.box = new Griddl.Components.Box(this, false);
+	this.box = new Hyperdeck.Components.Box(this, false);
 	
 	this.numberFormat = null;
 	
@@ -578,7 +578,7 @@ Cell.prototype.valueToString = function() {
 	}
 };
 
-Griddl.Components.table = Table;
+Hyperdeck.Components.table = Table;
 
 })();
 
