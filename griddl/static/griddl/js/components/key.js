@@ -60,11 +60,11 @@ Key.prototype.write = function() {
 	
 };
 
-Key.prototype.onhover = Griddl.Components.OnHover;
-Key.prototype.dehover = Griddl.Components.DeHover;
-Key.prototype.onmousemove = Griddl.Components.OnMouseMove;
+Key.prototype.onhover = Hyperdeck.Components.OnHover;
+Key.prototype.dehover = Hyperdeck.Components.DeHover;
+Key.prototype.onmousemove = Hyperdeck.Components.OnMouseMove;
 
-Griddl.Components.Key = Key;
+Hyperdeck.Components.Key = Key;
 
 })();
 
