@@ -1,7 +1,7 @@
 
-if (typeof Griddl === 'undefined') { var Griddl = {}; }
+if (typeof Hyperdeck === 'undefined') { var Hyperdeck = {}; }
 
-Griddl.UI = (function() {
+Hyperdeck.UI = (function() {
 
 var UI = {};
 
@@ -37,7 +37,7 @@ UI.ReorderComponents = function() {
 	ul.css('width', '60%');
 	dialog.append(ul);
 	
-	for (var i = 0; i < Griddl.objs.length; i++)
+	for (var i = 0; i < Hyperdeck.objs.length; i++)
 	{
 		var li = $(document.createElement('li'));
 		li.addClass('ui-state-default');
@@ -49,7 +49,7 @@ UI.ReorderComponents = function() {
 		span.css('display', 'inline-block');
 		li.append(span);
 		var span = $(document.createElement('span'));
-		span.text(Griddl.objs[i].name);
+		span.text(Hyperdeck.objs[i].name);
 		span.css('display', 'inline-block');
 		li.append(span);
 		ul.append(li);
@@ -64,18 +64,18 @@ UI.ReorderComponents = function() {
 		ul.children().each(function() { names.push($(this).text()); });
 		for (var i = 0; i < names.length; i++)
 		{
-			Griddl.objs[i] = Griddl.objs[names[i]];
+			Hyperdeck.objs[i] = Hyperdeck.objs[names[i]];
 		}
 		var containerDivs = [];
-		for (var i = 0; i < Griddl.objs.length; i++)
+		for (var i = 0; i < Hyperdeck.objs.length; i++)
 		{
-			if (Griddl.objs[i].type == 'grid' || Griddl.objs[i].type == 'matrix')
+			if (Hyperdeck.objs[i].type == 'grid' || Hyperdeck.objs[i].type == 'matrix')
 			{
-				containerDivs.push(Griddl.objs[i].div.parent().parent());
+				containerDivs.push(Hyperdeck.objs[i].div.parent().parent());
 			}
 			else
 			{
-				containerDivs.push(Griddl.objs[i].div.parent());
+				containerDivs.push(Hyperdeck.objs[i].div.parent());
 			}
 		}
 		$('#cells').children().detach(); // detach() keeps data and handlers attached to the elements
@@ -117,7 +117,7 @@ UI.SaveDocumentSettings = function() {
 	document.getElementById('screen').style.display = 'none';
 	document.getElementById('documentSettingsPanel').style.display = 'none';
 	
-	var doc = JSON.parse(Griddl.GetData('document'));
+	var doc = JSON.parse(Hyperdeck.GetData('document'));
 	doc.documentSettings.unit = document.getElementById('unitSelector').value;
 	doc.documentSettings.pageDimensions.width = parseFloat(document.getElementById('pageWidth').value);
 	doc.documentSettings.pageDimensions.height = parseFloat(document.getElementById('pageHeight').value);
@@ -125,7 +125,7 @@ UI.SaveDocumentSettings = function() {
 	doc.documentSettings.usersPerUnit = parseFloat(document.getElementById('usersPerUnit').value);
 	doc.documentSettings.snapGrid.gridlineSpacing = parseFloat(document.getElementById('gridlineSpacing').value);
 	doc.documentSettings.snapGrid.gridlineHighlight = parseFloat(document.getElementById('gridlineHighlight').value);
-	Griddl.SetData('document', JSON.stringify(doc));
+	Hyperdeck.SetData('document', JSON.stringify(doc));
 };
 UI.CancelDocumentSettings = function() {
 	document.getElementById('screen').style.display = 'none';
