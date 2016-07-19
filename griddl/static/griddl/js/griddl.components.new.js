@@ -128,26 +128,26 @@ var confirmDelete = Components.confirmDelete = function (event) {
 // Show2 and Hide2 implement the destroy/recreate variant
 var Show2 = Components.Show = function(obj) {
 	obj.add();
-	obj.div.parent().find('.Hyperdeck-component-head-minmax').attr('value', '-');
+	obj.div.parent().find('.griddl-component-head-minmax').attr('value', '-');
 	obj.visible = true;
 };
 var Hide2 = Components.Hide = function(obj) {
 	obj.div.html('');
-	obj.div.parent().find('.Hyperdeck-component-head-minmax').attr('value', '+');
+	obj.div.parent().find('.griddl-component-head-minmax').attr('value', '+');
 	obj.visible = false;
 };
 var Show = Components.Show = function(obj) {
 	
-	obj.div.removeClass('Hyperdeck-component-body-hidden');
-	obj.div.parent().find('.Hyperdeck-component-head-minmax').attr('value', '-');
+	obj.div.removeClass('griddl-component-body-hidden');
+	obj.div.parent().find('.griddl-component-head-minmax').attr('value', '-');
 	obj.visible = true;
 	
 	// this fixes this bug: when a component containing a codemirror was initially hidden, and then we maximized, the text would not appear
 	if (obj.codemirror) { obj.codemirror.refresh(); }
 };
 var Hide = Components.Hide = function(obj) {
-	obj.div.addClass('Hyperdeck-component-body-hidden');
-	obj.div.parent().find('.Hyperdeck-component-head-minmax').attr('value', '+');
+	obj.div.addClass('griddl-component-body-hidden');
+	obj.div.parent().find('.griddl-component-head-minmax').attr('value', '+');
 	obj.visible = false;
 };
 Components.ShowAll = function() { objs.forEach(function(obj) { Show(obj); }); };
