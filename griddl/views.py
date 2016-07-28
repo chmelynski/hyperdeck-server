@@ -176,7 +176,7 @@ def directory(request, userid, path=None):
         .order_by('parent', 'name')
 
     acctdirs = [{'val': 'root', 'display': 'Account Root'}]
-    # todo: replace with tree-building func i guess
+    # todo: replace with smarter tree-building func i guess
     for d in dirs:
         display = '-- ' * len(d.path_to_file.split('/')) + d.name
         acctdirs.append({'val': d.pk, 'display': display})
