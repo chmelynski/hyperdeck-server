@@ -142,7 +142,7 @@ class FastSpringNotificationView(View):
 
     private_key = ''  # all child views must define this value
 
-    # this block allows notifications to bypass CSRF protection
+    # this block bypasses CSRF protection for incoming notifications
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
         return super(FastSpringNotificationView, self) \
