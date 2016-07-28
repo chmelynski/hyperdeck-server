@@ -75,12 +75,12 @@ class Subscription(models.Model):
             if self.status == 2 and int(self.status_detail) > 1:
                 # not 100% sure this is safe tbh?
                 acct = self.account_set.get()
-                acct.plan == int(self.status_detail)
+                acct.plan = int(self.status_detail)
                 acct.save()
                 self.next_period()
             elif self.status == 2 and int(self.status_detail) == 1:
                 acct = self.account_set.get()
-                acct.plan == 1
+                acct.plan = 1
                 acct.save()
                 self.delete()
                 return "Never"
