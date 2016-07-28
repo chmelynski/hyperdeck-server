@@ -12,3 +12,5 @@ django-password-reset
 django-debug-toolbar
 git+https://github.com/nthall/django-stored-messages#egg=stored_messages
 django-subdomains
+
+mock
