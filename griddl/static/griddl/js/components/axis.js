@@ -106,11 +106,11 @@ Axis.prototype.write = function() {
 	
 };
 
-Axis.prototype.onhover = Griddl.Components.OnHover;
-Axis.prototype.dehover = Griddl.Components.DeHover;
-Axis.prototype.onmousemove = Griddl.Components.OnMouseMove;
+Axis.prototype.onhover = Hyperdeck.Components.OnHover;
+Axis.prototype.dehover = Hyperdeck.Components.DeHover;
+Axis.prototype.onmousemove = Hyperdeck.Components.OnMouseMove;
 
-Griddl.Components.Axis = Axis;
+Hyperdeck.Components.Axis = Axis;
 
 })();
 

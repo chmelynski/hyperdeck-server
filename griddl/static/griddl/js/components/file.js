@@ -7,7 +7,7 @@ var File = function(json, type) {
 	{
 		json = {};
 		json.type = type;
-		json.name = Griddl.Components.UniqueName(type, 1);
+		json.name = Hyperdeck.Components.UniqueName(type, 1);
 		json.visible = true;
 		
 		if (type == 'file')
@@ -65,7 +65,7 @@ var File = function(json, type) {
 		set : function(value) {
 			this._filename = value;
 			this.filenameControl.updateDisplay();
-			if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+			if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
 		}
 	});
 	
@@ -79,7 +79,7 @@ var File = function(json, type) {
 			//this._uint8array = Base64StringToUint8Array(this._b64.substr(this._b64.indexOf(',')));
 			this._uint8array = Base64StringToUint8Array(value.substr(value.indexOf(','))); // data:text/plain;base64,
 			this.add();
-			if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+			if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
 		}
 	});
 	
@@ -91,7 +91,7 @@ var File = function(json, type) {
 			this._uint8array = value;
 			//this._b64 = 'data:text/plain;base64,' + Uint8ArrayToBase64String(this._uint8array);
 			this.add();
-			if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+			if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
 		}
 	});
 };
@@ -389,10 +389,10 @@ function Uint8ArrayToBase64String(uint8array) {
 	return sB64Enc.replace(/A(?=A$|$)/g, "=");
 }
 
-Griddl.Components.file = File;
-Griddl.Components.jsfile = File;
-Griddl.Components.imgfile = File;
-Griddl.Components.zipfile = File;
+Hyperdeck.Components.file = File;
+Hyperdeck.Components.jsfile = File;
+Hyperdeck.Components.imgfile = File;
+Hyperdeck.Components.zipfile = File;
 
 })();
 

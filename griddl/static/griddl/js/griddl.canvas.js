@@ -1,7 +1,7 @@
 
 var TheCanvas = (function() {
 	
-	if (typeof Griddl == 'undefined') { var Griddl = {}; }
+	if (typeof Hyperdeck == 'undefined') { var Hyperdeck = {}; }
 	
 	// this is probably obsolete?
 	// when the export button is clicked, it:
@@ -18,7 +18,7 @@ var TheCanvas = (function() {
 	function Canvas(params) {
 		
 		// this is here so that user code does not need to do it - the function invoked by the export button needs access to the canvas
-		Griddl.g = this; // this is a hook for node, used in RenderSvg - should it be Griddl.Canvas.g instead?
+		Hyperdeck.g = this; // this is a hook for node, used in RenderSvg - should it be Hyperdeck.Canvas.g instead?
 		
 		// params:
 		//  type - default 'canvas'
@@ -370,9 +370,9 @@ var TheCanvas = (function() {
 	};
 	function Section(parent, width, height, nPages) {
 		
-		this.parent = parent; // Griddl.Canvas
+		this.parent = parent; // Hyperdeck.Canvas
 		
-		// replace with a Griddl.Widgets.Box? (which raises the question of whether Box should be in Griddl.Widgets)
+		// replace with a Hyperdeck.Widgets.Box? (which raises the question of whether Box should be in Hyperdeck.Widgets)
 		this.width = width;
 		this.height = height;
 		this.left = 0;
@@ -1012,7 +1012,7 @@ var TheCanvas = (function() {
 		}
 		else
 		{
-			Griddl.svgOutput = '<svg ' + xmlnss + ' width="' + Griddl.g.sections[0].width + '" height="' + Griddl.g.sections[0].height + '">' + Griddl.g.sections[0].eltStrings.join('') + '</svg>';
+			Hyperdeck.svgOutput = '<svg ' + xmlnss + ' width="' + Hyperdeck.g.sections[0].width + '" height="' + Hyperdeck.g.sections[0].height + '">' + Hyperdeck.g.sections[0].eltStrings.join('') + '</svg>';
 		}
 	};
 	
@@ -1298,7 +1298,7 @@ var TheCanvas = (function() {
 	};
 	Canvas.prototype.fillTextSvgFont = function(text, x, y) {
 		
-		var glyphset = Griddl.fonts[this.fontFamily];
+		var glyphset = Hyperdeck.fonts[this.fontFamily];
 		
 		var multiplier = this.fontSize / 2048;
 		
@@ -1565,12 +1565,12 @@ var TheCanvas = (function() {
 	Canvas.prototype.measureTextSvgFont = function(str) {
 		
 		//console.log(this.fontFamily);
-		//for (var fontname in Griddl.fonts) { console.log(fontname); }
+		//for (var fontname in Hyperdeck.fonts) { console.log(fontname); }
 		
-		var glyphset = Griddl.fonts[this.fontFamily];
+		var glyphset = Hyperdeck.fonts[this.fontFamily];
 		
 		// this should work (in Node).  why doesn't it work?
-		//console.log(Griddl.fonts);
+		//console.log(Hyperdeck.fonts);
 		//console.log(this.fontFamily);
 		//console.log(glyphset);
 		
@@ -4658,8 +4658,8 @@ var TheCanvas = (function() {
 })();
 
 if (typeof window !== 'undefined') {
-	if (typeof Griddl === 'undefined') { var Griddl = {}; }
-	Griddl.Canvas = TheCanvas;
+	if (typeof Hyperdeck === 'undefined') { var Hyperdeck = {}; }
+	Hyperdeck.Canvas = TheCanvas;
 }
 else {
 	exports.Canvas = TheCanvas;

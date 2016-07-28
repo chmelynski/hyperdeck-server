@@ -8,13 +8,13 @@
 
 var Libraries = function(json) {
 	
-	// maybe check to see if there's a Libraries already in Griddl.Components.objs - if so, throw an alert or something - no need for duplicate Libraries
+	// maybe check to see if there's a Libraries already in Hyperdeck.Components.objs - if so, throw an alert or something - no need for duplicate Libraries
 	
 	if (!json)
 	{
 		json = {};
 		json.type = 'libraries';
-		json.name = Griddl.Components.UniqueName('libraries', 1);
+		json.name = Hyperdeck.Components.UniqueName('libraries', 1);
 		json.visible = true;
 		json.data = {};
 		json.data.curated = {};
@@ -140,7 +140,7 @@ Libraries.prototype.addFile = function() {
 		fileReader.onload = function(event)
 		{
 			var text = event.target.result;
-			var id = Griddl.Components.UniqueElementId();
+			var id = Hyperdeck.Components.UniqueElementId();
 			comp.doAddFile(text, filename, id);
 			$('body').append($('<script id="' + id + '"></script>').text(text)); // jQuery encodes the text
 		};
@@ -164,20 +164,20 @@ Libraries.prototype.afterLoad = function() {
 	{
 		if (this.data.curated[key])
 		{
-			var id = Griddl.Components.UniqueElementId();
+			var id = Hyperdeck.Components.UniqueElementId();
 			$('body').append($('<script id="' + id + '" src="' + this.urlmap[key] + '"></script>'));
 		}
 	}
 	
 	for (var i = 0; i < this.data.urls.length; i++)
 	{
-		var id = Griddl.Components.UniqueElementId();
+		var id = Hyperdeck.Components.UniqueElementId();
 		$('body').append($('<script id="' + id + '" src="' + this.data.urls[i] + '"></script>'));
 	}
 	
 	for (var key in this.data.files)
 	{
-		var id = Griddl.Components.UniqueElementId();
+		var id = Hyperdeck.Components.UniqueElementId();
 		$('body').append($('<script id="' + id + '"></script>').text(this.data.files[key])); // jQuery encodes the text
 	}
 };
@@ -225,7 +225,7 @@ Libraries.prototype.doAddFile = function(text, filename, id) {
 	fnobj.deleteButton = folder.add(fnobj, 'delete');
 };
 
-Griddl.Components.libraries = Libraries;
+Hyperdeck.Components.libraries = Libraries;
 
 })();
 

@@ -341,7 +341,7 @@ TextNode.prototype.draw = function() {
 	this.ctx.fillText(this.text, this.node.x, this.node.y);
 };
 
-Griddl.Components.graph = Graph;
+Hyperdeck.Components.graph = Graph;
 
 })();
 

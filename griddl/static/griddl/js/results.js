@@ -46,7 +46,7 @@ $(document).ready(function() {
     save().done(function(success) {
       if (success) {
         $.alert('Your workbook has been saved.', 'success');
-        Griddl.Components.MarkClean();
+        Hyperdeck.Components.MarkClean();
       }
     });
   }); 
@@ -62,7 +62,7 @@ $(document).ready(function() {
   });
 
   $('#fileChooser').on('change', function(event) {
-    Griddl.IO.HandleLocalLoad(event.target.files);
+    Hyperdeck.IO.HandleLocalLoad(event.target.files);
   });
 
 });
@@ -97,7 +97,7 @@ function receiveMessage(event) {
   if (data.action) {
     switch (data.action) {
       case 'load':
-        Griddl.Components.Main(data.text);
+        Hyperdeck.Components.Main(data.text);
         break;
       case 'resolve':
         console.log(data);
@@ -113,7 +113,7 @@ function receiveMessage(event) {
 }
 
 function save() {
-  text = Griddl.Components.SaveToText();
+  text = Hyperdeck.Components.SaveToText();
   var saveResult = window.saveResult = $.Deferred();
   parent.postMessage({'action': 'save', 'text': text, 'deferred': 'saveResult'}, playground);
 
@@ -121,7 +121,7 @@ function save() {
 }
 
 function save_as(newname) {
-  text = Griddl.Components.SaveToText();
+  text = Hyperdeck.Components.SaveToText();
   var saveAsResult = window.saveAsResult = $.Deferred();
 
   parent.postMessage({'action': 'save_as', 'text': text, 'newname': newname, 'deferred': 'saveAsResult'}, playground);

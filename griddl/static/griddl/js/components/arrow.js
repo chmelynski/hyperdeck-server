@@ -30,7 +30,7 @@ var Arrow = function(params) {
 	this.circleColor = 'rgb(0,0,255)';
 	this.circleRadius = 3;
 	
-	this.box = new Griddl.Components.Box(this, false);
+	this.box = new Hyperdeck.Components.Box(this, false);
 };
 Arrow.prototype.draw = function() {
 	
@@ -134,7 +134,7 @@ Arrow.prototype.onhover = function() {
 			arrow.onmousemove(e);
 			
 			// we should probably save the existing document JSON to enable undo/redo
-			//Griddl.SetData('document', JSON.stringify(arrow.parent.page.document.exportToJson()));
+			//Hyperdeck.SetData('document', JSON.stringify(arrow.parent.page.document.exportToJson()));
 			
 			//arrow.parent.draw();
 		};
@@ -157,7 +157,7 @@ Arrow.prototype.onmousemove = function(e) {
 	}
 };
 
-Griddl.Components.Arrow = Arrow;
+Hyperdeck.Components.Arrow = Arrow;
 
 })();
 

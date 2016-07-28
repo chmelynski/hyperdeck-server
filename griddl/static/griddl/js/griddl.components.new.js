@@ -1,7 +1,7 @@
 
 "use strict";
 
-if (typeof Griddl === 'undefined') { var Griddl = {}; }
+if (typeof Hyperdeck === 'undefined') { var Hyperdeck = {}; }
 
 var TheComponents = (function() {
 
@@ -46,16 +46,16 @@ Components.Main = function(text) {
 	}
 	
 	MakeSortable();
-	Griddl.Components.MarkClean();
+	Hyperdeck.Components.MarkClean();
 };
 Components.NewComponent = function(obj) {
 	
-	//var obj = new Griddl.Components[type](null, type);
+	//var obj = new Hyperdeck.Components[type](null, type);
 	obj.div = Components.CreateComponentDiv($('#cells'), obj);
 	obj.div.css('border', '1px solid gray');
 	obj.div.css('background-color', 'rgb(230,230,230)');
 	obj.add();
-	if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+	if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
 	objs[obj.name] = obj;
 	objs.push(obj);
 	MakeSortable();
@@ -83,7 +83,7 @@ var RestoreObj = Components.RestoreObj = function() {
 	obj.div.css('border', '1px solid gray');
 	obj.div.css('background-color', 'rgb(230,230,230)');
 	obj.add();
-	if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+	if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
 	objs[obj.name] = obj;
 	objs.push(obj);
 	MakeSortable();
@@ -115,9 +115,9 @@ var confirmDelete = Components.confirmDelete = function (event) {
   $('body').append(modal);
 
   $('.btn-success', modal).on('click', function(event) {
-    Griddl.Components.DeleteObj(obj);
+    Hyperdeck.Components.DeleteObj(obj);
     obj.div.parent().remove();
-    Griddl.Components.MarkDirty(obj);
+    Hyperdeck.Components.MarkDirty(obj);
     $('.modal').modal('hide');
   });
 
@@ -159,22 +159,22 @@ var FetchObj = Components.FetchObj = function(name) {
 	if (!objs[name]) { throw new Error("Error: there is no object named '" + name + "'"); }
 	return objs[name];
 };
-Griddl.GetData = function(name) { return FetchObj(name).getData(); };
-Griddl.SetData = function(name, data) { FetchObj(name).setData(data); };
-Griddl.GetText = function(name) { return FetchObj(name).getText(); };
-Griddl.SetText = function(name, text) { FetchObj(name).setText(text); };
-Griddl.Get = function(name) { return FetchObj(name); };
-Griddl.Run = function(name) { FetchObj(name).exec(); };
-Griddl.New = function(json) { Components.NewComponent(new Components[json.type]()); };
-Griddl.Rem = function(name) { DeleteObj(FetchObj(name)); };
+Hyperdeck.GetData = function(name) { return FetchObj(name).getData(); };
+Hyperdeck.SetData = function(name, data) { FetchObj(name).setData(data); };
+Hyperdeck.GetText = function(name) { return FetchObj(name).getText(); };
+Hyperdeck.SetText = function(name, text) { FetchObj(name).setText(text); };
+Hyperdeck.Get = function(name) { return FetchObj(name); };
+Hyperdeck.Run = function(name) { FetchObj(name).exec(); };
+Hyperdeck.New = function(json) { Components.NewComponent(new Components[json.type]()); };
+Hyperdeck.Rem = function(name) { DeleteObj(FetchObj(name)); };
 
 return Components;
 
 })();
 
 if (typeof window !== 'undefined') {
-	//if (typeof Griddl === 'undefined') { var Griddl = {}; } // Griddl must be defined before this module is loaded
-	Griddl.Components = TheComponents;
+	//if (typeof Hyperdeck === 'undefined') { var Hyperdeck = {}; } // Hyperdeck must be defined before this module is loaded
+	Hyperdeck.Components = TheComponents;
 }
 else {
 	exports.Components = TheComponents;

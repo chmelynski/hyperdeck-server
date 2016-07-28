@@ -1,15 +1,15 @@
 
-Griddl.Components.Clear = function() {
+Hyperdeck.Components.Clear = function() {
 	// we can't just call this.box.clear(), because Box.clear() only clears the handles
 	this.ctx.clearRect(this.box.lf, this.box.tp, this.box.wd, this.box.hg);
 };
-Griddl.Components.OnHover = function() {
+Hyperdeck.Components.OnHover = function() {
 	this.box.onhover();
 };
-Griddl.Components.DeHover = function() {
+Hyperdeck.Components.DeHover = function() {
 	
 };
-Griddl.Components.OnMouseMove = function(e) {
+Hyperdeck.Components.OnMouseMove = function(e) {
 	
 	// the Box handles leaving and handles - we only have to deal with controls here
 	

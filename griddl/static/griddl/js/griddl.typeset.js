@@ -846,8 +846,8 @@ return Typeset;
 })();
 
 if (typeof window !== 'undefined') {
-	if (typeof Griddl === 'undefined') { var Griddl = {}; }
-	Griddl.Typeset = Typeset;
+	if (typeof Hyperdeck === 'undefined') { var Hyperdeck = {}; }
+	Hyperdeck.Typeset = Typeset;
 }
 else {
 	exports.Typeset = Typeset;

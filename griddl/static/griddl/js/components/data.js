@@ -7,7 +7,7 @@ var Data = function(json) {
 	{
 		json = {};
 		json.type = 'data';
-		json.name = Griddl.Components.UniqueName('data', 1);
+		json.name = Hyperdeck.Components.UniqueName('data', 1);
 		json.visible = true;
 		json.data = [{A:1,B:2,C:3},{A:4,B:5,C:6},{A:7,B:8,C:9}];
 		json.params = {};
@@ -48,7 +48,7 @@ var Data = function(json) {
 			// in general, setting this.data should be a thing done by external code
 			// internal code should preferentially set to this._data, to avoid all this
 			
-			if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+			if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
 			
 			this._data = value;
 			this.determineDataForm();
@@ -226,7 +226,7 @@ Data.prototype.add = function() {
 		this.codemirror.getDoc().setValue(initText);
 		
 		this.codemirror.on('blur', function() {
-			Griddl.Components.MarkDirty();
+			Hyperdeck.Components.MarkDirty();
 			
 			comp.errorSpan.text('');
 			
@@ -278,12 +278,12 @@ Data.prototype.add = function() {
 	}
 	else if (this.display == 'grid')
 	{
-		Griddl.Components.Hot.Add.apply(this);
-		//Griddl.Components.Grid.Add.apply(this); // enable this when Grid is ready
+		Hyperdeck.Components.Hot.Add.apply(this);
+		//Hyperdeck.Components.Grid.Add.apply(this); // enable this when Grid is ready
 	}
 	else if (this.display == 'matrix' || this.display == 'formula')
 	{
-		Griddl.Components.Hot.AddMatrixOrFormulaGrid.apply(this);
+		Hyperdeck.Components.Hot.AddMatrixOrFormulaGrid.apply(this);
 	}
 	else if (this.display == 'pre')
 	{
@@ -744,7 +744,7 @@ Data.prototype.Undo = function() {
 	this.undo.index--;
 	this._data = this.undo.stack[this.undo.index].data;
 	this.headers = this.undo.stack[this.undo.index].headers;
-	if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+	if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
 	this.undo.pushOnAdd = false;
 	this.add();
 	this.undo.pushOnAdd = true;
@@ -755,7 +755,7 @@ Data.prototype.Redo = function() {
 	this.undo.index++;
 	this._data = this.undo.stack[this.undo.index].data;
 	this.headers = this.undo.stack[this.undo.index].headers;
-	if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+	if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
 	this.undo.pushOnAdd = false;
 	this.add();
 	this.undo.pushOnAdd = true;
@@ -1319,7 +1319,7 @@ function ParseFunction(str) {
 // Object.prototype.toString.call(/a/)               => "[object RegExp]"
 // Object.prototype.toString.call(new Uint8Array(1)) => "[object Uint8Array]"
 
-Griddl.Components.data = Data;
+Hyperdeck.Components.data = Data;
 
 })();
 

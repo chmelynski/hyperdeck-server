@@ -1,5 +1,5 @@
 
-Griddl.Components.UploadWorkbook = function() {
+Hyperdeck.Components.UploadWorkbook = function() {
 	
 	var fileChooser = document.createElement('input');
 	fileChooser.type = 'file';
@@ -14,19 +14,19 @@ Griddl.Components.UploadWorkbook = function() {
 			
 			$('#cells').children().remove();
 			
-			Griddl.Components.Main(text);
+			Hyperdeck.Components.Main(text);
 			
-			for (var i = 0; i < Griddl.Components.objs.length; i++)
+			for (var i = 0; i < Hyperdeck.Components.objs.length; i++)
 			{
-				if (Griddl.Components.objs[i].type == 'document')
+				if (Hyperdeck.Components.objs[i].type == 'document')
 				{
-					Griddl.Components.objs[i].generate();
-					Griddl.Components.MarkClean();
+					Hyperdeck.Components.objs[i].generate();
+					Hyperdeck.Components.MarkClean();
 					return;
 				}
 			}
 			
-			Griddl.Components.MarkClean();
+			Hyperdeck.Components.MarkClean();
 		};
 		
 		if (fileChooser.files.length > 0)
@@ -39,7 +39,7 @@ Griddl.Components.UploadWorkbook = function() {
 	
 	fileChooser.click();
 };
-Griddl.Components.DownloadWorkbook = function() {
+Hyperdeck.Components.DownloadWorkbook = function() {
 
 	var filename = $('title').text();
 	var text = SaveToText();

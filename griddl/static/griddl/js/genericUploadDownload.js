@@ -1,6 +1,6 @@
 
 // we can use this as a generic upload function, but the component needs a setArrayBuffer or setText function, and an optional setExt
-Griddl.Components.Upload = function() {
+Hyperdeck.Components.Upload = function() {
 	
 	// interface required:
 	//  obj.setArrayBuffer
@@ -51,7 +51,7 @@ Griddl.Components.Upload = function() {
 	
 	fileChooser.click();
 };
-Griddl.Components.Download = function() {
+Hyperdeck.Components.Download = function() {
 	var a = document.createElement('a');
 	a.href = this.getHref();
 	a.download = this.name + (this.ext ? '.' : '') + this.ext;

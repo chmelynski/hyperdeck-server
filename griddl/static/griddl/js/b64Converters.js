@@ -1,5 +1,5 @@
 
-Griddl.Components.Base64StringToUint8Array = function(str) {
+Hyperdeck.Components.Base64StringToUint8Array = function(str) {
 	
 	function b64ToUint6(n) { return n>64&&n<91?n-65:n>96&&n<123?n-71:n>47&&n<58?n+4:n===43?62:n===47?63:0;}
 	
@@ -27,7 +27,7 @@ Griddl.Components.Base64StringToUint8Array = function(str) {
 	
 	return taBytes;
 };
-Griddl.Components.Uint8ArrayToBase64String = function(uint8array) {
+Hyperdeck.Components.Uint8ArrayToBase64String = function(uint8array) {
 	var nMod3 = '';
 	var sB64Enc = '';
 	

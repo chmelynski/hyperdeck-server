@@ -1,14 +1,14 @@
 
-if (typeof Griddl === 'undefined') { var Griddl = {}; }
+if (typeof Hyperdeck === 'undefined') { var Hyperdeck = {}; }
 
-Griddl.IO = (function() {
+Hyperdeck.IO = (function() {
 
 var IO = {};
 
 IO.DownloadWorkbook = function() {
 
 	var filename = $('title').text();
-	var text = Griddl.SaveToText();
+	var text = Hyperdeck.SaveToText();
 	
 	var downloadLink = document.createElement('a');
 	var url = (window.webkitURL != null ? window.webkitURL : window.URL);
@@ -30,11 +30,11 @@ IO.HandleLocalLoad = function(files) {
 		var text = event.target.result;
 		
 		$('#frce').text(text);
-		Griddl.Main();
+		Hyperdeck.Main();
 		
-		if (Griddl.objs['document'])
+		if (Hyperdeck.objs['document'])
 		{
-			Griddl.Canvas.GenerateDocument(JSON.parse(Griddl.GetData('document')));
+			Hyperdeck.Canvas.GenerateDocument(JSON.parse(Hyperdeck.GetData('document')));
 		}
 		
 	};

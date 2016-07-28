@@ -25,7 +25,7 @@ var Styles = function(json) {
 	{
 		json = {};
 		json.type = 'styles';
-		json.name = Griddl.Components.UniqueName('styles', 1);
+		json.name = Hyperdeck.Components.UniqueName('styles', 1);
 		json.visible = true;
 		json.data = [{name:'default',fontSize:12,fontFamily:'serif',bold:false,italic:false,color:'rgb(0,0,0)'}];
 	}
@@ -49,7 +49,7 @@ Styles.prototype.add = function() {
 	options.contextMenu = true;
 	options.manualColumnResize = true;
 	options.data = this.data;
-	options.afterChange = function(changes, source) { if (source != 'loadData') { Griddl.Components.MarkDirty(); } };
+	options.afterChange = function(changes, source) { if (source != 'loadData') { Hyperdeck.Components.MarkDirty(); } };
 	options.columns = [];
 	options.columns.push({data:'name'});
 	options.columns.push({data:'fontSize'});
@@ -69,20 +69,20 @@ Styles.prototype.write = function() {
 	return json;
 };
 
-Griddl.Components.SetStyle = function(ctx, styleStr) {
+Hyperdeck.Components.SetStyle = function(ctx, styleStr) {
 	
 	var styleObj = null;
 	
 	// first find the correct style obj (the first one with a matching name)
-	for (var i = 0; i < Griddl.Core.objs.length; i++)
+	for (var i = 0; i < Hyperdeck.Core.objs.length; i++)
 	{
-		if (Griddl.Core.objs[i].type == 'styles')
+		if (Hyperdeck.Core.objs[i].type == 'styles')
 		{
-			for (var k = 0; k < Griddl.Core.objs[i].data.length; k++)
+			for (var k = 0; k < Hyperdeck.Core.objs[i].data.length; k++)
 			{
-				if (Griddl.Core.objs[i].data[k].name == styleStr)
+				if (Hyperdeck.Core.objs[i].data[k].name == styleStr)
 				{
-					styleObj = Griddl.Core.objs[i].data[k];
+					styleObj = Hyperdeck.Core.objs[i].data[k];
 					break;
 				}
 			}
@@ -97,7 +97,7 @@ Griddl.Components.SetStyle = function(ctx, styleStr) {
 	ctx.fillStyle = styleObj.color;
 };
 
-Griddl.Components.styles = Styles;
+Hyperdeck.Components.styles = Styles;
 
 })();
 

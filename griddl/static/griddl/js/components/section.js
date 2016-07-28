@@ -6,7 +6,7 @@ var Section = function(json) {
 	if (!json)
 	{
 		json.type = 'section';
-		json.name = Griddl.Components.UniqueName('section', 1);
+		json.name = Hyperdeck.Components.UniqueName('section', 1);
 		json.visible = true;
 		json.text = '';
 		json.params = {};
@@ -41,7 +41,7 @@ var Section = function(json) {
 		},
 		set : function(value) {
 			this._text = value;
-			if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+			if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
 			this.codemirror.getDoc().setValue(this._text);
 			this.parse();
 			this.draw();
@@ -90,7 +90,7 @@ Section.prototype.add = function() {
 	
 	// on 'change' or 'blur'
 	this.codemirror.on('blur', function() {
-		if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
+		if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
 		section._text = section.codemirror.getValue(); // we avoid a setter loop by setting this._text, not this.text
 		section.parse();
 		section.draw();
@@ -141,7 +141,7 @@ Section.prototype.parse = function() {
 };
 Section.prototype.calculateWordMetrics = function() {
 	
-	if (this.textStyle.style) { Griddl.Components.SetStyle(this.ctx, this.textStyle.style); }
+	if (this.textStyle.style) { Hyperdeck.Components.SetStyle(this.ctx, this.textStyle.style); }
 	if (this.textStyle.fontSize) { this.ctx.setFontSize(this.textStyle.fontSize); }
 	if (this.textStyle.fontFamily) { this.ctx.setFont(this.textStyle.fontFamily, this.textStyle.bold, this.textStyle.italic); }
 	
@@ -210,7 +210,7 @@ Section.prototype.draw = function() {
 		for (var k = 0; k < this.columns.numberOfColumns; k++)
 		{
 			var lf = this.margin.left + (columnWidth + this.columns.interColumnMargin) * k;
-			boxes.push(Griddl.Components.MakeBox({lf:lf,rt:lf+columnWidth,tp:i*hg+this.margin.top,bt:(i+1)*hg-this.margin.bottom}));
+			boxes.push(Hyperdeck.Components.MakeBox({lf:lf,rt:lf+columnWidth,tp:i*hg+this.margin.top,bt:(i+1)*hg-this.margin.bottom}));
 		}
 	}
 	
@@ -227,12 +227,12 @@ Section.prototype.draw = function() {
 		
 		if (widget.margin)
 		{
-			var boxWithMargin = Griddl.Components.MakeBox({lf:widget.box.lf-widget.margin.left,rt:widget.box.rt+widget.margin.right,tp:widget.box.tp-widget.margin.top,bt:widget.box.bt+widget.margin.bottom});
-			boxes = Griddl.Components.Box.Occlude(boxes, boxWithMargin);
+			var boxWithMargin = Hyperdeck.Components.MakeBox({lf:widget.box.lf-widget.margin.left,rt:widget.box.rt+widget.margin.right,tp:widget.box.tp-widget.margin.top,bt:widget.box.bt+widget.margin.bottom});
+			boxes = Hyperdeck.Components.Box.Occlude(boxes, boxWithMargin);
 		}
 		else
 		{
-			boxes = Griddl.Components.Box.Occlude(boxes, widget.box);
+			boxes = Hyperdeck.Components.Box.Occlude(boxes, widget.box);
 		}
 	}
 	
@@ -282,7 +282,7 @@ Section.prototype.draw = function() {
 		{
 			var line = {};
 			line.words = [];
-			line.box = new Griddl.Components.Box(null, false);
+			line.box = new Hyperdeck.Components.Box(null, false);
 			line.box.reconcile({lf : box.lf , bt : bt , wd : box.wd , hg : this.textPositioning.lineHeight });
 			lines.push(line);
 		}
@@ -335,7 +335,7 @@ Section.prototype.draw = function() {
 			for (var k = 0; k < words.length; k++)
 			{
 				var word = {};
-				word.box = new Griddl.Components.Box(null, false);
+				word.box = new Hyperdeck.Components.Box(null, false);
 				word.box.reconcile({ lf : line.box.lf + words[k].lf , bt : line.box.bt , wd : words[k].wd , hg : line.box.hg });
 				word.text = words[k].text;
 				line.words.push(word);
@@ -368,7 +368,7 @@ Section.prototype.draw = function() {
 		{
 			var line = {};
 			line.words = [];
-			line.box = new Griddl.Components.Box(null, false);
+			line.box = new Hyperdeck.Components.Box(null, false);
 			line.box.reconcile({ lf : this.margin.left + (columnWidth + this.columns.interColumnMargin) * currentColumn , bt : bt , wd : columnWidth , hg : this.textPositioning.lineHeight });
 			
 			if (usingPositions)
@@ -378,7 +378,7 @@ Section.prototype.draw = function() {
 				for (var k = 0; k < words.length; k++)
 				{
 					var word = {};
-					word.box = new Griddl.Components.Box(null, false);
+					word.box = new Hyperdeck.Components.Box(null, false);
 					word.box.reconcile({ lf : line.box.lf + words[k].lf , bt : line.box.bt , wd : words[k].wd , hg : line.box.hg });
 					word.text = words[k].text;
 					line.words.push(word);
@@ -469,7 +469,7 @@ Section.prototype.draw = function() {
 		return;
 	}
 	
-	if (this.textStyle.style) { Griddl.Components.SetStyle(this.ctx, this.textStyle.style); }
+	if (this.textStyle.style) { Hyperdeck.Components.SetStyle(this.ctx, this.textStyle.style); }
 	if (this.textStyle.fontSize) { this.ctx.setFontSize(this.textStyle.fontSize); }
 	if (this.textStyle.fontFamily) { this.ctx.setFont(this.textStyle.fontFamily, this.textStyle.bold, this.textStyle.italic); }
 	this.ctx.fillStyle = this.color;
@@ -831,7 +831,7 @@ Section.prototype.representationToggle = function() {
 		obj.addElements();
 		obj.refresh();
 		
-		Griddl.Components.MarkDirty();
+		Hyperdeck.Components.MarkDirty();
 	};
 	
 	var OtherToText = function() {
@@ -839,14 +839,14 @@ Section.prototype.representationToggle = function() {
 		obj.div.html(''); // no - need to keep the data and only clear the metadata part
 		
 		var textbox = $(document.createElement('textarea'));
-		textbox.addClass('griddl-component-body-radio-textarea');
+		textbox.addClass('Hyperdeck-component-body-radio-textarea');
 		obj.div.append(textbox);
 		
 		var text = obj.getText();
 		codemirror = CodeMirror.fromTextArea(textbox[0], { smartIndent : false , lineNumbers : true });
 		codemirror.getDoc().setValue(text);
 		
-		Griddl.Components.MarkDirty();
+		Hyperdeck.Components.MarkDirty();
 	};
 	
 	return [ { label : obj.representationLabel , fn : TextToOther } , { label : 'JSON' , fn : OtherToText } ];
@@ -1114,9 +1114,9 @@ function Substitute() {
 	}
 }
 
-Griddl.Components.section = Section;
+Hyperdeck.Components.section = Section;
 
-Griddl.Components.LinebreakNaive = LinebreakNaive;
+Hyperdeck.Components.LinebreakNaive = LinebreakNaive;
 
 })();
 

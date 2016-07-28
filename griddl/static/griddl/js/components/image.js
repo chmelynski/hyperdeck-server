@@ -7,7 +7,7 @@ var Image = function(json) {
 	{
 		json = {};
 		json.type = 'image';
-		json.name = Griddl.Components.UniqueName('image', 1);
+		json.name = Hyperdeck.Components.UniqueName('image', 1);
 		json.visible = true;
 		json.data = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAIAAAAC64paAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAERJREFUOE9j3LJlCwMMeHt7w9lbt24lKM4A1AwH/5EAMeIDqJlUpyKrZxiimomJElxeG8CoosjZQzSqKHI2RQE2NDUDAEVWy5NpqgO1AAAAAElFTkSuQmCC';
 		json.params = {};
@@ -42,8 +42,8 @@ var Image = function(json) {
 	
 	this.load(json.data);
 	
-	this.box = new Proxy(new Griddl.Components.Box(this, true), Griddl.Components.DefaultProxyHandler);
-	//this.box = new Griddl.Components.Box(this, true);
+	this.box = new Proxy(new Hyperdeck.Components.Box(this, true), Hyperdeck.Components.DefaultProxyHandler);
+	//this.box = new Hyperdeck.Components.Box(this, true);
 	this.box.x = json.params.x;
 	this.box.y = json.params.y;
 	this.box.hAlign = json.params.hAlign;
@@ -52,10 +52,10 @@ var Image = function(json) {
 	this.box.hg = json.params.hg;
 	this.box.align();
 	
-	this.source = new Proxy(json.params.source, Griddl.Components.DefaultProxyHandler);
+	this.source = new Proxy(json.params.source, Hyperdeck.Components.DefaultProxyHandler);
 	//this.source = json.params.source;
 	
-	this.margin = new Proxy(json.params.margin, Griddl.Components.DefaultProxyHandler);
+	this.margin = new Proxy(json.params.margin, Hyperdeck.Components.DefaultProxyHandler);
 	//this.margin = json.params.margin;
 };
 Image.prototype.add = function() {
@@ -99,7 +99,7 @@ Image.prototype.addElements = function() {
 		});
 	});
 	
-	Griddl.Components.AddMarginElements(gui, this, this.margin);
+	Hyperdeck.Components.AddMarginElements(gui, this, this.margin);
 	
 	this.div[0].appendChild(gui.domElement);
 	
@@ -119,7 +119,7 @@ Image.prototype.setExt = function(ext) {
 };
 Image.prototype.setArrayBuffer = function(arrayBuffer) {
 	this.uint8array = new Uint8Array(arrayBuffer);
-	this.b64 = 'data:image/' + this.ext + ';base64,' + Griddl.Components.Uint8ArrayToBase64String(this.uint8array);
+	this.b64 = 'data:image/' + this.ext + ';base64,' + Hyperdeck.Components.Uint8ArrayToBase64String(this.uint8array);
 	this.refresh();
 };
 Image.prototype.getData = function() {
@@ -149,7 +149,7 @@ Image.prototype.load = function(b64) {
 	
 	this.ext = type;
 	
-	this.uint8array = Griddl.Components.Base64StringToUint8Array(data);
+	this.uint8array = Hyperdeck.Components.Base64StringToUint8Array(data);
 	
 	if (typeof window != 'undefined')
 	{
@@ -198,11 +198,11 @@ Image.prototype.write = function() {
 	return json;
 };
 
-Image.prototype.upload = Griddl.Components.Upload;
-Image.prototype.onhover = Griddl.Components.OnHover;
-Image.prototype.dehover = Griddl.Components.DeHover;
+Image.prototype.upload = Hyperdeck.Components.Upload;
+Image.prototype.onhover = Hyperdeck.Components.OnHover;
+Image.prototype.dehover = Hyperdeck.Components.DeHover;
 
-Griddl.Components.image = Image;
+Hyperdeck.Components.image = Image;
 
 })();
 

@@ -2,20 +2,20 @@
 
   var playground = window.playground;
 
-  Griddl.dirty = false;
+  Hyperdeck.dirty = false;
   var titleTag = document.getElementsByTagName('title')[0];
 
-  Griddl.Components.MarkDirty = function() {
-    if (!Griddl.dirty) {
-      Griddl.dirty = true;
+  Hyperdeck.Components.MarkDirty = function() {
+    if (!Hyperdeck.dirty) {
+      Hyperdeck.dirty = true;
       parent.postMessage({'action': 'markDirty'}, playground);
       $('#saveMenuButton').addClass("bg-danger");
     }
   };
 
-  Griddl.Components.MarkClean = function() {
-    if (Griddl.dirty) {
-      Griddl.dirty = false;
+  Hyperdeck.Components.MarkClean = function() {
+    if (Hyperdeck.dirty) {
+      Hyperdeck.dirty = false;
       parent.postMessage({'action': 'markClean'}, playground);
       $('#saveMenuButton').removeClass("bg-danger");
     }

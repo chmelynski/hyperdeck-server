@@ -352,7 +352,7 @@ Box.prototype.initHandlers = function() {
 	
 };
 
-Griddl.Components.AddMarginElements = function(gui, obj, margin) {
+Hyperdeck.Components.AddMarginElements = function(gui, obj, margin) {
 	
 	var controls = [];
 	
@@ -876,14 +876,14 @@ Handle.prototype.dehover = function() {
 	this.box.obj.ctx.canvas.onmousedown = null;
 };
 
-Griddl.Components.Box = Box;
+Hyperdeck.Components.Box = Box;
 
-Griddl.Components.MakeBox = MakeBox;
-//Griddl.Components.AddBoxVars = AddBoxVars;
-//Griddl.Components.ReconcileBox = ReconcileBox;
-//Griddl.Components.AlignBox = AlignBox;
-//Griddl.Components.MoveBox = MoveBox;
-//Griddl.Components.Drag = Drag;
+Hyperdeck.Components.MakeBox = MakeBox;
+//Hyperdeck.Components.AddBoxVars = AddBoxVars;
+//Hyperdeck.Components.ReconcileBox = ReconcileBox;
+//Hyperdeck.Components.AlignBox = AlignBox;
+//Hyperdeck.Components.MoveBox = MoveBox;
+//Hyperdeck.Components.Drag = Drag;
 
 })();
 

@@ -5,7 +5,7 @@
 <head>
   <link href="{% static 'griddl/css/bootstrap.min.css' %}" rel="stylesheet">
   <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet">
-  <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/codemirror-3.20.css' %}" />
+  <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/codemirror-5.0.css' %}" />
   <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/jquery.ui.css' %}" />
   <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/handsontable.full-0.14.1.css' %}" />
   <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/custom.css' %}" />
@@ -16,10 +16,10 @@
   <script type='text/javascript' src="{% static 'griddl/js/lib/bootstrap.min.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/utils.js' %}"></script>
 
-  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-javascript.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-css.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-3.20-xml.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-javascript.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-css.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-xml.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-markdown.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.mousewheel.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/handsontable.full.min-0.14.1.js' %}"></script>
@@ -36,6 +36,15 @@
   <script type='text/javascript' src="{% static 'griddl/js/griddl.typeset.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/defaultFonts.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/results.js' %}"></script>
+  
+  <link rel="stylesheet" href="{% static 'griddl/js/lib/fold/foldgutter.css' %}" />
+  <script type='text/javascript' src="{% static 'griddl/js/lib/fold/foldcode.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/fold/foldgutter.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/fold/brace-fold.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/fold/indent-fold.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/fold/xml-fold.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/fold/markdown-fold.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/fold/comment-fold.js' %}"></script>
   
   <script type='text/javascript' src="{% static 'griddl/js/griddl.components.new.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/griddl.componentHeaders.js' %}"></script>
@@ -122,47 +131,47 @@ MathJax.Hub.Config({
           </button>
             <ul class="dropdown-menu">
               <li>
-                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['data']());">
+                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['data']());">
                   Data
                 </a>
               </li>
               <li>
-                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['js'](null, 'js'));">
+                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['js'](null, 'js'));">
                   Javascript
                 </a>
               </li>
               <li>
-                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['md'](null, 'md'));">
+                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['md'](null, 'md'));">
                   Markdown
                 </a>
               </li>
               <li>
-                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['html'](null, 'html'));">
+                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['html'](null, 'html'));">
                   Html
                 </a>
               </li>
               <li>
-                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['css'](null, 'css'));">
+                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['css'](null, 'css'));">
                   Css
                 </a>
               </li>
               <li>
-                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['txt'](null, 'txt'));">
+                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['txt'](null, 'txt'));">
                   Plain Text
                 </a>
               </li>
               <li>
-                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['file'](null, 'file'));">
+                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['file'](null, 'file'));">
                   File
                 </a>
               </li>
               <li>
-                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['jsfile'](null, 'jsfile'));">
+                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['jsfile'](null, 'jsfile'));">
                   Javascript File
                 </a>
               </li>
               <li>
-                <a onclick="Griddl.Components.NewComponent(new Griddl.Components['imgfile'](null, 'imgfile'));">
+                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['imgfile'](null, 'imgfile'));">
                   Image File
                 </a>
               </li>

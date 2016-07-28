@@ -9,9 +9,9 @@
 
 var elementIds = {};
 
-Griddl.Components.RegisterElementId = function(id) { elementIds[id] = true; }
+Hyperdeck.Components.RegisterElementId = function(id) { elementIds[id] = true; }
 
-Griddl.Components.UniqueElementId = function() {
+Hyperdeck.Components.UniqueElementId = function() {
 
 	var id = null;
 
@@ -27,14 +27,14 @@ Griddl.Components.UniqueElementId = function() {
 	return id;
 };
 
-Griddl.Components.UniqueName = function(type, n) {
+Hyperdeck.Components.UniqueName = function(type, n) {
 
 	var name = null;
 
 	do {
 		name = type + n.toString();
 		n++;
-	} while (Griddl.Components.objs[name] || elementIds[name]);
+	} while (Hyperdeck.Components.objs[name] || elementIds[name]);
 
 	elementIds[name] = true;
 

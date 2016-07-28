@@ -12,7 +12,7 @@ var Font = function(json) {
 	{
 		json = {};
 		json.type = 'font';
-		json.name = Griddl.Components.UniqueName('font', 1);
+		json.name = Hyperdeck.Components.UniqueName('font', 1);
 		json.visible = true;
 		json.data = null;
 	}
@@ -44,8 +44,8 @@ Font.prototype.setArrayBuffer = function(arrayBuffer) {
 	this.b64 = 'data:font/otf;base64,' + Uint8ArrayToBase64String(this.uint8array); // this *is* necessary, though, because we need the b64 to write to file
 	this.font = opentype.parse(arrayBuffer);
 	
-	Griddl.Canvas.fontDict[this.name] = this.font;
-	Griddl.Canvas.fontNameToUint8Array[this.name] = this.uint8array;
+	Hyperdeck.Canvas.fontDict[this.name] = this.font;
+	Hyperdeck.Canvas.fontNameToUint8Array[this.name] = this.uint8array;
 	
 	this.refresh();
 };
@@ -72,8 +72,8 @@ Font.prototype.load = function(b64) {
 	this.uint8array = Base64StringToUint8Array(data);
 	this.font = opentype.parse(this.uint8array.buffer);
 	
-	Griddl.Canvas.fontDict[this.name] = this.font;
-	Griddl.Canvas.fontNameToUint8Array[this.name] = this.uint8array;
+	Hyperdeck.Canvas.fontDict[this.name] = this.font;
+	Hyperdeck.Canvas.fontNameToUint8Array[this.name] = this.uint8array;
 };
 Font.prototype.refresh = function() {
 	
@@ -125,7 +125,7 @@ Font.prototype.add = function() {
 	this.refresh();
 };
 
-Griddl.Components.font = Font;
+Hyperdeck.Components.font = Font;
 
 })();
 

@@ -29,7 +29,7 @@ var ScatterChart = function(json) {
 	
 	this.controls = [];
 	
-	this.box = new Griddl.Components.Box(this, true);
+	this.box = new Hyperdeck.Components.Box(this, true);
 	this.box.x = json.params.x;
 	this.box.y = json.params.y;
 	this.box.hAlign = json.params.hAlign ? json.params.hAlign : 'center';
@@ -170,10 +170,10 @@ ScatterChart.prototype.write = function() {
 	return json;
 };
 
-ScatterChart.prototype.clear = Griddl.Components.Clear;
-ScatterChart.prototype.onhover = Griddl.Components.OnHover;
-ScatterChart.prototype.dehover = Griddl.Components.DeHover;
-ScatterChart.prototype.onmousemove = Griddl.Components.OnMouseMove;
+ScatterChart.prototype.clear = Hyperdeck.Components.Clear;
+ScatterChart.prototype.onhover = Hyperdeck.Components.OnHover;
+ScatterChart.prototype.dehover = Hyperdeck.Components.DeHover;
+ScatterChart.prototype.onmousemove = Hyperdeck.Components.OnMouseMove;
 
 function RegularPolygon(ctx, cx, cy, r, n, angle) {
 	
@@ -211,7 +211,7 @@ function Cross(ctx, cx, cy, r, w) {
 	ctx.closePath();
 }
 
-Griddl.Components.scatterChart = ScatterChart;
+Hyperdeck.Components.scatterChart = ScatterChart;
 
 })();
 
