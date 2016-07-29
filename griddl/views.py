@@ -21,7 +21,7 @@ from mysite.settings import SUBDOMAINS
 
 from .decorators import require_subdomain
 from .models import Workbook, Account, Plan
-from .models import AccountSizeException, MaxWorkbookSizeException
+from .models import AccountSizeError, MaxWorkbookSizeError
 from .utils import resolve_ancestry
 
 logger = logging.getLogger(__name__)
@@ -276,16 +276,10 @@ def save(request):
                                  'wb_size': wb.size,
                                  'acct_size': request.user.account.size,
                                  'plan_size': request.user.account.plan_size})
-        except AccountSizeException:
-            return JsonResponse({'success': False,
-                                 'message': 'This workbook is too large for\
-                                             your current plan. Please\
-                                             <a href="/subscriptions">upgrade\
+        except (AccountSizeError, MaxWorkbookSizeError) as e:
+            msg = e.message + " Please <a target='_blank' href='/subscriptions'>upgrade\
                                              to a larger plan</a> or delete\
-                                             some data to save this workbook.'
-                                 })
-        except MaxWorkbookSizeException:
-            msg = "Sorry, your workbook is too large and cannot be saved."
+                                             some data to save this workbook."
             return JsonResponse({'success': False, 'message': msg})
         except exceptions.ValidationError as e:
             return JsonResponse({'success': False, 'message': e.message})
@@ -316,8 +310,9 @@ def saveas(request):
         wb.pk = None
         try:
             wb.save()
-        except Exception:  # todo: more specific exception
+        except (AccountSizeError, MaxWorkbookSizeError) as e:
             # todo: actually save wb just in case?
+            messages.error(e.message)
             return JsonResponse({'redirect': '/subscriptions?billing=true'})
 
         response = {'success': True}

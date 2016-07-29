@@ -26,11 +26,15 @@ MY_FIRST_WORKBOOK = json.dumps(BASE_WORKBOOK)
 logger = logging.getLogger(__name__)
 
 
-class AccountSizeException(Exception):
+class AccountSizeError(Exception):
+    """
+    Your account has exceeded the storage allowed by your plan. Please
+    upgrade your account or delete some workbooks to make more space.
+    """
     pass
 
 
-class MaxWorkbookSizeException(Exception):
+class MaxWorkbookSizeError(Exception):
     pass
 
 
@@ -96,9 +100,11 @@ class Workbook(models.Model):
 
         # deal with the hard nopes first
         if len(self.text) >= settings.MAX_WORKBOOK_SIZE:
-            raise MaxWorkbookSizeException()
+            raise MaxWorkbookSizeError("Sorry, this workbook is too big for\
+                                        your current account.")
         if len(self.text) >= self.owner.plan_size * 1024:
-            raise AccountSizeException()
+            raise AccountSizeError("Sorry, this workbook is too big for your\
+                                    current account.")
 
         self.slug = slugify(self.name)
 

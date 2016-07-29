@@ -8,14 +8,19 @@ from models import Account, DefaultWorkbook, Workbook
 class AccountInline(admin.StackedInline):
     model = Account
     can_delete = False
+    readonly_fields = ('size',)
 
 
 class UserAdmin(UserAdmin):
     inlines = (AccountInline,)
 
 
+class WorkbookAdmin(admin.ModelAdmin):
+    readonly_fields = ('size',)
+
+
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
 
-admin.site.register(Workbook)
+admin.site.register(Workbook, WorkbookAdmin)
 admin.site.register(DefaultWorkbook)

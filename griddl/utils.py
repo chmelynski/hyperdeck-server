@@ -15,18 +15,15 @@ def resolve_ancestry(userid, path):
     '''
 
     if path:
-        logger.debug("in resolver: {}".format(path))
         ancestors = []
         path = path.strip('/')
         last = None
         if '/' in path:
             parts = path.split('/')
-            logger.debug("parts: {}".format(parts))
         else:
             parts = [path]
 
         for obj in parts:
-            logger.debug("obj: {}".format(obj))
             this = Workbook.objects.get(owner=userid,
                                         name=obj,
                                         parent=last
