@@ -33,8 +33,11 @@ def check_size(sender, instance, **kwargs):
     '''
     determine post-save account size and if it's too big, raise the exception
     '''
-    orig = Workbook.objects.get(pk=instance.pk)
-    new_size = (instance.owner.size - orig.size) + instance.size
+    try:
+        orig = Workbook.objects.get(pk=instance.pk)
+        new_size = (instance.owner.size - orig.size) + instance.size
+    except:
+        new_size = instance.size + instance.owner.size
     if new_size > instance.owner.plan_size:
         logger.debug("plan size: {}, account owner size: {}".format(instance.owner.plan_size, new_size))
         logger.debug("instance size: {}".format(instance.size))
