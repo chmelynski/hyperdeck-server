@@ -84,9 +84,11 @@ Code.prototype.add = function() {
 	options.extraKeys = {"Ctrl-Q": function(cm) { cm.foldCode(cm.getCursor()); }};
 	this.codemirror = CodeMirror.fromTextArea(textarea[0], options);
 	
-	// on 'change' or 'blur'
-	this.codemirror.on('blur', function() {
+	this.codemirror.on('change', function() {
 		if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
+	});
+	
+	this.codemirror.on('blur', function() {
 		comp._text = comp.codemirror.getValue(); // we avoid a setter loop by setting this._text, not this.text
 		comp.compile();
 	});
