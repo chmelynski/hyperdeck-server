@@ -535,7 +535,7 @@ def results(request, userid, path, slug):
     context = {
         "workbook": wb
     }
-    if request.user.account == wb.owner:
+    if request.user.is_authenticated() and request.user.account == wb.owner:
         if wb.parent:
             context['parentdir'] = wb.parent.uri
         else:
