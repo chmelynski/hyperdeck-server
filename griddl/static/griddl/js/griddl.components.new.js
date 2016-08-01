@@ -93,12 +93,16 @@ var RestoreObj = Components.RestoreObj = function() {
 var SaveToText = Components.SaveToText = function() { return JSON.stringify(objs.map(obj => obj.write())); };
 var MakeSortable = Components.MakeSortable = function() {
 	$('#cells').sortable({handle:'.reorder-handle',stop:function(event, ui) {
+		
+		if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
+		
 		$(this).children().each(function(index, elt) {
 			var id = $(elt).children().eq(1).attr('id');
 			objs[index] = objs[id.substr(0, id.length - 'Component'.length)];
 		});
 		
 		$('#output').html('');
+		
 		objs.forEach(function(obj) {
 			if (obj.type == 'html' || obj.type == 'md' || obj.type == 'css') // not ideal to dispatch on type here
 			{
