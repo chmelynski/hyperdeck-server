@@ -64,6 +64,7 @@ var RenameObj = Components.RenameObj = function(obj, newname) {
 	delete objs[obj.name];
 	while (objs[newname]) { newname += ' - copy'; } // if there is a conflict, just add suffixes until there isn't
 	$('#'+obj.name).attr('id', newname);
+	$('#'+obj.name+'Component').attr('id', newname+'Component');
 	obj.name = newname;
 	objs[obj.name] = obj;
 };
