@@ -114,11 +114,12 @@ MathJax.Hub.Config({
 
 
         <div style="display: inline-block;">
-          <a id="up" style="margin-right:1em;" class="btn btn-default" href="{{ parentdir }}">
-            <i class="fa fa-level-up fa-flip-horizontal fa-lg" style="vertical-align: middle;"></i>
-            Up
-          </a>
-              
+          {% if user.is_authenticated and user.account == workbook.owner %}
+            <a id="up" style="margin-right:1em;" class="btn btn-default" href="{{ parentdir }}">
+              <i class="fa fa-level-up fa-flip-horizontal fa-lg" style="vertical-align: middle;"></i>
+              Up
+            </a>
+          {% endif %}
           <h4 id="workbookName">{{ workbook.name }}</h4>
         </div>
 
