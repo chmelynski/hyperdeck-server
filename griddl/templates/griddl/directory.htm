@@ -54,7 +54,7 @@
     <tr style="height:3em;">
       <th style="width:3em;"></th>
       <th style="width:20em;">Name</th>
-      <th style="width:10em;">Type</th>
+      <th style="width:10em;"></th>
       <th style="width:10em;">Size</th>
       <th style="width:3em;">Public?</th>
     </tr>
@@ -77,7 +77,7 @@
           {{ workbook.type }}
         </td>
         <td>
-          {{ workbook.size|filesizeformat }}
+          {% if workbook.filetype == 'F' %}{{ workbook.size|filesizeformat }}{% endif %}
         </td>
         <td>
           {% if workbook.filetype == 'F' %}
