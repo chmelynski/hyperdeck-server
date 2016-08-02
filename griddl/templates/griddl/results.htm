@@ -89,21 +89,23 @@ MathJax.Hub.Config({
 </script>
 
   {# these are for PDF documents  #}
-  <script type='text/javascript' src="{% static 'griddl/js/components/box.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/text.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/font.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/document.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/section.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/table.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/subcanvas.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/image.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/styles.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/chart.bar.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/chart.line.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/axis.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/key.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/arrow.js' %}"></script>
-
+  {% comment %}
+    <script type='text/javascript' src="{% static 'griddl/js/components/box.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/text.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/font.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/document.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/section.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/table.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/subcanvas.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/image.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/styles.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/chart.bar.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/chart.line.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/axis.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/key.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/arrow.js' %}"></script>
+  {% endcomment %}
+  
 </head>
 <body class="framed">
   <div class="container-fluid"> 
@@ -120,7 +122,7 @@ MathJax.Hub.Config({
               Up
             </a>
           {% endif %}
-          <h4 id="workbookName">{{ workbook.name }}</h4>
+          <h4 id="workbookName" style="margin-right:1em;">{{ workbook.name }}</h4>
         </div>
 
 
