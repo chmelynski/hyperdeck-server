@@ -18,7 +18,7 @@ class AccountInline(admin.StackedInline):
 
 class UserAdmin(UserAdmin):
     inlines = (AccountInline,)
-    list_display = ('username','email','Plan','Size')
+    list_display = ('username','email','Plan','Size','last_login','date_joined')
     
     def Plan(self, obj):
         return obj.account.plan
@@ -30,6 +30,7 @@ class WorkbookAdmin(admin.ModelAdmin):
     readonly_fields = ('size',)
     exclude = ('text',)
     list_display = ('owner','slug','size')
+    list_display_links = ('slug')
 
 
 admin.site.unregister(User)
