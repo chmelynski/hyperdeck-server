@@ -18,7 +18,7 @@ class AccountInline(admin.StackedInline):
 
 class UserAdmin(UserAdmin):
     inlines = (AccountInline,)
-    list_display = ('username','email_address','Plan','Size')
+    list_display = ('username','email','Plan','Size')
     
     def Plan(self, obj):
         return obj.account.plan
