@@ -11,6 +11,8 @@ var objs = [];
 Components.objs = objs; // UniqueName in elementIds.js needs this
 
 var lastDeletedObj = null;
+var password = null;
+var ciphertext = null; // Main sets this if it receives ciphertext.  then Decrypt() will re-run Main
 
 Components.Main = function(text) {
 	
@@ -20,6 +22,16 @@ Components.Main = function(text) {
 	}
 	
 	var json = JSON.parse(text);
+	
+	if (json.cipher)
+	{
+		ciphertext = json;
+		var passwordInput = $('<input id="passwordInput" type="password"></input>');
+		var decryptButton = $('<button onclick="Decrypt()">Decrypt</button>');
+		$('#cells').append(passwordInput);
+		$('#cells').append(decryptButton);
+		return;
+	}
 	
 	objs = [];
 	Components.objs = objs; // UniqueName in elementIds.js needs this
@@ -90,7 +102,20 @@ var RestoreObj = Components.RestoreObj = function() {
 	MakeSortable();
 	lastDeletedObj = null;
 };
-var SaveToText = Components.SaveToText = function() { return JSON.stringify(objs.map(obj => obj.write())); };
+
+function Decrypt() {
+	var plaintext = sjcl.decrypt(password, ciphertext);
+	Components.Main(plantext);
+}
+Hyperdeck.SetPassword = function(pw) {
+	password = pw;
+};
+var SaveToText = Components.SaveToText = function() {
+	// possible vector for dataloss: clicking save before you decrypt.  maybe add a 'decrypted' flag to prevent this
+	var text = JSON.stringify(objs.map(obj => obj.write()));
+	if (password != null) { text = sjcl.encrypt(password, text); }
+	return text;
+};
 var MakeSortable = Components.MakeSortable = function() {
 	$('#cells').sortable({handle:'.reorder-handle',stop:function(event, ui) {
 		
