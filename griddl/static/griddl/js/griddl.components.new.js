@@ -27,7 +27,7 @@ Components.Main = function(text) {
 	{
 		ciphertext = json;
 		var passwordInput = $('<input id="passwordInput" type="password"></input>');
-		var decryptButton = $('<button onclick="Decrypt()">Decrypt</button>');
+		var decryptButton = $('<button onclick="Hyperdeck.Decrypt()">Decrypt</button>');
 		$('#cells').append(passwordInput);
 		$('#cells').append(decryptButton);
 		return;
@@ -103,7 +103,7 @@ var RestoreObj = Components.RestoreObj = function() {
 	lastDeletedObj = null;
 };
 
-function Decrypt() {
+Hyperdeck.Decrypt() {
 	var plaintext = sjcl.decrypt(password, ciphertext);
 	Components.Main(plantext);
 }
