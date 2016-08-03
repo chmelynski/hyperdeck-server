@@ -104,6 +104,7 @@ var RestoreObj = Components.RestoreObj = function() {
 };
 
 Hyperdeck.Decrypt = function() {
+	password = $('#passwordInput')[0].value;
 	var plaintext = sjcl.decrypt(password, ciphertext);
 	Components.Main(plaintext);
 };
