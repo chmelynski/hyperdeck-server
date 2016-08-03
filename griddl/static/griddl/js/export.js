@@ -6,7 +6,7 @@ Hyperdeck.Export = function() {
 	
 	var downloadLink = document.createElement('a');
 	downloadLink.href = window.URL.createObjectURL(new Blob([text], {type : 'text/plain'}));
-	downloadLink.download = filename + '.hyp';
+	downloadLink.download = filename + '.json';
 	downloadLink.click();
 };
 
