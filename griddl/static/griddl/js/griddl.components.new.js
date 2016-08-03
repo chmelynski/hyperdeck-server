@@ -25,7 +25,7 @@ Components.Main = function(text) {
 	
 	if (json.cipher)
 	{
-		ciphertext = json;
+		ciphertext = text;
 		var passwordInput = $('<input id="passwordInput" type="password"></input>');
 		var decryptButton = $('<button onclick="Hyperdeck.Decrypt()">Decrypt</button>');
 		$('#cells').append(passwordInput);
