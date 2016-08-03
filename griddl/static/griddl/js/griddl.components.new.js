@@ -103,10 +103,10 @@ var RestoreObj = Components.RestoreObj = function() {
 	lastDeletedObj = null;
 };
 
-Hyperdeck.Decrypt() {
+Hyperdeck.Decrypt = function() {
 	var plaintext = sjcl.decrypt(password, ciphertext);
-	Components.Main(plantext);
-}
+	Components.Main(plaintext);
+};
 Hyperdeck.SetPassword = function(pw) {
 	password = pw;
 };
