@@ -26,12 +26,17 @@ Components.Main = function(text) {
 	if (json.cipher)
 	{
 		ciphertext = text;
-		var passwordInput = $('<input id="passwordInput" type="password"></input>');
-		var decryptButton = $('<button onclick="Hyperdeck.Decrypt()">Decrypt</button>');
-		$('#cells').append(passwordInput);
-		$('#cells').append(decryptButton);
+		var ls = [];
+		ls.push('<div id="passwordDiv">');
+		ls.push('<input id="passwordInput" type="password"></input>');
+		ls.push('<button onclick="Hyperdeck.Decrypt()">Decrypt</button>');
+		ls.push('</div>');
+		var passwordDiv = $(ls.join(''));
+		$('#cells').append(passwordDiv);
 		return;
 	}
+	
+	$('#cells').html('');
 	
 	objs = [];
 	Components.objs = objs; // UniqueName in elementIds.js needs this
