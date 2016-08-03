@@ -180,8 +180,33 @@ MathJax.Hub.Config({
               </li>
             </ul>
         </div>
+        
+        <div class="btn-group">
+          <button class="btn btn-default dropdown-toggle" data-toggle='dropdown' aria-haspopup="true" aria-expanded="false">
+            <i class="fa fa-wrench fa-lg"></i>
+            Tools
+            <span class="caret"></span>
+          </button>
+            <ul class="dropdown-menu">
+              <li>
+                <a onclick="Hyperdeck.Export()">
+                  Export
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.Import()">
+                  Import
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.ShowPasswordInput()">
+                  Encrypt
+                </a>
+              </li>
+            </ul>
+        </div>
+        
       </div>
-
 
       <div class="col-sm-6">
               
