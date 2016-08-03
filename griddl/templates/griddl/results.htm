@@ -29,6 +29,7 @@
   <script type='text/javascript' src="{% static 'griddl/js/lib/markdown.min.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/js-yaml.min.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.csv.min.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/sjcl.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/griddl.ui.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/griddl.io.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/griddl.canvas.js' %}"></script>
@@ -279,6 +280,20 @@ MathJax.Hub.Config({
         </div>
         <div class="modal-footer">
           <button id="saveAsSubmit" class="btn btn-success" type="submit" value="Save">Save</input>
+          <button class="btn btn-danger" type="button" value="Cancel" data-dismiss="modal">Cancel</input>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div id="passwordModal" class="modal fade">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-body">
+          <input id="passwordInput" type="password" name="text" value=""></input>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-success" value="Save" onclick="Hyperdeck.SetPassword()">Save</input>
           <button class="btn btn-danger" type="button" value="Cancel" data-dismiss="modal">Cancel</input>
         </div>
       </div>
