@@ -30,7 +30,7 @@ def billing_redirect(request, planid, userid):
     lots of other possible benefits, including analytics on abandonment
     '''
     timestamp = timezone.now()
-    redirect = BillingRedirect.create(accountid=userid, planid=planid,
+    redirect = BillingRedirect.create(account_id=userid, planid=planid,
                                       created=timestamp)
     redirect.save()
     return HttpResponseRedirect(redirect.url)

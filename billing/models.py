@@ -128,7 +128,7 @@ class BillingRedirect(models.Model):
     Tracks billing redirects for fulfillment & analytics.
     '''
 
-    STATES = (  # not sure what else we need here yet.
+    STATES = (
         (0, 'Sent'),
         (1, 'Completed')
     )
@@ -141,14 +141,14 @@ class BillingRedirect(models.Model):
     status = models.IntegerField(choices=STATES, default=0)
 
     @classmethod
-    def create(cls, accountid, planid, created):
+    def create(cls, account_id, planid, created):
         '''
         create object, including automatic referrer generation
         '''
-        account = Account.objects.get(pk=accountid)
+        account = Account.objects.get(pk=account_id)
         plan = Plan.objects.get(pk=planid)
         redirect = cls(account=account, plan=plan, created=created)
-        redirect.referrer = hashlib.md5(str(accountid) + str(planid) +
+        redirect.referrer = hashlib.md5(str(account_id) + str(planid) +
                                         str(created)).hexdigest()
         return redirect
 

@@ -20,9 +20,9 @@ def workbook_locks(account):
     account_size = sum([wb.size for wb in wbs])
     plan_size = account.plan_size * 1024
 
-    if settings.DEBUG:
-        print "account size: %d" % account_size
-        print "plan size: %d" % plan_size
+#    if settings.DEBUG:
+#        print "account size: %d" % account_size
+#        print "plan size: %d" % plan_size
 
     if account_size > plan_size:
         '''
