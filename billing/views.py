@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseNotFound
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -248,7 +249,13 @@ class Change(FastSpringNotificationView):
                 logger.error("error changing subscription: {}".format(
                              json.loads(data)))
                 return
-            plan = Plan.objects.get(name=data['plan'])
+            planid = next((i[0] for i in Plan.SIZES if i[1] == data['plan']),
+                          None)  # None if no match found
+            try:
+                plan = Plan.objects.get(name=planid)
+            except:
+                print "whoopsie-do!"
+                return HttpResponseNotFound()
             if plan is not sub.plan:
                 sub.plan = plan
                 if data['end_date']:  # set "downgrade pending" if end date set
