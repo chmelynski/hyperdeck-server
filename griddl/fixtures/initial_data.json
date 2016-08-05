@@ -1,10 +1,10 @@
 [
     {
-        "model": "griddl.Sites",
+        "model": "sites.Site",
         "pk": 1,
         "fields": {
-            "domain_name": "hyperbench.com",
-            "display_name": "hyperbench.com"
+            "domain": "hyperdeck.io",
+            "name": "hyperdeck.io"
         }
     }
 ]
