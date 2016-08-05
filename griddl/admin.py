@@ -11,26 +11,30 @@ from models import Account, DefaultWorkbook, Workbook
 # https://docs.djangoproject.com/en/1.9/ref/contrib/admin/#django.contrib.admin.ModelAdmin.ordering
 # https://docs.djangoproject.com/en/1.9/ref/contrib/admin/#django.contrib.admin.ModelAdmin.readonly_fields
 
+
 class AccountInline(admin.StackedInline):
     model = Account
     can_delete = False
     readonly_fields = ('size',)
 
+
 class UserAdmin(UserAdmin):
     inlines = (AccountInline,)
-    list_display = ('username','email','Plan','Size','last_login','date_joined')
-    
+    list_display = ('username', 'email', 'Plan',
+                    'Size', 'last_login', 'date_joined')
+
     def Plan(self, obj):
         return obj.account.plan
 
     def Size(self, obj):
         return obj.account.size
 
+
 class WorkbookAdmin(admin.ModelAdmin):
     readonly_fields = ('size',)
     exclude = ('text',)
-    list_display = ('owner','slug','size')
-    list_display_links = ('slug')
+    list_display = ('owner', 'slug', 'size')
+    list_display_links = ('slug',)
 
 
 admin.site.unregister(User)
