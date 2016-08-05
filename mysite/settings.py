@@ -311,9 +311,8 @@ DEBUG_TOOLBAR_PATCH_SETTINGS = False
 INTERNAL_IPS = ['127.0.0.1', '24.177.237.106', '192.241.210.119']
 
 # subdomain settings
-REMOVE_WWW_FROM_DOMAIN = False
 SUBDOMAINS = {
-    'main': None,
+    'main': '',
     'sandbox': 'griddl'
 }
 
