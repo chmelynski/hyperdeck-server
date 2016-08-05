@@ -312,7 +312,7 @@ INTERNAL_IPS = ['127.0.0.1', '24.177.237.106', '192.241.210.119']
 
 # subdomain settings
 SUBDOMAINS = {
-    'main': 'www',
+    'main': None,
     'sandbox': 'griddl'
 }
 
