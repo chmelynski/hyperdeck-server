@@ -1131,11 +1131,11 @@ var ParseStringToObj = function(str) {
 		
 		val /= divisor;
 	}
-	else if (dateRegex.test(str))
-	{
-		val = new Date(str);
-		if (val.toJSON() == null) { val = str; } // revert if the date is invalid
-	}
+	//else if (dateRegex.test(str))
+	//{
+	//	val = new Date(str);
+	//	if (val.toJSON() == null) { val = str; } // revert if the date is invalid
+	//}
 	else if (trueRegex.test(str))
 	{
 		val = true;
