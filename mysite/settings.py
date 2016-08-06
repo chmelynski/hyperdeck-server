@@ -126,12 +126,14 @@ else:
     STATICFILES_DIRS = (os.path.join(os.path.dirname(
                         os.path.abspath(__file__)), 'static'), )
 
-STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
+# STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'pipeline.storage.PipelineCachedStorage'
 
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
     #    'django.contrib.staticfiles.finders.DefaultStorageFinder',
+    'pipeline.finders.PipelineFinder',
 )
 
 # Make this unique, and don't share it with anybody.
@@ -191,6 +193,7 @@ INSTALLED_APPS = (
     'crispy_forms',    # django-crispy-forms
     'password_reset',  # django-password-reset
     'debug_toolbar',   # django-debug-toolbar
+    'pipeline',        # django-pipeline
 
     'griddl',
     'billing'
@@ -336,3 +339,33 @@ SUBDOMAIN_URLCONFS = {
 # session is cross-subdomain unless that's too insecure
 SESSION_COOKIE_DOMAIN = ".hyperdeck.io"
 SESSION_COOKIE_NAME = SUBDOMAINS['main'] + 'sessionid'
+
+
+PIPELINE = {
+    'PIPELINE_ENABLED': True, # True = compress - need to install a compressor
+    'JS_COMPRESSOR': 'pipeline.compressors.jsmin.JSMinCompressor', # install jsmin
+    #'JS_COMPRESSOR': 'pipeline.compressors.slimit.SlimItCompressor', # install slimit
+    'JAVASCRIPT': {
+        'stats': {
+            'source_filenames': (
+              'js/griddl.components.new.js',
+              'js/directory.js',
+              'js/elementIds.js',
+              'js/export.js',
+              'js/griddl.componentHeaders.js',
+              'js/import.js',
+              'js/markDirty.js',
+              'js/results.js',
+              'js/utils.js',
+              'js/workbook.js',
+              'js/components/code.js',
+              'js/components/data.js',
+              'js/components/file.js',
+              'js/components/image.js',
+            ),
+            'output_filename': 'js/hyperdeck.js',
+        }
+    },
+    'DISABLE_WRAPPER': True, # by default, output is wrapped in an anonymous function
+}
+
