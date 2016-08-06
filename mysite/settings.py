@@ -349,19 +349,20 @@ PIPELINE = {
         'stats': {
             'source_filenames': (
               'js/griddl.components.new.js',
+              'js/b64Converters.js',
               'js/directory.js',
               'js/elementIds.js',
               'js/export.js',
+              'js/genericUploadDownload.js',
               'js/griddl.componentHeaders.js',
+              'js/handlersGeneric.js',
               'js/import.js',
               'js/markDirty.js',
               'js/results.js',
-              'js/utils.js',
-              'js/workbook.js',
               'js/components/code.js',
               'js/components/data.js',
               'js/components/file.js',
-              'js/components/image.js',
+              'js/components/libraries.js',
             ),
             'output_filename': 'js/hyperdeck.js',
         }
