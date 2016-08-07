@@ -55,7 +55,8 @@ var Data = function(json) {
 			this.introspectHeaders();
 			
 			// pushUndo is called from add - problem is, if we set this.data while hidden, and then trigger an add() by changing to visible, we'll push twice
-			if (this.visible) { this.add(); } else { this.pushUndo(JSON.stringify(this._data).length); }
+			//if (this.visible) { this.add(); } else { this.pushUndo(JSON.stringify(this._data).length); }
+			this.add();
 		}
 	});
 	
