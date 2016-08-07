@@ -278,7 +278,7 @@ File.prototype.add = function() {
 					
 					fileReader.readAsArrayBuffer(f);
 				}
-			});
+			};
 			
 			fileInput.click();
 		}));
