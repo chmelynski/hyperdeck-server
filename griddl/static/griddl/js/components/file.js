@@ -17,12 +17,12 @@ var File = function(json, type) {
 		}
 		else if (type == 'textfile')
 		{
-			json.data = 'data:text/plain;base64,';
+			json.data = '';
 			json.filename = json.name;
 		}
 		else if (type == 'jsfile')
 		{
-			json.data = 'data:text/javascript;base64,';
+			json.data = '';
 			json.filename = json.name + '.js';
 		}
 		else if (type == 'imgfile')
