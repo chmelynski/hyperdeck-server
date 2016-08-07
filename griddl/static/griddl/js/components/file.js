@@ -385,21 +385,21 @@ File.prototype.compile = function() {
 File.prototype.getText = function() { return this.b64; };
 File.prototype.setText = function(text) { this.b64 = text; };
 File.prototype.getData = function() {
-	if (comp.type == 'binaryfile' || comp.type == 'imgfile' || comp.type == 'zipfile')
+	if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
 	{
 		return this.uint8array;
 	}
-	else if (comp.type == 'textfile' || comp.type == 'jsfile')
+	else if (this.type == 'textfile' || this.type == 'jsfile')
 	{
 		return this.b64;
 	}
 };
 File.prototype.setData = function(data) {
-	if (comp.type == 'binaryfile' || comp.type == 'imgfile' || comp.type == 'zipfile')
+	if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
 	{
 		this.uint8array = data;
 	}
-	else if (comp.type == 'textfile' || comp.type == 'jsfile')
+	else if (this.type == 'textfile' || this.type == 'jsfile')
 	{
 		this.b64 = data;
 	}
