@@ -18,6 +18,7 @@
       {% for upgrade in upgrades %}
         <div class='col-sm-3 subscription {% if upgrade.current_plan %}current-plan{% endif %} {% if upgrade.disabled %}disable-upgrade{% endif %} text-center'>
           <h3>{{ upgrade.name }}</h3>
+          <p class='plan-price'>{{ upgrade.price }}</p>
           <p class='plan-size'>{{ upgrade.size }}</p>
           {% if upgrade.current_plan %}
             <button class="disabled btn btn-success">This is your current plan</button>
