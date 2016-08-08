@@ -20,11 +20,15 @@
           <h3>{{ upgrade.name }}</h3>
           <p class='plan-price'>{{ upgrade.price }}</p>
           <p class='plan-size'>{{ upgrade.size }}</p>
-          {% if upgrade.current_plan %}
-            <button class="disabled btn btn-success">This is your current plan</button>
-          {% else %}
-            <a target='_blank' title='{{ upgrade.direction}} to a {{ upgrade.name }} plan' class='btn btn-{{ upgrade.btn_class }}' href='{{ upgrade.link }}'>{{ upgrade.direction}} to {{ upgrade.name }} plan</a>
+          
+          {% if user.is_authenticated %}
+            {% if upgrade.current_plan %}
+              <button class="disabled btn btn-success">This is your current plan</button>
+            {% else %}
+              <a target='_blank' title='{{ upgrade.direction}} to a {{ upgrade.name }} plan' class='btn btn-{{ upgrade.btn_class }}' href='{{ upgrade.link }}'>{{ upgrade.direction}} to {{ upgrade.name }} plan</a>
+            {% endif %}
           {% endif %}
+          
         </div>
       {% endfor %}
     </div>
