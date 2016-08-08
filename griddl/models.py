@@ -102,7 +102,7 @@ class Workbook(models.Model):
         if len(self.text) >= settings.MAX_WORKBOOK_SIZE:
             raise MaxWorkbookSizeError("Sorry, this workbook is too big for\
                                         your current account.")
-        if len(self.text) >= self.owner.plan_size * 1024:
+        if len(self.text) >= self.owner.plan_size * 1024 * 1024:
             raise AccountSizeError("Sorry, this workbook is too big for your\
                                     current account.")
 
@@ -136,15 +136,23 @@ class Plan(models.Model):
         (LARGE, 'Large')
     )
 
-    # in KB
+    # in MB
     # note: changes here *require* changes in FastSpring settings,
     #       and vice versa.
     SIZES = (
         (0, 0),  # placeholder (i know, and i'm sorry)
-        (FREE, 512),
-        (SMALL, 1024),
-        (MEDIUM, 4096),
-        (LARGE, 10240)
+        (FREE,     2),
+        (SMALL,   50),
+        (MEDIUM, 200),
+        (LARGE,  500)
+    )
+    
+    PRICES = (
+        (0, 0),
+        (FREE,    0.00),
+        (SMALL,   9.99),
+        (MEDIUM, 19.99),
+        (LARGE,  49.99)
     )
 
     name = models.IntegerField(choices=NAMES, default=FREE, unique=True)
@@ -153,17 +161,23 @@ class Plan(models.Model):
         return self.SIZES[self.name][1]
 
     size = property(_get_size)
+    
+    def _get_price(self):
+        return self.PRICES[self.name][1]
+
+    price = property(_get_price)
 
     def details(self):
         details = {
             'name': self.get_name_display(),
-            'size': '%d kB' % self.size,
+            'size': '%d MB' % self.size,
+            'price': '$%d' % self.price,
             'id': self.pk
         }
         return details
 
     def __unicode__(self):
-        return "%s Plan (%d kB)" % (self.get_name_display(), self.size)
+        return "%s Plan (%d MB)" % (self.get_name_display(), self.size)
 
 
 class Account(models.Model):
@@ -181,7 +195,7 @@ class Account(models.Model):
     size = property(_get_size)
 
     def _get_plan_size(self):
-        return self.plan.size * 1024  # maybe not the best way for this to work
+        return self.plan.size * 1024 * 1024  # maybe not the best way for this to work
 
     plan_size = property(_get_plan_size)
 
