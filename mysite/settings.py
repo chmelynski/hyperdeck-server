@@ -315,8 +315,8 @@ INTERNAL_IPS = ['127.0.0.1', '24.177.237.106', '192.241.210.119']
 
 # subdomain settings
 SUBDOMAINS = {
-    'main': 'www',
-    'sandbox': 'griddl'
+    'main': 'workbook',
+    'sandbox': 'sandbox'
 }
 
 if noahDev or herokuDev:
@@ -342,7 +342,7 @@ SESSION_COOKIE_NAME = SUBDOMAINS['main'] + 'sessionid'
 
 
 PIPELINE = {
-    'PIPELINE_ENABLED': True, # True = compress - need to install a compressor
+    'PIPELINE_ENABLED': True, # True = compress
     'JS_COMPRESSOR': 'pipeline.compressors.jsmin.JSMinCompressor', # install jsmin
     #'JS_COMPRESSOR': 'pipeline.compressors.slimit.SlimItCompressor', # install slimit
     'JAVASCRIPT': {
@@ -363,7 +363,6 @@ PIPELINE = {
               'griddl/js/components/data.js',
               'griddl/js/components/file.js',
               'griddl/js/components/repl.js',
-              'griddl/js/components/libraries.js',
             ),
             'output_filename': 'griddl/js/hyperdeck.js',
         }
