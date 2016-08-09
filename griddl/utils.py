@@ -25,7 +25,7 @@ def resolve_ancestry(userid, path):
 
         for obj in parts:
             this = Workbook.objects.get(owner=userid,
-                                        name=obj,
+                                        slug=obj,
                                         parent=last
                                         )
             last = this
