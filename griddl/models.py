@@ -171,7 +171,7 @@ class Plan(models.Model):
         details = {
             'name': self.get_name_display(),
             'size': '%d MB' % self.size,
-            'price': '$%d' % self.price,
+            'price': '$%.2f/month' % self.price,
             'id': self.pk
         }
         return details
