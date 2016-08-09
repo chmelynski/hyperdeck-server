@@ -81,7 +81,7 @@ def ajaxlogin(request):
     return HttpResponseRedirect("/newcsrftoken")
 
 
-@require_subdomain(SUBDOMAINS['main'])
+@exclude_subdomain(SUBDOMAINS['sandbox'])
 def register(request):
     username = request.POST.get('username')
     password = request.POST.get('password')
@@ -112,7 +112,7 @@ def register(request):
             reverse(directory, kwargs={'userid': user.pk, 'path': ''}))
 
 
-@require_subdomain(SUBDOMAINS['main'])
+@exclude_subdomain(SUBDOMAINS['sandbox'])
 def ajaxregister(request):
     username = request.POST['username']
     password = request.POST['password']
@@ -199,7 +199,7 @@ def directory(request, userid, path=None):
 
 
 @login_required
-@require_subdomain(SUBDOMAINS['main'])
+@exclude_subdomain(SUBDOMAINS['sandbox'])
 def account(request, userid):
     acct = Account.objects.select_related('plan')\
         .select_related('subscription').get(user=request.user.account.pk)
@@ -224,7 +224,7 @@ def account(request, userid):
 
 
 @login_required
-@require_subdomain(SUBDOMAINS['main'])
+@exclude_subdomain(SUBDOMAINS['sandbox'])
 def togglepublic(request):
     try:
         pk = request.POST.get('pk', False)
@@ -245,7 +245,7 @@ def togglepublic(request):
         return JsonResponse({'success': False, 'message': msg})
 
 
-@require_subdomain(SUBDOMAINS['main'])
+@exclude_subdomain(SUBDOMAINS['sandbox'])
 def save(request):
     # todo: this comment does not match the current behavior :(
     #       - actually not even close, would take some effort.
@@ -291,7 +291,7 @@ def save(request):
         return JsonResponse({'success': False, 'message': 'Access denied'})
 
 
-@require_subdomain(SUBDOMAINS['main'])
+@exclude_subdomain(SUBDOMAINS['sandbox'])
 def saveas(request):
     # prompt for a name (with a popup or something)
     # save as that new name
@@ -337,7 +337,7 @@ def saveas(request):
 
 
 @login_required
-@require_subdomain(SUBDOMAINS['main'])
+@exclude_subdomain(SUBDOMAINS['sandbox'])
 def create(request):
     '''
     specifically, create a workbook file, not a "dir"
@@ -366,14 +366,14 @@ def create(request):
 
 
 @login_required
-@require_subdomain(SUBDOMAINS['main'])
+@exclude_subdomain(SUBDOMAINS['sandbox'])
 def password_change_redirect(request):
     messages.success(request, "Your password has been changed.")
     return HttpResponseRedirect(reverse('account', args=(request.user.pk,)))
 
 
 @login_required
-@require_subdomain(SUBDOMAINS['main'])
+@exclude_subdomain(SUBDOMAINS['sandbox'])
 def createDir(request):
     try:
         # no slashes pls
@@ -411,7 +411,7 @@ def createDir(request):
 
 
 @login_required
-@require_subdomain(SUBDOMAINS['main'])
+@exclude_subdomain(SUBDOMAINS['sandbox'])
 def rename(request):
     try:
         pk = request.POST.get('id', False)
@@ -437,7 +437,7 @@ def rename(request):
 
 
 @login_required
-@require_subdomain(SUBDOMAINS['main'])
+@exclude_subdomain(SUBDOMAINS['sandbox'])
 def delete(request):
     try:
         pk = request.POST.get('id', False)
@@ -457,7 +457,7 @@ def delete(request):
 
 
 @login_required
-@require_subdomain(SUBDOMAINS['main'])
+@exclude_subdomain(SUBDOMAINS['sandbox'])
 def move(request):
     try:
         pk = request.POST.get('id', False)
