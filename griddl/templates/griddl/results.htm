@@ -207,11 +207,13 @@ MathJax.Hub.Config({
                   Export
                 </a>
               </li>
+              {% if user.is_superuser or user.account.plan.pk == 4 %}
               <li>
                 <a onclick="Hyperdeck.Import()">
                   Import
                 </a>
               </li>
+              {% endif %}
               <li>
                 <a onclick="Hyperdeck.ShowPasswordInput()">
                   Encrypt
