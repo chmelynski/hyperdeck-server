@@ -343,7 +343,7 @@ SESSION_COOKIE_NAME = SUBDOMAINS['main'] + 'sessionid'
 
 PIPELINE = {
     'PIPELINE_ENABLED': True, # True = compress
-    JS_COMPRESSOR': None,
+    'JS_COMPRESSOR': None,
     #'JS_COMPRESSOR': 'pipeline.compressors.uglifyjs.UglifyJSCompressor',
     'DISABLE_WRAPPER': True, # by default, output is wrapped in an anonymous function
     'JAVASCRIPT': {
