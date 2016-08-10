@@ -44,13 +44,13 @@
   <script type='text/javascript' src="{% static 'griddl/js/lib/js-yaml.min.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.csv.min.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/sjcl.js' %}"></script>
-
-  {% if user.is_superuser or user.account.plan.pk == 4 %}
-  	<script type='text/javascript' src="{% static 'griddl/js/import.js' %}"></script>
-  {% endif %}
   
   {% javascript 'codemirrorAddons' %}
   {% javascript 'hyperdeck' %}
+  
+  {% if user.is_superuser or user.account.plan.pk == 4 %}
+  	<script type='text/javascript' src="{% static 'griddl/js/import.js' %}"></script>
+  {% endif %}
   
   {# these are packaged into hyperdeck.js #}
   {% comment %}
