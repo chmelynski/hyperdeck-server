@@ -356,7 +356,6 @@ PIPELINE = {
               'griddl/js/genericUploadDownload.js',
               'griddl/js/griddl.componentHeaders.js',
               'griddl/js/handlersGeneric.js',
-              'griddl/js/import.js',
               'griddl/js/markDirty.js',
               'griddl/js/results.js',
               'griddl/js/components/code.js',
