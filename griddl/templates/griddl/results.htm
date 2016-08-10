@@ -19,7 +19,8 @@
   <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/dat.gui.js' %}"></script>
   
-  {# package these into one file #}
+  {# these are packaged into codemirrorAddons #}
+  {% comment %}
   <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-javascript.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-css.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-xml.js' %}"></script>
@@ -31,6 +32,7 @@
   <script type='text/javascript' src="{% static 'griddl/js/lib/fold/xml-fold.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/fold/markdown-fold.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/fold/comment-fold.js' %}"></script>
+  {% endcomment %}
   
   {# don't think we need these anymore, but let's keep them here for now #}
   {% comment %}
@@ -46,6 +48,9 @@
   {% if user.is_superuser or user.account.plan.pk == 4 %}
   	<script type='text/javascript' src="{% static 'griddl/js/import.js' %}"></script>
   {% endif %}
+  
+  {% javascript 'codemirrorAddons' %}
+  {% javascript 'hyperdeck' %}
   
   {# these are packaged into hyperdeck.js #}
   {% comment %}
@@ -83,8 +88,6 @@
     <script type='text/javascript' src="{% static 'griddl/js/components/key.js' %}"></script>
     <script type='text/javascript' src="{% static 'griddl/js/components/arrow.js' %}"></script>
   {% endcomment %}
-  
-  {% javascript 'stats' %}
   
   <script src='http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML'></script>
 
