@@ -342,12 +342,14 @@ SESSION_COOKIE_NAME = SUBDOMAINS['main'] + 'sessionid'
 
 
 PIPELINE = {
-    'PIPELINE_ENABLED': True, # True = compress
-    'JS_COMPRESSOR': 'pipeline.compressors.jsmin.JSMinCompressor', # install jsmin
-    #'JS_COMPRESSOR': 'pipeline.compressors.slimit.SlimItCompressor', # install slimit
+    'PIPELINE_ENABLED': False, # True = compress
+    #'JS_COMPRESSOR': 'pipeline.compressors.jsmin.JSMinCompressor', # install jsmin
+    #'JS_COMPRESSOR': 'pipeline.compressors.uglifyjs.UglifyJSCompressor',
+    'DISABLE_WRAPPER': True, # by default, output is wrapped in an anonymous function
     'JAVASCRIPT': {
-        'stats': {
+        'hyperdeck': {
             'source_filenames': (
+              'griddl/js/utils.js',
               'griddl/js/griddl.components.new.js',
               'griddl/js/b64Converters.js',
               'griddl/js/directory.js',
@@ -364,8 +366,23 @@ PIPELINE = {
               'griddl/js/components/repl.js',
             ),
             'output_filename': 'griddl/js/hyperdeck.js',
-        }
+        },
+        'codemirrorAddons': {
+            'source_filenames': (
+                'griddl/js/lib/codemirror-5.0-javascript.js',
+                'griddl/js/lib/codemirror-5.0-css.js',
+                'griddl/js/lib/codemirror-5.0-xml.js',
+                'griddl/js/lib/codemirror-5.0-markdown.js',
+                'griddl/js/lib/fold/foldcode.js',
+                'griddl/js/lib/fold/foldgutter.js',
+                'griddl/js/lib/fold/brace-fold.js',
+                'griddl/js/lib/fold/indent-fold.js',
+                'griddl/js/lib/fold/xml-fold.js',
+                'griddl/js/lib/fold/markdown-fold.js',
+                'griddl/js/lib/fold/comment-fold.js',
+            ),
+            'output_filename': 'griddl/js/lib/codemirror-addons.js',
+        },
     },
-    'DISABLE_WRAPPER': True, # by default, output is wrapped in an anonymous function
 }
 
