@@ -8,3 +8,4 @@ staticfiles
 db.sqlite3
 pid
 *.sock
+node_modules
