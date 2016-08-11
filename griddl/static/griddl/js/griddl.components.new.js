@@ -1,4 +1,3 @@
-
 //"use strict";
 
 if (typeof Hyperdeck === 'undefined') { var Hyperdeck = {}; }
@@ -118,7 +117,7 @@ Hyperdeck.SetPassword = function(pw) {
 };
 var SaveToText = Components.SaveToText = function() {
 	// possible vector for dataloss: clicking save before you decrypt.  maybe add a 'decrypted' flag to prevent this
-	var text = JSON.stringify(objs.map(obj => obj.write()));
+	var text = JSON.stringify(objs.map(function(obj) {return obj.write();}));
 	if (password != null) { text = sjcl.encrypt(password, text); }
 	return text;
 };
