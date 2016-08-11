@@ -1,5 +1,5 @@
 
-"use strict";
+//"use strict";
 
 if (typeof Hyperdeck === 'undefined') { var Hyperdeck = {}; }
 

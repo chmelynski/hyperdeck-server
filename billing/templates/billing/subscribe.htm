@@ -17,13 +17,22 @@
     <div class='row'>
       {% for upgrade in upgrades %}
         <div class='col-sm-3 subscription {% if upgrade.current_plan %}current-plan{% endif %} {% if upgrade.disabled %}disable-upgrade{% endif %} text-center'>
-          <h3>{{ upgrade.name }}</h3>
-          <p class='plan-size'>{{ upgrade.size }}</p>
-          {% if upgrade.current_plan %}
-            <button class="disabled btn btn-success">This is your current plan</button>
-          {% else %}
-            <a target='_blank' title='{{ upgrade.direction}} to a {{ upgrade.name }} plan' class='btn btn-{{ upgrade.btn_class }}' href='{{ upgrade.link }}'>{{ upgrade.direction}} to {{ upgrade.name }} plan</a>
-          {% endif %}
+          <div class='row'>
+            <h3>{{ upgrade.name }}</h3>
+          </div>
+          <div class='row'>
+            <p class='plan-price'>{{ upgrade.price }}</p>
+          </div>
+          <div class='row'>
+            <p class='plan-size'>{{ upgrade.size }}</p>
+          </div>
+          <div class='row'>
+            {% if upgrade.current_plan %}
+              <button class="disabled btn btn-success">This is your current plan</button>
+            {% else %}
+              <a target='_blank' title='{{ upgrade.direction}} to a {{ upgrade.name }} plan' class='btn btn-{{ upgrade.btn_class }}' href='{{ upgrade.link }}'>{{ upgrade.direction}} to {{ upgrade.name }} plan</a>
+            {% endif %}
+          </div>
         </div>
       {% endfor %}
     </div>

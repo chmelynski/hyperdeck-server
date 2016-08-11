@@ -10,14 +10,19 @@ var File = function(json, type) {
 		json.name = Hyperdeck.Components.UniqueName(type, 1);
 		json.visible = true;
 		
-		if (type == 'file')
+		if (type == 'binaryfile')
 		{
 			json.data = 'data:text/plain;base64,';
 			json.filename = json.name;
 		}
+		else if (type == 'textfile')
+		{
+			json.data = '';
+			json.filename = json.name;
+		}
 		else if (type == 'jsfile')
 		{
-			json.data = 'data:text/javascript;base64,';
+			json.data = '';
 			json.filename = json.name + '.js';
 		}
 		else if (type == 'imgfile')
@@ -36,15 +41,27 @@ var File = function(json, type) {
 		}
 	}
 	
-	this.type = json.type; // file, jsfile, imgfile
+	this.type = json.type; // file, jsfile, imgfile, textfile, binaryfile
 	this.name = json.name;
 	this.visible = json.visible;
 	
 	this.div = null;
 	this.span = null;
 	
-	//this._b64 = json.data;
-	this._uint8array = Base64StringToUint8Array(json.data.substr(json.data.indexOf(','))); // data:text/plain;base64,
+	// for binary files, _b64 is null - the b64 property getter converts from uint8array on the fly
+	// for text files, _uint8array is null, and just isn't used
+	// _b64 holds the plain not-b64-encoded text of textfiles.  maybe we should change its name to _text 
+	this._b64 = null;
+	this._uint8array = null;
+	
+	if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+	{
+		this._uint8array = Base64StringToUint8Array(json.data.substr(json.data.indexOf(','))); // data:text/plain;base64,
+	}
+	else if (this.type == 'textfile' || this.type == 'jsfile')
+	{
+		this._b64 = json.data;
+	}
 	
 	this.files = null; // for zipfile only - { filename  : String , uint8array : Uint8Array , size : String }
 	
@@ -71,13 +88,26 @@ var File = function(json, type) {
 	
 	Object.defineProperty(this, 'b64', { 
 		get : function() {
-			//return this._b64;
-			return 'data:text/plain;base64,' + Uint8ArrayToBase64String(this._uint8array);
+			if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+			{
+				return 'data:text/plain;base64,' + Uint8ArrayToBase64String(this._uint8array);
+			}
+			else if (this.type == 'textfile' || this.type == 'jsfile')
+			{
+				return this._b64;
+			}
 		},
 		set : function(value) {
-			//this._b64 = value;
-			//this._uint8array = Base64StringToUint8Array(this._b64.substr(this._b64.indexOf(',')));
-			this._uint8array = Base64StringToUint8Array(value.substr(value.indexOf(','))); // data:text/plain;base64,
+			
+			if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+			{
+				this._uint8array = Base64StringToUint8Array(value.substr(value.indexOf(','))); // data:text/plain;base64,
+			}
+			else if (this.type == 'textfile' || this.type == 'jsfile')
+			{
+				this._b64 = value;
+			}
+			
 			this.add();
 			if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
 		}
@@ -110,10 +140,16 @@ File.prototype.add = function() {
 	//this.filenameSpan = $('<span></span>').text(this.uint8array.length); // a filename or something?  but we don't save the filename
 	//this.div.append(this.filenameSpan);
 	
-	if (this.type == 'file')
+	if (this.type == 'binaryfile')
 	{
 		this.span = $('<span style="margin:1em"></span>');
 		this.span.text(this.uint8array.length.toString() + ' bytes'); // or we could do a hexdump or something
+		this.div.append(this.span);
+	}
+	else if (this.type == 'textfile')
+	{
+		this.span = $('<span style="margin:1em"></span>');
+		this.span.text(this.b64.length.toString() + ' chars');
 		this.div.append(this.span);
 	}
 	else if (this.type == 'jsfile')
@@ -219,13 +255,14 @@ File.prototype.add = function() {
 		
 		this.div.append($('<button>Upload File</button>').on('click', function() {
 			
-			var fileChooser = $('<input type="file"></input>');
+			var fileInput = document.createElement('input');
+			fileInput.type = 'file';
 			
-			fileChooser.on('change', function() {
+			fileInput.onchange = function() {
 				
-				if (fileChooser[0].files.length > 0)
+				if (fileInput.files.length > 0)
 				{
-					var f = fileChooser[0].files[0];
+					var f = fileInput.files[0];
 					
 					var fileobj = {}; // Proxy?
 					fileobj.filename = f.name;
@@ -241,9 +278,9 @@ File.prototype.add = function() {
 					
 					fileReader.readAsArrayBuffer(f);
 				}
-			});
+			};
 			
-			fileChooser.click();
+			fileInput.click();
 		}));
 		
 		var tablegui = new TableGui(this.files);
@@ -272,27 +309,42 @@ File.prototype.upload = function() {
 	
 	var comp = this;
 	
-	var fileChooser = $(document.createElement('input'));
-	fileChooser.attr('type', 'file');
+	var fileInput = document.createElement('input');
+	fileInput.type = 'file';
 	
-	fileChooser.on('change', function() {
+	fileInput.onchange = function() {
 		
 		var fileReader = new FileReader();
 		
 		fileReader.onload = function(event)
 		{
-			comp.uint8array = new Uint8Array(event.target.result);
+			if (comp.type == 'binaryfile' || comp.type == 'imgfile' || comp.type == 'zipfile')
+			{
+				comp.uint8array = new Uint8Array(event.target.result);
+			}
+			else if (comp.type == 'textfile' || comp.type == 'jsfile')
+			{
+				comp.b64 = event.target.result;
+			}
 		};
 		
-		if (fileChooser[0].files.length > 0)
+		if (fileInput.files.length > 0)
 		{
-			var f = fileChooser[0].files[0];
+			var f = fileInput.files[0];
 			comp.filename = f.name;
-			fileReader.readAsArrayBuffer(f);
+			
+			if (comp.type == 'binaryfile' || comp.type == 'imgfile' || comp.type == 'zipfile')
+			{
+				fileReader.readAsArrayBuffer(f);
+			}
+			else if (comp.type == 'textfile' || comp.type == 'jsfile')
+			{
+				fileReader.readAsText(f);
+			}
 		}
-	});
+	};
 	
-	fileChooser.click();
+	fileInput.click();
 };
 File.prototype.download = function() {
 	
@@ -332,8 +384,26 @@ File.prototype.compile = function() {
 
 File.prototype.getText = function() { return this.b64; };
 File.prototype.setText = function(text) { this.b64 = text; };
-File.prototype.getData = function() { return this.uint8array; };
-File.prototype.setData = function(data) { this.uint8array = data; };
+File.prototype.getData = function() {
+	if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+	{
+		return this.uint8array;
+	}
+	else if (this.type == 'textfile' || this.type == 'jsfile')
+	{
+		return this.b64;
+	}
+};
+File.prototype.setData = function(data) {
+	if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+	{
+		this.uint8array = data;
+	}
+	else if (this.type == 'textfile' || this.type == 'jsfile')
+	{
+		this.b64 = data;
+	}
+};
 
 function Base64StringToUint8Array(str) {
 	
@@ -389,7 +459,8 @@ function Uint8ArrayToBase64String(uint8array) {
 	return sB64Enc.replace(/A(?=A$|$)/g, "=");
 }
 
-Hyperdeck.Components.file = File;
+Hyperdeck.Components.binaryfile = File;
+Hyperdeck.Components.textfile = File;
 Hyperdeck.Components.jsfile = File;
 Hyperdeck.Components.imgfile = File;
 Hyperdeck.Components.zipfile = File;

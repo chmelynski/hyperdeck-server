@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from models import Account, DefaultWorkbook, Workbook
+from models import Account, DefaultWorkbook, Workbook, Plan
 
 # https://docs.djangoproject.com/en/1.9/ref/contrib/admin/#django.contrib.admin.ModelAdmin.exclude
 # https://docs.djangoproject.com/en/1.9/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_display
@@ -42,3 +42,5 @@ admin.site.register(User, UserAdmin)
 
 admin.site.register(Workbook, WorkbookAdmin)
 admin.site.register(DefaultWorkbook)
+admin.site.register(Plan)
+

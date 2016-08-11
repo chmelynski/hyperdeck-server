@@ -1,4 +1,5 @@
 {% load static from staticfiles %}
+{% load pipeline %}
 {% load bootstrap3 %}
 <!DOCTYPE html>
 <html>
@@ -10,35 +11,20 @@
   <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/handsontable.full-0.14.1.css' %}" />
   <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/custom.css' %}" />
   <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/griddl.css' %}" />
-
-
+  <link rel="stylesheet" href="{% static 'griddl/js/lib/fold/foldgutter.css' %}" />
+  
   <script type='text/javascript' src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/jquery-ui.sortable.min.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/bootstrap.min.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/utils.js' %}"></script>
-
   <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/dat.gui.js' %}"></script>
+  
+  {# these are packaged into codemirrorAddons #}
+  {% comment %}
   <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-javascript.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-css.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-xml.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-markdown.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.mousewheel.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/lib/handsontable.full.min-0.14.1.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/lib/opentype.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/lib/jquery-ui.sortable.min.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/lib/dat.gui.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/lib/markdown.min.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/lib/js-yaml.min.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.csv.min.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/lib/sjcl.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/griddl.ui.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/griddl.io.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/griddl.canvas.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/griddl.pdf.js' %}"></script> 
-  <script type='text/javascript' src="{% static 'griddl/js/griddl.typeset.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/defaultFonts.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/results.js' %}"></script>
-  
-  <link rel="stylesheet" href="{% static 'griddl/js/lib/fold/foldgutter.css' %}" />
   <script type='text/javascript' src="{% static 'griddl/js/lib/fold/foldcode.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/fold/foldgutter.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/fold/brace-fold.js' %}"></script>
@@ -46,22 +32,62 @@
   <script type='text/javascript' src="{% static 'griddl/js/lib/fold/xml-fold.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/fold/markdown-fold.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/fold/comment-fold.js' %}"></script>
+  {% endcomment %}
   
+  {# don't think we need these anymore, but let's keep them here for now #}
+  {% comment %}
+  <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.mousewheel.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/handsontable.full.min-0.14.1.js' %}"></script>
+  {% endcomment %}
+  
+  <script type='text/javascript' src="{% static 'griddl/js/lib/markdown.min.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/js-yaml.min.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.csv.min.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/sjcl.js' %}"></script>
+  
+  {% javascript 'codemirrorAddons' %}
+  {% javascript 'hyperdeck' %}
+  
+  {% if user.is_superuser or user.account.plan.pk == 4 %}
+  	<script type='text/javascript' src="{% static 'griddl/js/import.js' %}"></script>
+  {% endif %}
+  
+  {# these are packaged into hyperdeck.js #}
+  {% comment %}
+  <script type='text/javascript' src="{% static 'griddl/js/utils.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/results.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/griddl.components.new.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/griddl.componentHeaders.js' %}"></script>
-  
   <script type='text/javascript' src="{% static 'griddl/js/handlersGeneric.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/b64Converters.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/genericUploadDownload.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/markDirty.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/elementIds.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/export.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/import.js' %}"></script>
-  
   <script type='text/javascript' src="{% static 'griddl/js/components/code.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/data.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/file.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/libraries.js' %}"></script>
+  {% endcomment %}
+  
+  {# these are for PDF documents  #}
+  {% comment %}
+    <script type='text/javascript' src="{% static 'griddl/js/lib/opentype.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/box.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/text.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/font.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/document.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/section.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/table.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/subcanvas.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/image.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/styles.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/chart.bar.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/chart.line.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/axis.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/key.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/arrow.js' %}"></script>
+  {% endcomment %}
   
   <script src='http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML'></script>
 
@@ -90,24 +116,6 @@ MathJax.Hub.Config({
 	showMathMenuMSIE : true
 });
 </script>
-
-  {# these are for PDF documents  #}
-  {% comment %}
-    <script type='text/javascript' src="{% static 'griddl/js/components/box.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/components/text.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/components/font.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/components/document.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/components/section.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/components/table.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/components/subcanvas.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/components/image.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/components/styles.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/components/chart.bar.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/components/chart.line.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/components/axis.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/components/key.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/components/arrow.js' %}"></script>
-  {% endcomment %}
   
 </head>
 <body class="framed">
@@ -167,8 +175,13 @@ MathJax.Hub.Config({
                 </a>
               </li>
               <li>
-                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['file'](null, 'file'));">
-                  File
+                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['textfile'](null, 'textfile'));">
+                  Text File
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['binaryfile'](null, 'binaryfile'));">
+                  Binary File
                 </a>
               </li>
               <li>
@@ -179,6 +192,16 @@ MathJax.Hub.Config({
               <li>
                 <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['imgfile'](null, 'imgfile'));">
                   Image File
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['repl'](null, 'repl'));">
+                  Javascript REPL
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['snips'](null, 'snips'));">
+                  Javascript Snippets
                 </a>
               </li>
             </ul>
@@ -196,11 +219,13 @@ MathJax.Hub.Config({
                   Export
                 </a>
               </li>
+              {% if user.is_superuser or user.account.plan.pk == 4 %}
               <li>
                 <a onclick="Hyperdeck.Import()">
                   Import
                 </a>
               </li>
+              {% endif %}
               <li>
                 <a onclick="Hyperdeck.ShowPasswordInput()">
                   Encrypt

@@ -1,9 +1,9 @@
 window.addEventListener('message', receiveMessage, false);
 
 var playground = window.location.protocol + "//";
-chunks = window.location.hostname.split('.');
-if (chunks[0] == "griddl") {
-  chunks[0] = "www";
+var chunks = window.location.hostname.split('.');
+if (chunks[0] == "sandbox") {
+  chunks[0] = "workbook";
 } else {
   chunks[0] = chunks[0].slice(7);
 }

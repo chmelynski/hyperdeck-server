@@ -112,28 +112,35 @@ def subscriptions(request):
     '''
     plans = Plan.objects.all()
     upgrades = []
-    if request.user.account.plan.pk <= 1:
-        endpoint = 'billing'
-    else:
-        endpoint = 'sub_change'
-    for plan in plans:
-        details = plan.details()
-        details['link'] = "/%s/%d/%d" % (endpoint, plan.id,
-                                         request.user.account.pk)
-        if plan.pk < request.user.account.plan.pk:
-            details['direction'] = "Downgrade"
-            details['btn_class'] = "warning"
-        elif plan.pk > request.user.account.plan.pk:
-            details['direction'] = "Upgrade"
-            details['btn_class'] = "success"
-        elif plan == request.user.account.plan:
-            details['current_plan'] = True
-            details['btn_class'] = "default disabled"
-        elif (request.user.account.subscription.status == 2
-              and plan.pk == request.user.account.subscription.status_detail):
-                details['direction'] = "Downgrade Pending"
+    
+    if request.user.is_authenticated():
+        if request.user.account.plan.pk <= 1:
+            endpoint = 'billing'
+        else:
+            endpoint = 'sub_change'
+        for plan in plans:
+            details = plan.details()
+            details['link'] = "/%s/%d/%d" % (endpoint, plan.id,
+                                             request.user.account.pk)
+            if plan.pk < request.user.account.plan.pk:
+                details['direction'] = "Downgrade"
+                details['btn_class'] = "warning"
+            elif plan.pk > request.user.account.plan.pk:
+                details['direction'] = "Upgrade"
+                details['btn_class'] = "success"
+            elif plan == request.user.account.plan:
+                details['current_plan'] = True
                 details['btn_class'] = "default disabled"
-        upgrades.append(details)
+            elif (request.user.account.subscription.status == 2
+                  and plan.pk == request.user.account.subscription.status_detail):
+                    details['direction'] = "Downgrade Pending"
+                    details['btn_class'] = "default disabled"
+            upgrades.append(details)
+    else:
+        for plan in plans:
+            details = plan.details()
+            upgrades.append(details)
+            
     context = {'upgrades': upgrades}
     return render(request, 'billing/subscribe.htm', context)
 

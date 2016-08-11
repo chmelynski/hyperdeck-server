@@ -126,12 +126,14 @@ else:
     STATICFILES_DIRS = (os.path.join(os.path.dirname(
                         os.path.abspath(__file__)), 'static'), )
 
-STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
+# STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'pipeline.storage.PipelineCachedStorage'
 
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
     #    'django.contrib.staticfiles.finders.DefaultStorageFinder',
+    'pipeline.finders.PipelineFinder',
 )
 
 # Make this unique, and don't share it with anybody.
@@ -191,6 +193,7 @@ INSTALLED_APPS = (
     'crispy_forms',    # django-crispy-forms
     'password_reset',  # django-password-reset
     'debug_toolbar',   # django-debug-toolbar
+    'pipeline',        # django-pipeline
 
     'griddl',
     'billing'
@@ -312,8 +315,8 @@ INTERNAL_IPS = ['127.0.0.1', '24.177.237.106', '192.241.210.119']
 
 # subdomain settings
 SUBDOMAINS = {
-    'main': '',
-    'sandbox': 'griddl'
+    'main': 'workbook',
+    'sandbox': 'sandbox'
 }
 
 if noahDev or herokuDev:
@@ -336,3 +339,49 @@ SUBDOMAIN_URLCONFS = {
 # session is cross-subdomain unless that's too insecure
 SESSION_COOKIE_DOMAIN = ".hyperdeck.io"
 SESSION_COOKIE_NAME = SUBDOMAINS['main'] + 'sessionid'
+
+
+PIPELINE = {
+    'PIPELINE_ENABLED': True, # True = compress
+    'JS_COMPRESSOR': None,
+    #'JS_COMPRESSOR': 'pipeline.compressors.uglifyjs.UglifyJSCompressor',
+    'DISABLE_WRAPPER': True, # by default, output is wrapped in an anonymous function
+    'JAVASCRIPT': {
+        'hyperdeck': {
+            'source_filenames': (
+              'griddl/js/utils.js',
+              'griddl/js/griddl.components.new.js',
+              'griddl/js/b64Converters.js',
+              'griddl/js/directory.js',
+              'griddl/js/elementIds.js',
+              'griddl/js/export.js',
+              'griddl/js/genericUploadDownload.js',
+              'griddl/js/griddl.componentHeaders.js',
+              'griddl/js/handlersGeneric.js',
+              'griddl/js/markDirty.js',
+              'griddl/js/results.js',
+              'griddl/js/components/code.js',
+              'griddl/js/components/data.js',
+              'griddl/js/components/file.js',
+              'griddl/js/components/repl.js',
+            ),
+            'output_filename': 'griddl/js/hyperdeck.js',
+        },
+        'codemirrorAddons': {
+            'source_filenames': (
+                'griddl/js/lib/codemirror-5.0-javascript.js',
+                'griddl/js/lib/codemirror-5.0-css.js',
+                'griddl/js/lib/codemirror-5.0-xml.js',
+                'griddl/js/lib/codemirror-5.0-markdown.js',
+                'griddl/js/lib/fold/foldcode.js',
+                'griddl/js/lib/fold/foldgutter.js',
+                'griddl/js/lib/fold/brace-fold.js',
+                'griddl/js/lib/fold/indent-fold.js',
+                'griddl/js/lib/fold/xml-fold.js',
+                'griddl/js/lib/fold/markdown-fold.js',
+                'griddl/js/lib/fold/comment-fold.js',
+            ),
+            'output_filename': 'griddl/js/lib/codemirror-addons.js',
+        },
+    },
+}
