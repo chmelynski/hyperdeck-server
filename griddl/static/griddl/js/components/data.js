@@ -945,13 +945,13 @@ function ReadSeparatedValues(text, delimiter) {
 	var data = null;
 	var headers = null;
 	
-	var rowLengths = matrix.map(row => row.length);
-	var areAllRowLengthsUnity = rowLengths.every(n => n == 1);
+	var rowLengths = matrix.map(function(row) { return row.length; });
+	var areAllRowLengthsUnity = rowLengths.every(function(n) { return n == 1; });
 	
 	if (areAllRowLengthsUnity)
 	{
 		this.form = 'list';
-		data = matrix.map(row => ParseStringToObj(row[0])); // interpret text as a list
+		data = matrix.map(function(row) { return ParseStringToObj(row[0]); }); // interpret text as a list
 	}
 	else
 	{
