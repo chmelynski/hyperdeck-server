@@ -54,7 +54,7 @@ Repl.prototype.addInput = function(snip, index) {
 	
 	var arrowIndex = index;
 	
-	var input = $(`<input type="text" size="40" value="${snip}"></input>`).on('keydown', function(keyEvent) {
+	var input = $('<input type="text" size="40" value="' + snip + '"></input>').on('keydown', function(keyEvent) {
 		
 		// up and down arrows move between existing snippets
 		if (keyEvent.which == 38 || keyEvent.which == 40)
