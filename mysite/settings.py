@@ -341,7 +341,7 @@ SESSION_COOKIE_NAME = SUBDOMAINS['main'] + 'sessionid'
 
 
 PIPELINE = {
-    'PIPELINE_ENABLED': True, # True = compress
+    'PIPELINE_ENABLED': not DEBUG, # True = compress
     'JS_COMPRESSOR': 'pipeline.compressors.uglifyjs.UglifyJSCompressor',
     'UGLIFYJS_BINARY': os.path.join(BASE_DIR, 'node_modules', '.bin', 'uglifyjs'),
     'DISABLE_WRAPPER': True, # by default, output is wrapped in an anonymous function
