@@ -51,7 +51,6 @@ Components.Main = function(text) {
 	if (typeof window != 'undefined')
 	{
 		objs.forEach(function(obj) {
-      console.log(obj);
 			obj.div = Components.CreateComponentDiv($('#cells'), obj);
 			obj.div.css('border', '1px solid gray');
 			obj.div.css('background-color', 'rgb(230,230,230)');
