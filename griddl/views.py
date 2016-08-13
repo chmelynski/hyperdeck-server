@@ -318,7 +318,7 @@ def saveas(request):
 
         response = {'success': True}
         if fork:
-            response['redirect'] = wb.uri
+            response['redirect'] = ''.join(['http://',SUBDOMAINS['workbook'],'.hyperdeck.io',wb.uri])
             messages.success(
                 request, "Successfully copied workbook {}.".format(original))
         return JsonResponse(response)
@@ -360,7 +360,7 @@ def create(request):
 
         wb.filetype = 'F'
         wb.save()
-        return HttpResponseRedirect(wb.uri)
+        return HttpResponseRedirect(''.join(['http://',SUBDOMAINS['workbook'],'.hyperdeck.io',wb.uri]))
     except Exception:
         logger.error(traceback.format_exc())
         return HttpResponseServerError()
