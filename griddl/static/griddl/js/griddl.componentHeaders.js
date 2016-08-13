@@ -135,6 +135,6 @@ function AddTooltip(el, text) {
   el.attr('data-toggle', 'tooltip');
   el.attr('data-placement', 'bottom');
   el.attr('title', text);
-  el.tooltip();
+  if (el.tooltip) { el.tooltip(); }
   return el;
 }
