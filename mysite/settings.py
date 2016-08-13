@@ -315,19 +315,22 @@ INTERNAL_IPS = ['127.0.0.1', '24.177.237.106', '192.241.210.119']
 # subdomain settings
 SUBDOMAINS = {
     'main': 'workbook',
-    'sandbox': 'sandbox'
+    'sandbox': 'sandbox',
+    'notWorkbook': '' # at some point rename notWorkbook->main and main->workbook
 }
 
 if noahDev or herokuDev:
     SUBDOMAINS = {
         'main': 'dev',
-        'sandbox': 'griddl-dev'
+        'sandbox': 'griddl-dev',
+        'notWorkbook': 'dev'
     }
 
 if staging:
     SUBDOMAINS = {
         'main': 'staging',
-        'sandbox': 'griddl-staging'
+        'sandbox': 'griddl-staging',
+        'notWorkbook': 'staging'
     }
 
 SUBDOMAIN_URLCONFS = {
