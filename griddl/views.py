@@ -537,13 +537,18 @@ def results(request, userid, path, slug):
         "workbook": wb
     }
     if request.user.is_authenticated() and request.user.account == wb.owner:
+        notWorkbookSubdomain = SUBDOMAINS['notWorkbook']
+        period = '.'
+        if notWorkbookSubdomain == '':
+            period = ''
         if wb.parent:
-            context['parentdir'] = wb.parent.uri
+            context['parentdir'] = ''.join(['http://',notWorkbookSubdomain,period,'hyperdeck.io',wb.parent.uri])
         else:
             uri = reverse(directory,
                           kwargs={'userid': request.user.account.pk,
                                   'path': ''})
-            context['parentdir'] = uri
+            context['parentdir'] = uri # does reverse return the absolute url or the relative url?
+            #context['parentdir'] = ''.join(['http://',notWorkbookSubdomain,period,'hyperdeck.io',uri])
 
     return render(request, 'griddl/results.htm', context)
 
