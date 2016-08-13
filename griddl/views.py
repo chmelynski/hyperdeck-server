@@ -184,6 +184,7 @@ def directory(request, userid, path=None):
     context = {
         "workbooks": wbs,
         "acctdirs": acctdirs,
+        "workbookSubdomain": SUBDOMAINS['workbook']
         }
     try:
         context['path'] = this.path
