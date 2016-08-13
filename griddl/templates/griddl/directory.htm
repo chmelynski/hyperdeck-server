@@ -71,7 +71,7 @@
             <button class='btn btn-success btn-sm' type="submit" value="Rename">Rename</button>
             <button class='btn btn-danger btn-sm' type="button" value="Cancel" onclick="renameToggle();">Cancel</button>
           </form>
-          <a class="namelink" href="http://{{ workbookSubdomain }}.hyperdeck.io{{ workbook.uri }}">{{ workbook.name }}</a>
+          <a class="namelink" href="{% if workbook.filetype == 'F' %}http://{{ workbookSubdomain }}.hyperdeck.io{% endif %}{{ workbook.uri }}">{{ workbook.name }}</a>
         </td>
         <td>
           {{ workbook.type }}
