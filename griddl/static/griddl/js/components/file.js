@@ -1,13 +1,13 @@
 
 (function() {
 
-var File = function(json, type) {
+var File = function(json, type, name) {
 	
 	if (!json)
 	{
 		json = {};
 		json.type = type;
-		json.name = Hyperdeck.Components.UniqueName(type, 1);
+		json.name = name;
 		json.visible = true;
 		
 		if (type == 'binaryfile')
@@ -82,7 +82,7 @@ var File = function(json, type) {
 		set : function(value) {
 			this._filename = value;
 			this.filenameControl.updateDisplay();
-			if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
+			this.markDirty();
 		}
 	});
 	
@@ -109,7 +109,7 @@ var File = function(json, type) {
 			}
 			
 			this.add();
-			if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
+			this.markDirty();
 		}
 	});
 	
@@ -121,7 +121,7 @@ var File = function(json, type) {
 			this._uint8array = value;
 			//this._b64 = 'data:text/plain;base64,' + Uint8ArrayToBase64String(this._uint8array);
 			this.add();
-			if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
+			this.markDirty();
 		}
 	});
 };

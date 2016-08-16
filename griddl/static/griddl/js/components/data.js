@@ -1,13 +1,13 @@
 
 (function() {
 
-var Data = function(json) {
+var Data = function(json, type, name) {
 	
 	if (!json)
 	{
 		json = {};
-		json.type = 'data';
-		json.name = Hyperdeck.Components.UniqueName('data', 1);
+		json.type = type;
+		json.name = name;
 		json.visible = true;
 		json.data = [{A:1,B:2,C:3},{A:4,B:5,C:6},{A:7,B:8,C:9}];
 		json.params = {};
@@ -48,7 +48,7 @@ var Data = function(json) {
 			// in general, setting this.data should be a thing done by external code
 			// internal code should preferentially set to this._data, to avoid all this
 			
-			if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
+			this.markDirty();
 			
 			this._data = value;
 			this.determineDataForm();
@@ -227,7 +227,7 @@ Data.prototype.add = function() {
 		this.codemirror.getDoc().setValue(initText);
 		
 		this.codemirror.on('blur', function() {
-			Hyperdeck.Components.MarkDirty();
+			comp.markDirty();
 			
 			comp.errorSpan.text('');
 			
@@ -279,12 +279,7 @@ Data.prototype.add = function() {
 	}
 	else if (this.display == 'grid')
 	{
-		Hyperdeck.Components.Hot.Add.apply(this);
-		//Hyperdeck.Components.Grid.Add.apply(this); // enable this when Grid is ready
-	}
-	else if (this.display == 'matrix' || this.display == 'formula')
-	{
-		Hyperdeck.Components.Hot.AddMatrixOrFormulaGrid.apply(this);
+		//Grid.Add.apply(this); // enable this when Grid is ready
 	}
 	else if (this.display == 'pre')
 	{
@@ -745,7 +740,7 @@ Data.prototype.Undo = function() {
 	this.undo.index--;
 	this._data = this.undo.stack[this.undo.index].data;
 	this.headers = this.undo.stack[this.undo.index].headers;
-	if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
+	this.markDirty();
 	this.undo.pushOnAdd = false;
 	this.add();
 	this.undo.pushOnAdd = true;
@@ -756,7 +751,7 @@ Data.prototype.Redo = function() {
 	this.undo.index++;
 	this._data = this.undo.stack[this.undo.index].data;
 	this.headers = this.undo.stack[this.undo.index].headers;
-	if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
+	this.markDirty();
 	this.undo.pushOnAdd = false;
 	this.add();
 	this.undo.pushOnAdd = true;

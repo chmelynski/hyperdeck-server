@@ -1,13 +1,13 @@
 
 (function() {
 
-var Repl = function(json, type) {
+var Repl = function(json, type, name) {
 	
 	if (!json)
 	{
 		json = {};
 		json.type = type;
-		json.name = Hyperdeck.Components.UniqueName(type, 1);
+		json.name = name;
 		json.visible = true;
 		json.snips = [ '' ];
 	}
@@ -39,6 +39,8 @@ Repl.prototype.add = function() {
 Repl.prototype.addInput = function(snip, index) {
 	
 	var comp = this;
+	
+	this.markDirty();
 	
 	if (typeof(snip) == 'undefined')
 	{
@@ -140,6 +142,7 @@ Repl.prototype.remove = function(k) {
 	this.inputs.splice(k, 1);
 	this.outputs.splice(k, 1);
 	this.inputDiv.children().eq(k).remove();
+	this.markDirty();
 };
 Repl.prototype.clear = function() {
 	this.snips = [''];
@@ -147,6 +150,7 @@ Repl.prototype.clear = function() {
 	this.inputs = [];
 	this.outputs = [];
 	this.add();
+	this.markDirty();
 };
 Repl.prototype.displayError = function(e) {
 	

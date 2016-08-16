@@ -8,7 +8,6 @@
   <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet">
   <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/codemirror-5.0.css' %}" />
   <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/jquery.ui.css' %}" />
-  <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/handsontable.full-0.14.1.css' %}" />
   <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/custom.css' %}" />
   <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/griddl.css' %}" />
   <link rel="stylesheet" href="{% static 'griddl/js/lib/fold/foldgutter.css' %}" />
@@ -34,16 +33,12 @@
   <script type='text/javascript' src="{% static 'griddl/js/lib/fold/comment-fold.js' %}"></script>
   {% endcomment %}
   
-  {# don't think we need these anymore, but let's keep them here for now #}
-  {% comment %}
-  <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.mousewheel.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/lib/handsontable.full.min-0.14.1.js' %}"></script>
-  {% endcomment %}
-  
   <script type='text/javascript' src="{% static 'griddl/js/lib/markdown.min.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/js-yaml.min.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.csv.min.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/sjcl.js' %}"></script>
+  
+  <script type='text/javascript' src="{% static 'griddl/js/utils.js' %}"></script>
   
   {% javascript 'codemirrorAddons' %}
   {% javascript 'hyperdeck' %}
@@ -54,20 +49,11 @@
   
   {# these are packaged into hyperdeck.js #}
   {% comment %}
-  <script type='text/javascript' src="{% static 'griddl/js/utils.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/results.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/griddl.components.new.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/griddl.componentHeaders.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/handlersGeneric.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/b64Converters.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/genericUploadDownload.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/markDirty.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/elementIds.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/export.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/components.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/code.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/data.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/components/file.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/libraries.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/components/repl.js' %}"></script>
   {% endcomment %}
   
   {# these are for PDF documents  #}
@@ -92,29 +78,8 @@
   <script src='http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML'></script>
 
 <script type="text/x-mathjax-config">
-MathJax.Hub.Config({
-	
-	/* http://docs.mathjax.org/en/latest/options/hub.html */
-	
-	tex2jax: {
-		inlineMath: [["$","$"],["\\(","\\)"]]
-	} ,
-	
-	jax : [ 'input/TeX' , 'output/HTML-CSS' ] ,
-	//jax : [ 'input/TeX' , 'output/SVG' ] ,
-	//jax : [ 'input/TeX' , 'output/NativeMML' ] ,
-	
-	messageStyle : 'none' ,
-	
-	/* Normally MathJax will typeset the mathematics on the page as soon as the page is loaded. If you want to delay that process, in which case you will need to call MathJax.Hub.Typeset() yourself by hand, set this value to true. */
-	skipStartupTypeset : true ,
-	
-	/* This is a list of DOM element ID’s that are the ones to process for mathematics when any of the Hub typesetting calls (Typeset(), Process(), Update(), etc.) are called with no element specified, and during MathJax’s initial typesetting run when it starts up. This lets you restrict the processing to particular containers rather than scanning the entire document for mathematics. If none are supplied, the complete document is processed. */
-	elements : [] ,
-	
-	showMathMenu : true ,
-	showMathMenuMSIE : true
-});
+// http://docs.mathjax.org/en/latest/options/hub.html
+MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/TeX','output/HTML-CSS'],messageStyle:'none',skipStartupTypeset:true,showMathMenu:true,showMathMenuMSIE:true});
 </script>
   
 </head>
@@ -145,62 +110,62 @@ MathJax.Hub.Config({
           </button>
             <ul class="dropdown-menu">
               <li>
-                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['data']());">
+                <a onclick="Hyperdeck.AddComponent('data');">
                   Data
                 </a>
               </li>
               <li>
-                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['js'](null, 'js'));">
+                <a onclick="Hyperdeck.AddComponent('js');">
                   Javascript
                 </a>
               </li>
               <li>
-                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['md'](null, 'md'));">
+                <a onclick="Hyperdeck.AddComponent('md');">
                   Markdown
                 </a>
               </li>
               <li>
-                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['html'](null, 'html'));">
+                <a onclick="Hyperdeck.AddComponent('html');">
                   Html
                 </a>
               </li>
               <li>
-                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['css'](null, 'css'));">
+                <a onclick="Hyperdeck.AddComponent('css');">
                   Css
                 </a>
               </li>
               <li>
-                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['txt'](null, 'txt'));">
+                <a onclick="Hyperdeck.AddComponent('txt');">
                   Plain Text
                 </a>
               </li>
               <li>
-                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['textfile'](null, 'textfile'));">
+                <a onclick="Hyperdeck.AddComponent('textfile');">
                   Text File
                 </a>
               </li>
               <li>
-                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['binaryfile'](null, 'binaryfile'));">
+                <a onclick="Hyperdeck.AddComponent('binaryfile');">
                   Binary File
                 </a>
               </li>
               <li>
-                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['jsfile'](null, 'jsfile'));">
+                <a onclick="Hyperdeck.AddComponent('jsfile');">
                   Javascript File
                 </a>
               </li>
               <li>
-                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['imgfile'](null, 'imgfile'));">
+                <a onclick="Hyperdeck.AddComponent('imgfile');">
                   Image File
                 </a>
               </li>
               <li>
-                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['repl'](null, 'repl'));">
+                <a onclick="Hyperdeck.AddComponent('repl');">
                   Javascript REPL
                 </a>
               </li>
               <li>
-                <a onclick="Hyperdeck.Components.NewComponent(new Hyperdeck.Components['snips'](null, 'snips'));">
+                <a onclick="Hyperdeck.AddComponent('snips');">
                   Javascript Snippets
                 </a>
               </li>
@@ -229,6 +194,21 @@ MathJax.Hub.Config({
               <li>
                 <a onclick="Hyperdeck.ShowPasswordInput()">
                   Encrypt
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.ShowAll()">
+                  Show All
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.HideAll()">
+                  Hide All
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.RestoreObj()">
+                  Restore Deleted
                 </a>
               </li>
             </ul>
@@ -268,8 +248,6 @@ MathJax.Hub.Config({
 
       </div>
     </div>
-
-    <input type="file" id="fileChooser" style="display:none" />
 
     <div class="row tab-content">
       <div class="col-sm-6" id='cells-container'>

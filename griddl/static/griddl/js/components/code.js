@@ -7,13 +7,13 @@
 // for js, compile just builds the Function object, it doesn't execute it
 // for html, css, and md, compile sets this._data and then calls exec
 
-var Code = function(json, type) {
+var Code = function(json, type, name) {
 	
 	if (!json)
 	{
 		json = {};
 		json.type = type;
-		json.name = Hyperdeck.Components.UniqueName(type, 1);
+		json.name = name;
 		json.visible = true;
 		json.text = '';
 	}
@@ -35,7 +35,7 @@ var Code = function(json, type) {
 		},
 		set : function(value) {
 			this._text = value;
-			if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
+			this.markDirty();
 			this.codemirror.getDoc().setValue(this._text);
 			this.compile();
 		}
@@ -53,7 +53,7 @@ var Code = function(json, type) {
 			// textify(object) => string
 			
 			this._data = value;
-			if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
+			this.markDirty();
 			this.textify();
 		}
 	});
@@ -85,7 +85,7 @@ Code.prototype.add = function() {
 	this.codemirror = CodeMirror.fromTextArea(textarea[0], options);
 	
 	this.codemirror.on('change', function() {
-		if (!Hyperdeck.dirty) { Hyperdeck.Components.MarkDirty(); }
+		comp.markDirty();
 	});
 	
 	this.codemirror.on('blur', function() {
@@ -114,17 +114,17 @@ Code.prototype.compile = function() {
 	
 	if (this.type == 'js')
 	{
-		this.errorSpan.text('');
+		this._data = new Function('args', this._text);
 		
-		try
-		{
-			this._data = new Function('args', this._text);
-		}
-		catch (e)
-		{
-			this.displayError(e);
-			//throw new Error('invalid javascript');
-		}
+		//this.errorSpan.text('');
+		//try
+		//{
+		//	this._data = new Function('args', this._text);
+		//}
+		//catch (e)
+		//{
+		//	this.displayError(e);
+		//}
 	}
 	else if (this.type == 'html' || this.type == 'css' || this.type == 'md')
 	{
@@ -185,16 +185,17 @@ Code.prototype.exec = function() {
 	}
 	else if (this.type == 'js')
 	{
-		this.errorSpan.text('');
+		this.data();
 		
-		try
-		{
-			this.data();
-		}
-		catch (e)
-		{
-			this.displayError(e);
-		}
+		//this.errorSpan.text('');
+		//try
+		//{
+		//	this.data();
+		//}
+		//catch (e)
+		//{
+		//	this.displayError(e);
+		//}
 	}
 	else
 	{
