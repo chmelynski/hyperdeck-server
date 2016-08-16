@@ -356,17 +356,7 @@ PIPELINE = {
     'JAVASCRIPT': {
         'hyperdeck': {
             'source_filenames': (
-              'griddl/js/utils.js',
-              'griddl/js/griddl.components.new.js',
-              'griddl/js/b64Converters.js',
-              'griddl/js/directory.js',
-              'griddl/js/elementIds.js',
-              'griddl/js/export.js',
-              'griddl/js/genericUploadDownload.js',
-              'griddl/js/griddl.componentHeaders.js',
-              'griddl/js/handlersGeneric.js',
-              'griddl/js/markDirty.js',
-              'griddl/js/results.js',
+              'griddl/js/components.js',
               'griddl/js/components/code.js',
               'griddl/js/components/data.js',
               'griddl/js/components/file.js',

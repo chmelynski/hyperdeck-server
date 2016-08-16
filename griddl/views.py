@@ -552,6 +552,41 @@ def results(request, userid, path, slug):
 
     return render(request, 'griddl/results.htm', context)
 
+@require_subdomain(SUBDOMAINS['sandbox'])
+def raw(request, userid, path, slug):
+    try:
+        family = resolve_ancestry(userid, '/'.join([path, slug]))
+        wb = family[0]
+    except Exception:
+        return HttpResponse('Not found')  # todo? more specific maybe.
+
+    if not wb.public:
+        if request.user.is_authenticated():
+            if not request.user.account == wb.owner:
+                return HttpResponse('Access denied')
+        else:
+            return HttpResponse('Access denied')
+
+    context = {
+        "workbook": wb
+    }
+    
+    # retained from results view, but this can probably be dropped - raw is for linking in js, not for editing
+    if request.user.is_authenticated() and request.user.account == wb.owner:
+        notWorkbookSubdomain = SUBDOMAINS['notWorkbook']
+        period = '.'
+        if notWorkbookSubdomain == '':
+            period = ''
+        if wb.parent:
+            context['parentdir'] = ''.join(['http://',notWorkbookSubdomain,period,'hyperdeck.io',wb.parent.uri])
+        else:
+            uri = reverse(directory,
+                          kwargs={'userid': request.user.account.pk,
+                                  'path': ''})
+            context['parentdir'] = uri # does reverse return the absolute url or the relative url?
+            #context['parentdir'] = ''.join(['http://',notWorkbookSubdomain,period,'hyperdeck.io',uri])
+
+    return render(request, 'griddl/raw.htm', context)
 
 def index(request):
     context = {}
