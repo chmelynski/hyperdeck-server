@@ -245,14 +245,7 @@ function AddMinimizeButton(obj) {
 	button.append($icon);
 	
 	button.on('click', function() {
-		if (obj.visible) { 
-			$("i.fa", this).removeClass(minus).addClass(plus);
-			Hide(obj); 
-		} else { 
-			$("i.fa", this).removeClass(plus).addClass(minus);
-			Show(obj); 
-		}
-		//MarkDirty();
+		if (obj.visible) { Hide(obj); } else { Show(obj); }
 	});
 	
 	return button;
@@ -456,7 +449,7 @@ var Hide2 = function(obj) {
 var Show = function(obj) {
 	
 	obj.div.removeClass('griddl-component-body-hidden');
-	obj.div.parent().find('.griddl-component-head-minmax').attr('value', '-');
+	obj.div.parent().find('i.fa').removeClass('fa-plus').addClass('fa-minus');
 	obj.visible = true;
 	
 	// this fixes this bug: when a component containing a codemirror was initially hidden, and then we maximized, the text would not appear
@@ -464,7 +457,7 @@ var Show = function(obj) {
 };
 var Hide = function(obj) {
 	obj.div.addClass('griddl-component-body-hidden');
-	obj.div.parent().find('.griddl-component-head-minmax').attr('value', '+');
+	obj.div.parent().find('i.fa').removeClass('fa-minus').addClass('fa-plus');
 	obj.visible = false;
 };
 
