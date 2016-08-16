@@ -4,6 +4,8 @@ from django.contrib.auth.models import User
 
 from models import Account, DefaultWorkbook, Workbook, Plan
 
+from mysite.settings import DEBUG
+
 # https://docs.djangoproject.com/en/1.9/ref/contrib/admin/#django.contrib.admin.ModelAdmin.exclude
 # https://docs.djangoproject.com/en/1.9/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_display
 # https://docs.djangoproject.com/en/1.9/ref/contrib/admin/#django.contrib.admin.ModelAdmin.list_editable
@@ -32,7 +34,7 @@ class UserAdmin(UserAdmin):
 
 class WorkbookAdmin(admin.ModelAdmin):
     readonly_fields = ('size',)
-    exclude = ('text',)
+    exclude = (() if DEBUG else ('text',))
     list_display = ('owner', 'slug', 'size')
     list_display_links = ('slug',)
 
