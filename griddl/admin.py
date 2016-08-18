@@ -35,7 +35,7 @@ class UserAdmin(UserAdmin):
 class WorkbookAdmin(admin.ModelAdmin):
     readonly_fields = ('size',)
     exclude = (() if DEBUG else ('text',))
-    list_display = ('owner', 'slug', 'size')
+    list_display = ('owner', 'contentType', 'slug', 'modified', 'size')
     list_display_links = ('slug',)
 
 

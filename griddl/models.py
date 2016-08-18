@@ -45,15 +45,17 @@ class Workbook(models.Model):
     parent = models.ForeignKey('self', null=True, blank=True,
                                on_delete=models.CASCADE,
                                limit_choices_to={'filetype': 'D'})
+    contentType = models.CharField(blank=True, max_length=200) 
     name = models.CharField(max_length=200)
     slug = models.SlugField()
     text = models.TextField(blank=True, default=MY_FIRST_WORKBOOK)
+    modified = models.DateTimeField(null=True, auto_now=True)
     public = models.BooleanField(default=False)
     deleted = models.BooleanField(default=False)  # user-initiated removal
     locked = models.BooleanField(default=False)  # automated/administrative
 
     class Meta:
-        unique_together = ("owner", "parent", "name")
+        unique_together = ("owner", "parent", "slug")
 
     @cached_property
     def path_to_file(self):
