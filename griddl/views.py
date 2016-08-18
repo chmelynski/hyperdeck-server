@@ -541,14 +541,14 @@ def results(request, userid, path, slug):
         period = '.'
         if notWorkbookSubdomain == '':
             period = ''
-        if wb.parent:
+        if wb.parent != None:
             context['parentdir'] = ''.join(['http://',notWorkbookSubdomain,period,'hyperdeck.io',wb.parent.uri])
         else:
             uri = reverse(directory,
                           kwargs={'userid': request.user.account.pk,
                                   'path': ''})
-            context['parentdir'] = uri # does reverse return the absolute url or the relative url?
-            #context['parentdir'] = ''.join(['http://',notWorkbookSubdomain,period,'hyperdeck.io',uri])
+            # reverse returns the relative url
+            context['parentdir'] = ''.join(['http://',notWorkbookSubdomain,period,'hyperdeck.io',uri])
 
     return render(request, 'griddl/results.htm', context)
 
@@ -570,21 +570,6 @@ def raw(request, userid, path, slug):
     context = {
         "workbook": wb
     }
-    
-    # retained from results view, but this can probably be dropped - raw is for linking in js, not for editing
-    if request.user.is_authenticated() and request.user.account == wb.owner:
-        notWorkbookSubdomain = SUBDOMAINS['notWorkbook']
-        period = '.'
-        if notWorkbookSubdomain == '':
-            period = ''
-        if wb.parent:
-            context['parentdir'] = ''.join(['http://',notWorkbookSubdomain,period,'hyperdeck.io',wb.parent.uri])
-        else:
-            uri = reverse(directory,
-                          kwargs={'userid': request.user.account.pk,
-                                  'path': ''})
-            context['parentdir'] = uri # does reverse return the absolute url or the relative url?
-            #context['parentdir'] = ''.join(['http://',notWorkbookSubdomain,period,'hyperdeck.io',uri])
 
     return render(request, 'griddl/raw.htm', context)
 
