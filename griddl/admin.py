@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from models import Account, DefaultWorkbook, Workbook, Plan
+from models import Account, DefaultWorkbook, Workbook, Plan, Copy
 
 from mysite.settings import DEBUG
 
@@ -38,6 +38,9 @@ class WorkbookAdmin(admin.ModelAdmin):
     list_display = ('owner', 'contentType', 'slug', 'modified', 'size')
     list_display_links = ('slug',)
 
+class CopyAdmin(admin.ModelAdmin):
+    list_display = ('key',)
+    list_display_links = ('key',)
 
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
@@ -45,4 +48,5 @@ admin.site.register(User, UserAdmin)
 admin.site.register(Workbook, WorkbookAdmin)
 admin.site.register(DefaultWorkbook)
 admin.site.register(Plan)
+admin.site.register(Copy, CopyAdmin)
 

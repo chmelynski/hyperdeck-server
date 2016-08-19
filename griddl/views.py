@@ -20,7 +20,7 @@ from crispy_forms.layout import Submit
 from mysite.settings import SUBDOMAINS
 
 from .decorators import require_subdomain, exclude_subdomain
-from .models import Workbook, Account, Plan
+from .models import Workbook, Account, Plan, Copy
 from .models import AccountSizeError, MaxWorkbookSizeError
 from .utils import resolve_ancestry
 
@@ -574,5 +574,11 @@ def raw(request, userid, path, slug):
     return render(request, 'griddl/raw.htm', context)
 
 def index(request):
+    copy = Copy.objects.get(key='index')
     context = {}
+    keyvals = copy.val.splitlines()
+    for keyval in keyvals:
+        key = keyval.split(':')[0]
+        val = keyval.split(':')[1]
+        context[key] = val
     return render(request, 'griddl/index.htm', context)

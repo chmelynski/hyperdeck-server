@@ -18,7 +18,7 @@ import requests
 import stored_messages
 
 from mysite import settings
-from griddl.models import Account, Plan
+from griddl.models import Account, Plan, Copy
 from .models import BillingRedirect, Subscription, API_URL
 
 logger = logging.getLogger(__name__)
@@ -142,6 +142,12 @@ def subscriptions(request):
             upgrades.append(details)
             
     context = {'upgrades': upgrades}
+    copy = Copy.objects.get(key='subscriptions')
+    keyvals = copy.val.splitlines()
+    for keyval in keyvals:
+        key = keyval.split(':')[0]
+        val = keyval.split(':')[1]
+        context[key] = val
     return render(request, 'billing/subscribe.htm', context)
 
 

@@ -226,3 +226,8 @@ class DefaultWorkbook(models.Model):
 
     def __unicode__(self):
         return self.name
+
+class Copy(models.Model):
+    key = models.CharField(max_length=255)
+    val = models.TextField(blank=True)
+
