@@ -1,5 +1,7 @@
 
-(function() {
+var Hyperdeck;
+
+(function(module) {
 
 var xAnchorTranslate = {left:'lf',center:'cx',right:'rt'};
 var yAnchorTranslate = {top:'tp',center:'cy',bottom:'bt'};
@@ -216,6 +218,7 @@ Box.prototype.reconcileHandles = function() {
 };
 Box.prototype.align = function() {
 	
+	// this assumes that x, y, hAlign, vAlign, wd, hg are set and calculates the others
 	AlignBox(this);
 	this.reconcileHandles();
 };
@@ -352,7 +355,7 @@ Box.prototype.initHandlers = function() {
 	
 };
 
-Hyperdeck.Components.AddMarginElements = function(gui, obj, margin) {
+var AddMarginElements = function(gui, obj, margin) {
 	
 	var controls = [];
 	
@@ -876,14 +879,16 @@ Handle.prototype.dehover = function() {
 	this.box.obj.ctx.canvas.onmousedown = null;
 };
 
-Hyperdeck.Components.Box = Box;
+module.Box = Box;
 
-Hyperdeck.Components.MakeBox = MakeBox;
-//Hyperdeck.Components.AddBoxVars = AddBoxVars;
-//Hyperdeck.Components.ReconcileBox = ReconcileBox;
-//Hyperdeck.Components.AlignBox = AlignBox;
-//Hyperdeck.Components.MoveBox = MoveBox;
-//Hyperdeck.Components.Drag = Drag;
+//module.AddMarginElements = AddMarginElements;
 
-})();
+module.MakeBox = MakeBox;
+//module.AddBoxVars = AddBoxVars;
+//module.ReconcileBox = ReconcileBox;
+//module.AlignBox = AlignBox;
+//module.MoveBox = MoveBox;
+//module.Drag = Drag;
+
+})(Hyperdeck || window);
 
