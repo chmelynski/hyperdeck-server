@@ -638,10 +638,73 @@ function DetermineDataForm(data) {
 	return form;
 }
 
-Data.prototype.getText = function() { return JSON.stringify(this.data); }; // why privilege JSON?
-Data.prototype.setText = function(text) { }; // unclear how to specify the form of the text
-Data.prototype.getData = function() { return this.data; };
-Data.prototype.setData = function(data) { this.data = data };
+
+Data.prototype.get = function(options) {
+	
+	var result = null;
+	
+	if (options && options.format)
+	{
+		if (options.format == 'json')
+		{
+			result = WriteJson.apply(this);
+		}
+		else if (options.format == 'yaml')
+		{
+			result = WriteYaml.apply(this);
+		}
+		else if (options.format == 'tsv')
+		{
+			result = WriteTsv.apply(this);
+		}
+		else if (options.format == 'csv')
+		{
+			result = WriteCsv.apply(this);
+		}
+		else
+		{
+			throw new Error('Unsupported format: "' + options.format + '"');
+		}
+	}
+	else
+	{
+		result = this.data;
+	}
+	
+	return result;
+};
+Data.prototype.set = function(data, options) {
+	
+	if (options && options.format)
+	{
+		if (options.format == 'json')
+		{
+			ReadJson.apply(this, [data]);
+		}
+		else if (options.format == 'yaml')
+		{
+			ReadYaml.apply(this, [data]);
+		}
+		else if (options.format == 'tsv')
+		{
+			ReadTsv.apply(this, [data]);
+		}
+		else if (options.format == 'csv')
+		{
+			ReadCsv.apply(this, [data]);
+		}
+		else
+		{
+			throw new Error('Unsupported format: "' + options.format + '"');
+		}
+		
+		this.add();
+	}
+	else
+	{
+		this.data = data;
+	}
+};
 
 Data.prototype.uploadJSON = function() { Upload.apply(this, [ReadJson, 'json']); };
 Data.prototype.uploadYAML = function() { Upload.apply(this, [ReadYaml, 'yaml']); };

@@ -180,6 +180,69 @@ Repl.prototype.write = function() {
 	return json;
 };
 
+Repl.prototype.get = function(options) {
+	
+	if (this.type == 'repl') { throw new Error('The "repl" component does not support Get/Set.'); }
+	
+	var result = null;
+	
+	if (options && options.format)
+	{
+		if (options.format == 'text')
+		{
+			result = this.snips.join('\n');
+		}
+		else if (options.format == 'list')
+		{
+			result = this.snips;
+		}
+		else
+		{
+			var ls = [];
+			ls.push('Unsupported format: "' + options.format + '".');
+			ls.push('The "snips" component supports formats "text" and "list".')
+			throw new Error(ls.join(' '));
+		}
+	}
+	else
+	{
+		result = this.snips;
+	}
+	
+	return result;
+};
+Repl.prototype.set = function(data, options) {
+	
+	if (this.type == 'repl') { throw new Error('The "repl" component does not support Get/Set.'); }
+	
+	var thedata = null;
+	
+	if (options && options.format)
+	{
+		if (options.format == 'text')
+		{
+			thedata = data.split('\n');
+		}
+		else if (options.format == 'list')
+		{
+			thedata = data
+		}
+		else
+		{
+			var ls = [];
+			ls.push('Unsupported format: "' + options.format + '".');
+			ls.push('The "snips" component supports formats "text" and "list".')
+			throw new Error(ls.join(' '));
+		}
+	}
+	else
+	{
+		throw new Error('Must specify { format : "text" or "list" }.');
+	}
+	
+	this.snips = thedata;
+};
+
 Hyperdeck.Components.repl = Repl;
 Hyperdeck.Components.snips = Repl;
 

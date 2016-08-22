@@ -382,27 +382,105 @@ File.prototype.compile = function() {
 	}
 };
 
-File.prototype.getText = function() { return this.b64; };
-File.prototype.setText = function(text) { this.b64 = text; };
-File.prototype.getData = function() {
-	if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+File.prototype.get = function(options) {
+	
+	var result = null;
+	
+	if (options && options.format)
 	{
-		return this.uint8array;
+		if (options.format == 'text')
+		{
+			result = this.b64;
+		}
+		else if (options.format == 'base64')
+		{
+			if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+			{
+				result = this.b64;
+			}
+			else if (this.type == 'textfile' || this.type == 'jsfile')
+			{
+				throw new Error('Unsupported format: components of type "' + this.type + '" only support the "text" format.');
+			}
+		}
+		else if (options.format == 'uint8array')
+		{
+			if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+			{
+				result = this.uint8array;
+			}
+			else if (this.type == 'textfile' || this.type == 'jsfile')
+			{
+				throw new Error('Unsupported format: components of type "' + this.type + '" only support the "text" format.');
+			}
+		}
+		else
+		{
+			throw new Error('Unsupported format: "' + options.format + '".  Supported formats are "text", "base64", or "uint8array".');
+		}
 	}
-	else if (this.type == 'textfile' || this.type == 'jsfile')
+	else
 	{
-		return this.b64;
+		if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+		{
+			result = this.uint8array;
+		}
+		else if (this.type == 'textfile' || this.type == 'jsfile')
+		{
+			result = this.b64;
+		}
 	}
+	
+	return result;
 };
-File.prototype.setData = function(data) {
-	if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+File.prototype.set = function(data, options) {
+	
+	if (options && options.format)
 	{
-		this.uint8array = data;
+		if (options.format == 'text')
+		{
+			this.b64 = data;
+		}
+		else if (options.format == 'base64')
+		{
+			if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+			{
+				this.b64 = data;
+			}
+			else if (this.type == 'textfile' || this.type == 'jsfile')
+			{
+				throw new Error('Unsupported format: components of type "' + this.type + '" only support the "text" format.');
+			}
+		}
+		else if (options.format == 'uint8array')
+		{
+			if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+			{
+				this.uint8array = data;
+			}
+			else if (this.type == 'textfile' || this.type == 'jsfile')
+			{
+				throw new Error('Unsupported format: components of type "' + this.type + '" only support the "text" format.');
+			}
+		}
+		else
+		{
+			throw new Error('Unsupported format: "' + options.format + '".  Supported formats are "text", "base64", or "uint8array".');
+		}
 	}
-	else if (this.type == 'textfile' || this.type == 'jsfile')
+	else
 	{
-		this.b64 = data;
+		// should check 'data' to make sure it's the correct format
+		if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+		{
+			this.uint8array = data;
+		}
+		else if (this.type == 'textfile' || this.type == 'jsfile')
+		{
+			this.b64 = data;
+		}
 	}
+	
 };
 
 function Base64StringToUint8Array(str) {

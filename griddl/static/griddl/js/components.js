@@ -590,14 +590,11 @@ function save_as(newname) {
 // API
 var Hyperdeck = {};
 var Components = Hyperdeck.Components = {};
-Hyperdeck.GetData = function(name) { return FetchObj(name).getData(); };
-Hyperdeck.SetData = function(name, data) { FetchObj(name).setData(data); };
-Hyperdeck.GetText = function(name) { return FetchObj(name).getText(); };
-Hyperdeck.SetText = function(name, text) { FetchObj(name).setText(text); };
-Hyperdeck.Get = function(name) { return FetchObj(name); };
+Hyperdeck.Get = function(name, options) { return FetchObj(name).get(options); };
+Hyperdeck.Set = function(name, data, options) { FetchObj(name).set(data, options); };
 Hyperdeck.Run = function(name) { FetchObj(name).exec(); };
-Hyperdeck.New = function(json) { NewComponent(new Components[json.type]()); };
-Hyperdeck.Rem = function(name) { DeleteObj(FetchObj(name)); };
+//Hyperdeck.New = function(json) { NewComponent(new Components[json.type]()); };
+//Hyperdeck.Rem = function(name) { DeleteObj(FetchObj(name)); };
 Hyperdeck.Export = Export;
 Hyperdeck.SetPassword = function(pw) { password = pw; };
 Hyperdeck.ShowAll = function() { objs.forEach(function(obj) { Show(obj); }); };

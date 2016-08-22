@@ -238,12 +238,9 @@ Code.prototype.write = function() {
 	return json;
 };
 
-// okay, for Code, this is pretty dumb. but having separate getter/setter functions makes more sense for components like File, where the internal
-// names are b64 and uint8array rather than 'text' and 'data'.  although maybe we should just implement 'text' and 'data' getter/setters in File
-Code.prototype.getText = function() { return this.text; };
-Code.prototype.setText = function(text) { this.text = text; };
-Code.prototype.getData = function() { return this.data; };
-Code.prototype.setData = function(data) { this.data = data };
+// maybe add option allowing to get/set the js Function object
+Code.prototype.get = function(options) { return this.text; };
+Code.prototype.set = function(data, options) { this.text = data; };
 
 Hyperdeck.Components.txt = Code;
 Hyperdeck.Components.js = Code;
