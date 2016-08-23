@@ -438,18 +438,18 @@ var ConfirmDelete = function (event) {
 // Show2 and Hide2 implement the destroy/recreate variant
 var Show2 = function(obj) {
 	obj.add();
-	obj.div.parent().find('.griddl-component-head-minmax').attr('value', '-');
+	obj.div.parent().find('i.fa-plus').removeClass('fa-plus').addClass('fa-minus');
 	obj.visible = true;
 };
 var Hide2 = function(obj) {
 	obj.div.html('');
-	obj.div.parent().find('.griddl-component-head-minmax').attr('value', '+');
+	obj.div.parent().find('i.fa-minus').removeClass('fa-minus').addClass('fa-plus');
 	obj.visible = false;
 };
 var Show = function(obj) {
 	
 	obj.div.removeClass('griddl-component-body-hidden');
-	obj.div.parent().find('i.fa').removeClass('fa-plus').addClass('fa-minus');
+	obj.div.parent().find('i.fa-plus').removeClass('fa-plus').addClass('fa-minus');
 	obj.visible = true;
 	
 	// this fixes this bug: when a component containing a codemirror was initially hidden, and then we maximized, the text would not appear
@@ -457,7 +457,7 @@ var Show = function(obj) {
 };
 var Hide = function(obj) {
 	obj.div.addClass('griddl-component-body-hidden');
-	obj.div.parent().find('i.fa').removeClass('fa-minus').addClass('fa-plus');
+	obj.div.parent().find('i.fa-minus').removeClass('fa-minus').addClass('fa-plus');
 	obj.visible = false;
 };
 
