@@ -361,6 +361,7 @@ PIPELINE = {
               'griddl/js/components/data.js',
               'griddl/js/components/file.js',
               'griddl/js/components/repl.js',
+              'griddl/js/components/link.js',
             ),
             'output_filename': 'griddl/js/hyperdeck.js',
         },
