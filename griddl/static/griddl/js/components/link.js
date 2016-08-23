@@ -34,7 +34,7 @@ Link.prototype.add = function() {
 	var gui = new dat.GUI({autoPlace:false, width:"100%"});
   
 	var urlControl = gui.add(comp, 'url');
-	urlControl.onChange(function(value) { comp.loadUrl(); comp.markDirty(); });
+	urlControl.onFinishChange(function(value) { comp.loadUrl(); comp.markDirty(); });
 	
 	//var displayOptions = ['text','json','yaml','tsv','csv','img','stats'];
 	//var displayControl = gui.add(comp, 'display', displayOptions);
@@ -67,7 +67,7 @@ Link.prototype.loadUrl = function() {
 		var list = JSON.parse(json);
 		if (list.length == 0) { throw new Error('Workbook at url "' + url + '" is empty.'); }
 		
-		var obj = list[0];
+		var obj = null;
 		
 		if (compname !== null)
 		{
@@ -80,6 +80,12 @@ Link.prototype.loadUrl = function() {
 				}
 			}
 		}
+		else
+		{
+			obj = list[0];
+		}
+		
+		if (obj === null) { throw new Error('Workbook at url "' + url + '" does not contain component "' + compname + '".'); }
 		
 		if (obj.type == 'js' || obj.type == 'css' || obj.type == 'html' || obj.type == 'md' || obj.type == 'txt')
 		{
