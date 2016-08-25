@@ -20,6 +20,8 @@ if developmentServer or noahDev or staging or herokuDev:
 else:
     DEBUG = False
 
+DEBUG = True
+
 ADMINS = (
     ("Noah Hall", "noah.t.hall@gmail.com")
 )
