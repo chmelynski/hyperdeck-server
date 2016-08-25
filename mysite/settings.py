@@ -20,8 +20,6 @@ if developmentServer or noahDev or staging or herokuDev:
 else:
     DEBUG = False
 
-DEBUG = True
-
 ADMINS = (
     ("Noah Hall", "noah.t.hall@gmail.com")
 )
@@ -352,6 +350,7 @@ PIPELINE = {
     'PIPELINE_ENABLED': not DEBUG, # True = compress
     'JS_COMPRESSOR': 'pipeline.compressors.uglifyjs.UglifyJSCompressor',
     'UGLIFYJS_BINARY': os.path.join(BASE_DIR, 'node_modules', '.bin', 'uglifyjs'),
+    'UGLIFYJS_ARGUMENTS': '-m',
     'DISABLE_WRAPPER': True, # by default, output is wrapped in an anonymous function
     'JAVASCRIPT': {
         'hyperdeck': {
