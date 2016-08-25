@@ -345,9 +345,13 @@ SUBDOMAIN_URLCONFS = {
 SESSION_COOKIE_DOMAIN = ".hyperdeck.io"
 SESSION_COOKIE_NAME = SUBDOMAINS['main'] + 'sessionid'
 
+if DEBUG:
+    COMPRESS = False
+else:
+    COMPRESS = True
 
 PIPELINE = {
-    'PIPELINE_ENABLED': not DEBUG, # True = compress
+    'PIPELINE_ENABLED': COMPRESS, # True = compress
     'JS_COMPRESSOR': 'pipeline.compressors.uglifyjs.UglifyJSCompressor',
     'UGLIFYJS_BINARY': os.path.join(BASE_DIR, 'node_modules', '.bin', 'uglifyjs'),
     'UGLIFYJS_ARGUMENTS': '-m',
