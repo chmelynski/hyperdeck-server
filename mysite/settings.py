@@ -164,7 +164,6 @@ MIDDLEWARE_CLASSES = (
     'subdomains.middleware.SubdomainURLRoutingMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -191,7 +190,6 @@ INSTALLED_APPS = (
     'bootstrap3',      # django-bootstrap3
     'crispy_forms',    # django-crispy-forms
     'password_reset',  # django-password-reset
-    'debug_toolbar',   # django-debug-toolbar
     'pipeline',        # django-pipeline
 
     'griddl',
@@ -307,10 +305,6 @@ MESSAGE_STORAGE = 'stored_messages.storage.PersistentStorage'
 # implicit default is smtp rather than console.
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-# debug toolbar settings
-DEBUG_TOOLBAR_PATCH_SETTINGS = False
-INTERNAL_IPS = ['127.0.0.1', '24.177.237.106', '192.241.210.119']
 
 # subdomain settings
 SUBDOMAINS = {
