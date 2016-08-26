@@ -1,4 +1,3 @@
-
 var Hyperdeck = (function() {
 
 var objs = [];
@@ -9,7 +8,7 @@ var ciphertext = null; // Main sets this if it receives ciphertext.  then Decryp
 
 var Main = function(text) {
 	
-	if (typeof text == 'undefined')
+	if (typeof text === 'undefined')
 	{
 		text = $('#frce').text(); // document.getElementById('frce').innerText
 	}
@@ -37,6 +36,19 @@ var Main = function(text) {
 	
 	MakeSortable();
 	MarkClean();
+
+  // hijack all links & force a new tab/window
+  // but make sure nobody's pulling a mean trick lol
+  // note: document.ready is too early for this ugh
+  $('#output a').on('click.test', function(e) {
+    e.preventDefault();
+    if (typeof(e.target.href) !== 'undefined') {
+      if (e.target.href.indexOf('javascript:') === -1) {
+        parent.postMessage({'action': 'link', 'href': e.target.href}, playground);
+        return false;
+      }
+    }
+  });
 };
 var NewComponent = function(json, type, name) {
 	
@@ -605,4 +617,3 @@ Hyperdeck.RestoreObj = RestoreObj;
 return Hyperdeck;
 
 })();
-

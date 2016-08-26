@@ -44,8 +44,11 @@ function receiveMessage(event) {
       case 'markClean':
         $('title').text($('title').text().substring(1));
         break;
+      case 'link':
+        window.open(data.href, '_blank');
+        break;
       default:
-        console.log('problem in playground: ', data);
+        jslog('problem in playground: ', data);
     }
   }
 }
