@@ -297,8 +297,11 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
   <div id="passwordModal" class="modal fade">
     <div class="modal-dialog">
       <div class="modal-content">
+        <div class="modal-header">
+          <h4>Set a password to encrypt the workbook</h4>
+        </div>
         <div class="modal-body">
-          <input id="passwordInput" type="password" name="text" value=""></input>
+          <input class='form-control' id="passwordInput" type="password" name="text" value=""></input>
         </div>
         <div class="modal-footer">
           <button class="btn btn-success" value="Save" onclick="Hyperdeck.SetPassword()">Save</input>
