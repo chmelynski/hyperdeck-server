@@ -14,8 +14,7 @@ Hyperdeck.Import = function() {
 			
 			$('#cells').children().remove();
 			
-			Hyperdeck.Components.Main(text);
-			Hyperdeck.Components.MarkClean();
+			Hyperdeck.Main(text);
 		};
 		
 		if (fileChooser.files.length > 0)
