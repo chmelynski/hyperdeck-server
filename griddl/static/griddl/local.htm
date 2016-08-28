@@ -43,17 +43,8 @@
 <script src="js/lib/jszip.js"></script> <!-- older version, still supports sync -->
 <!-- <script src="js/lib/jszip.min.js"></script> --> <!-- version 3.0, mandates async -->
 
-<script src='js/griddl.components.new.js'></script>
-<script src='js/local-componentHeaders.js'></script>
-
-<script src='js/griddl.ui.js'></script>
+<script src='js/components.js'></script>
 <script src='js/polyfills.js'></script>
-<script src='js/handlersGeneric.js'></script>
-<script src='js/b64Converters.js'></script>
-<script src='js/genericUploadDownload.js'></script>
-<script src='js/markDirty.js'></script>
-<script src='js/elementIds.js'></script>
-<script src='js/export.js'></script>
 <script src='js/import.js'></script>
 
 <script src='js/components/code.js'></script>
@@ -112,7 +103,7 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
 
 <button onclick='Hyperdeck.Export();'>Download Workbook</button>
 <button onclick='Hyperdeck.Import();'>Upload Workbook</button>
-<select value="" onchange="Hyperdeck.Components.NewComponent(new Hyperdeck.Components[this.value](null, this.value))">
+<select value="" onchange="Hyperdeck.AddComponent(this.value)">
 <option></option>
 <option>office</option>
 <option>tree</option>
@@ -130,7 +121,6 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
 <option>repl</option>
 <option>snips</option>
 </select>
-<button onclick='Hyperdeck.Components.RestoreObj();'>Restore Deleted Obj</button>
 
 <div id='cells'></div>
 <div id='output'></div>

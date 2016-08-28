@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from models import Account, DefaultWorkbook, Workbook, Plan, Copy
+from models import Account, DefaultWorkbook, Workbook, Plan, Copy, Preferences
 
 from mysite.settings import DEBUG
 
@@ -19,9 +19,12 @@ class AccountInline(admin.StackedInline):
     can_delete = False
     readonly_fields = ('size',)
 
+class PreferencesInline(admin.StackedInline):
+    model = Preferences
+    can_delete = False
 
 class UserAdmin(UserAdmin):
-    inlines = (AccountInline,)
+    inlines = (AccountInline,PreferencesInline)
     list_display = ('username', 'email', 'Plan',
                     'Size', 'last_login', 'date_joined')
 
