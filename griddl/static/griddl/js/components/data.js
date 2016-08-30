@@ -271,10 +271,10 @@ Data.prototype.add = function() {
 				comp.displayError(e, comp.display);
 			}
 			
-			if (success)
-			{
-				comp.add();
-			}
+			//if (success)
+			//{
+			//	comp.add();
+			//}
 		});
 	}
 	else if (this.display == 'grid')
