@@ -170,7 +170,7 @@ class FastSpringNotificationView(View):
         also todo: prob should raise an exception on fail
         '''
 
-        if not request.META['User-Agent'] == "FS":
+        if not request.META['HTTP_USER_AGENT'] == "FS":
             return False
 
         msg_data = request.META['X-Security-Data']
