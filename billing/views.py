@@ -173,8 +173,8 @@ class FastSpringNotificationView(View):
         if not request.META['HTTP_USER_AGENT'] == "FS":
             return False
 
-        msg_data = request.META['X-Security-Data']
-        msg_hash = request.META['X-Security-Hash']
+        msg_data = request.META['HTTP_X_SECURITY_DATA']
+        msg_hash = request.META['HTTP_X_SECURITY_HASH']
         challenge = hashlib.md5(msg_data + private_key).hexdigest()
         return (challenge == msg_hash)
 
