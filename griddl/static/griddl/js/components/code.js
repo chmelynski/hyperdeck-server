@@ -73,15 +73,24 @@ Code.prototype.add = function() {
 	var textarea = $(document.createElement('textarea'));
 	this.div.append(textarea);
 	
-	var modeDict = {txt:'plain',js:'javascript',css:'css',html:'xml',md:'markdown'};
 	var options = {};
-	options.mode = modeDict[this.type];
 	options.smartIndent = false;
 	options.lineNumbers = true;
 	options.lineWrapping = true;
 	options.foldGutter = true;
-	options.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"];
+	options.tabSize = 2;
+	options.indentUnit = 2;
+	options.indentWithTabs = true;
+	options.gutters = ["CodeMirror-linenumbers","CodeMirror-foldgutter"];
 	options.extraKeys = {"Ctrl-Q": function(cm) { cm.foldCode(cm.getCursor()); }};
+	
+	if (Hyperdeck.Preferences && Hyperdeck.Preferences.CodeMirror)
+	{
+		for (var key in Hyperdeck.Preferences.CodeMirror) { options[key] = Hyperdeck.Preferences.CodeMirror[key]; }
+	}
+	
+	options.mode = {txt:'plain',js:'javascript',css:'css',html:'xml',md:'markdown'}[this.type];
+	
 	this.codemirror = CodeMirror.fromTextArea(textarea[0], options);
 	
 	this.codemirror.on('change', function() {
@@ -95,9 +104,9 @@ Code.prototype.add = function() {
 	
 	this.codemirror.getDoc().setValue(this.text);
 	
-	this.errorSpan = $('<span></span>');
-	this.errorSpan.css('color', 'red');
-	this.div.append(this.errorSpan);
+	//this.errorSpan = $('<span></span>');
+	//this.errorSpan.css('color', 'red');
+	//this.div.append(this.errorSpan);
 	
 	this.addOutputElements();
 };
@@ -114,7 +123,9 @@ Code.prototype.compile = function() {
 	
 	if (this.type == 'js')
 	{
-		this._data = new Function('args', this._text);
+		 // we call compile on blur, and can't change that because it works well for html/css/md
+		 // but for js, compiling on blur is kind of a pain.  just compile before exec
+		//this._data = new Function('args', this._text);
 		
 		//this.errorSpan.text('');
 		//try
@@ -185,6 +196,7 @@ Code.prototype.exec = function() {
 	}
 	else if (this.type == 'js')
 	{
+		this._data = new Function('args', this._text);
 		this.data();
 		
 		//this.errorSpan.text('');

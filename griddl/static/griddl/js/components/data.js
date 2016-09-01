@@ -203,26 +203,7 @@ Data.prototype.add = function() {
 		this.tableDiv.append(textbox);
 		this.codemirror = CodeMirror.fromTextArea(textbox[0], { mode : 'javascript' , smartIndent : false , lineNumbers : true , lineWrapping : true });
 		
-		if (this.display == 'json')
-		{
-			initText = WriteJson.apply(this);
-		}
-		else if (this.display == 'yaml')
-		{
-			initText = WriteYaml.apply(this);
-		}
-		else if (this.display == 'csv')
-		{
-			initText = WriteCsv.apply(this);
-		}
-		else if (this.display == 'tsv')
-		{
-			initText = WriteTsv.apply(this);
-		}
-		else
-		{
-			throw new Error();
-		}
+		initText = Write.apply(this);
 		
 		this.codemirror.getDoc().setValue(initText);
 		
@@ -273,7 +254,8 @@ Data.prototype.add = function() {
 			
 			if (success)
 			{
-				comp.add();
+				comp.codemirror.getDoc().setValue(Write.apply(comp));
+				//comp.add();
 			}
 		});
 	}
@@ -820,6 +802,33 @@ Data.prototype.Redo = function() {
 	this.undo.pushOnAdd = true;
 };
 
+function Write() {
+	
+	var text = null;
+	
+	if (this.display == 'json')
+	{
+		text = WriteJson.apply(this);
+	}
+	else if (this.display == 'yaml')
+	{
+		text = WriteYaml.apply(this);
+	}
+	else if (this.display == 'csv')
+	{
+		text = WriteCsv.apply(this);
+	}
+	else if (this.display == 'tsv')
+	{
+		text = WriteTsv.apply(this);
+	}
+	else
+	{
+		throw new Error();
+	}
+	
+	return text;
+}
 function ReadJson(text) {
 	
 	this._data = JSON.parse(text);

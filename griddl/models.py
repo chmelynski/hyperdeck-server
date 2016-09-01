@@ -45,7 +45,8 @@ class Workbook(models.Model):
     parent = models.ForeignKey('self', null=True, blank=True,
                                on_delete=models.CASCADE,
                                limit_choices_to={'filetype': 'D'})
-    contentType = models.CharField(blank=True, max_length=200) 
+    contentType = models.CharField(blank=True, max_length=200)
+    version = models.IntegerField(default=0)
     name = models.CharField(max_length=200)
     slug = models.SlugField()
     text = models.TextField(blank=True, default=MY_FIRST_WORKBOOK)
@@ -209,6 +210,18 @@ class Account(models.Model):
     def __unicode__(self):
         return self.user.username
 
+class Preferences(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL)
+    editorKeymap = models.CharField(max_length=255, null=True, blank=True, choices=(("vim","vim"),("emacs","emacs"),("sublime","sublime")))
+    editorTheme = models.CharField(max_length=255, null=True, blank=True)
+    editorAddons = models.TextField(blank=True)
+    style = models.TextField(blank=True)
+    script = models.TextField(blank=True)
+    showTooltips = models.BooleanField(default=True)
+
+    def __unicode__(self):
+        return self.user.username
+        
 
 class DefaultWorkbook(models.Model):
     '''

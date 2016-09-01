@@ -254,7 +254,6 @@ function AddNameBox(obj) {
 	
 	nameBox.on('blur', function(e) {
 		RenameObj(obj, this.value);
-		obj.div.parent().attr('id', obj.name + 'Component');
 		MarkDirty();
 	});
 	
