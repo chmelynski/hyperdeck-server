@@ -266,7 +266,7 @@ LOGGING = {
     },
     'loggers': {
         'django.request': {
-            'handlers': ['mail_admins'],
+            'handlers': [default_handler],
             'level': 'ERROR',
             'propagate': True,
         },
