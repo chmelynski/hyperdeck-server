@@ -278,7 +278,7 @@ LOGGING = {
         'billing': {
             'handlers': [default_handler],
             'level': 'DEBUG',
-            'propagate': False,
+            'propagate': True,
         }
     }
 }

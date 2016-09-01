@@ -190,6 +190,7 @@ class FastSpringNotificationView(View):
         if not settings.DEBUG:
             if not self.verify_msg(self.private_key, request):
                 logger.warn('bad POST to FS notification endpoint' + request)
+                print("bad POST - sanity check")
                 return HttpResponse(403)
 
         logger.debug("{}: {}".format(request.path, request.body))
