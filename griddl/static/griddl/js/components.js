@@ -19,12 +19,33 @@ var Main = function(text) {
 	{
 		ciphertext = text;
 		var ls = [];
-		ls.push('<div id="passwordDiv">');
-		ls.push('<input id="passwordInput" type="password"></input>');
-		ls.push('<button onclick="Hyperdeck.Decrypt()">Decrypt</button>');
-		ls.push('</div>');
+    ls.push('<div class="modal fade" id="decryption-modal"><div class="modal-dialog"><div class="modal-content">');
+		ls.push('<div class="modal-body"><div id="passwordDiv">');
+    ls.push('<form class="form-horizontal" id="decrypt-form"><div class="form-group">');
+    ls.push('<label class="col-sm-3" for="decrypt-password">Password</label>');
+    ls.push('<div class="col-sm-9">');
+		ls.push('<input class="form-control" name="decrypt-password" id="decrypt-password" type="password"></input>');
+    ls.push('</div></div>');
+    ls.push('</form></div></div><div class="modal-footer">');
+		ls.push('<button class="btn btn-success" id="decrypt-submit">Decrypt</button>');
+		ls.push('</div></div></div></div></div>');
 		var passwordDiv = $(ls.join(''));
-		$('#cells').append(passwordDiv);
+		$('body').append(passwordDiv);
+    $('#decryption-modal').modal('show');
+
+    var process_decrypt = function (event) {
+      event.preventDefault();
+      Hyperdeck.Decrypt($('#decrypt-password').val());
+      $('#decryption-modal').modal('hide');
+    }
+
+    $("#decrypt-form").on('submit', function(e) {
+      e.stopPropagation();
+      process_decrypt(e);
+    });
+    $("#decrypt-submit").on('click', function(e) {
+      process_decrypt(e);
+    });
 		return;
 	}
 	
@@ -135,8 +156,7 @@ var UniqueName = function(type, n) {
 	return name;
 };
 
-var Decrypt = function() {
-	password = $('#passwordInput')[0].value;
+var Decrypt = function(password) {
 	var plaintext = sjcl.decrypt(password, ciphertext);
 	Main(plaintext);
 };
@@ -542,6 +562,11 @@ $(document).ready(function() {
     event.preventDefault();
     saveAsSubmit();
   });
+
+  $('.set-encryption').on('click', function(event) {
+    event.preventDefault();
+    Hyperdeck.SetPassword($('#passwordInput').val());
+  });
 });
 
 function saveAsSubmit() {
@@ -610,6 +635,7 @@ Hyperdeck.Run = function(name) { FetchObj(name).exec(); };
 Hyperdeck.Export = Export;
 Hyperdeck.ShowPasswordInput = function() { $('#passwordModal').modal('show'); };
 Hyperdeck.SetPassword = function(pw) { password = pw; $('#passwordModal').modal('hide'); };
+Hyperdeck.Decrypt = Decrypt;
 Hyperdeck.ShowAll = function() { objs.forEach(function(obj) { Show(obj); }); };
 Hyperdeck.HideAll = function() { objs.forEach(function(obj) { Hide(obj); }); };
 Hyperdeck.Main = Main;
