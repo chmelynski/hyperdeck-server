@@ -21,7 +21,8 @@ else:
     DEBUG = False
 
 ADMINS = (
-    ("Noah Hall", "noah.t.hall@gmail.com")
+    ("Noah Hall", "noah.t.hall@gmail.com"),
+    ("Adam Chmelynski", "adam.chmelynski@gmail.com")
 )
 
 MANAGERS = ADMINS
@@ -265,8 +266,8 @@ LOGGING = {
         }
     },
     'loggers': {
-        'django.request': {
-            'handlers': [default_handler],
+        'django': {
+            'handlers': ['mail_admins'],
             'level': 'ERROR',
             'propagate': True,
         },
@@ -288,7 +289,7 @@ API_CREDENTIALS = {
     'fastspring': {
         'company': 'adamchmelynski',
         'login': 'adam.chmelynski+fsapi@gmail.com',
-        'password':  'CAssIce548L4'
+        'password':  os.getenv('FASTSPRING_PASSWD', False)
     }
 }
 
@@ -302,9 +303,13 @@ MAX_WORKBOOK_SIZE = 524288000  # 500MB?
 MESSAGE_STORAGE = 'stored_messages.storage.PersistentStorage'
 
 # email settings / impt for password_reset
-# implicit default is smtp rather than console.
-if DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# NB: also used on live to notify admins of Error-level log messages
+EMAIL_BACKEND = 'postmark.django_backend.EmailBackend'
+POSTMARK_SENDER = 'support@hyperdeck.io'
+if DEBUG:  # don't waste our free emails on DEBUG
+    POSTMARK_TEST_MODE = True
+else:
+    POSTMARK_API_KEY = os.getenv("POSTMARK_API_KEY", False)
 
 # subdomain settings
 SUBDOMAINS = {

@@ -10,6 +10,7 @@ django-bootstrap3
 django-crispy-forms
 django-password-reset
 git+https://github.com/nthall/django-stored-messages#egg=stored_messages
+python-postmark>=0.4.3
 django-subdomains
 mock
 django-pipeline
