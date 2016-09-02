@@ -167,7 +167,7 @@ class FastSpringNotificationView(View):
         Verify message authenticity using FS's private key scheme
         (done this way bc i'm not sure how to do as decorator)
         todo: apparently mixins are the trick for class-based views
-        also todo: prob should raise an exception on fail
+        also todo: prob should raise an exception here on failure
         '''
 
         if not request.META['HTTP_USER_AGENT'] == "FS":
@@ -193,7 +193,7 @@ class FastSpringNotificationView(View):
                 print("bad POST - sanity check")
                 return HttpResponse(403)
 
-        logger.debug("{}: {}".format(request.path, request.body))
+#        logger.debug("{}: {}".format(request.path, request.body))
         return self.process(json.loads(request.body))
 
     def process(self, data):
