@@ -552,6 +552,7 @@ def results(request, userid, path, slug):
 
     return render(request, 'griddl/results.htm', context)
 
+
 @require_subdomain(SUBDOMAINS['sandbox'])
 def raw(request, userid, path, slug):
     try:
@@ -573,6 +574,7 @@ def raw(request, userid, path, slug):
 
     return render(request, 'griddl/raw.htm', context)
 
+
 def index(request):
     copy = Copy.objects.get(key='index')
     context = {}
@@ -582,3 +584,9 @@ def index(request):
         val = keyval.split(':')[1]
         context[key] = val
     return render(request, 'griddl/index.htm', context)
+
+
+def jslog(request):
+    msg = "JSLOG - {} - {}"
+    msg.format(request.get_post('file', '(no file)'), request.get_post('msg'))
+    logger.error(msg)

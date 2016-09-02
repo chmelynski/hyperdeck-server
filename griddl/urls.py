@@ -28,6 +28,7 @@ urlpatterns = patterns(
     url(r'^delete$', views.delete),
     url(r'^move$', views.move),
     url(r'^togglepublic$', views.togglepublic),
+    url(r'^jslog$', views.jslog),
 
     url(r'^f/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ _%]*)/(?P<slug>[A-Za-z0-9-/ _%]*)$', views.workbook),
     url(r'^d/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ _]*)$', views.directory),
