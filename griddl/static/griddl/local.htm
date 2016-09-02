@@ -12,6 +12,7 @@
 .main { margin : 1em ; margin-bottom : 3em }
 .CodeMirror { cursor : text }
 
+.griddl-component-body-hidden { display : none }
 .fa-minus { } /* need to get the right background-image from fontawesome */
 .fa-trash-o { } /* need to get the right background-image from fontawesome */
 
@@ -43,14 +44,18 @@
 <script src="js/lib/jszip.js"></script> <!-- older version, still supports sync -->
 <!-- <script src="js/lib/jszip.min.js"></script> --> <!-- version 3.0, mandates async -->
 
-<script src='js/components.js'></script>
-<script src='js/polyfills.js'></script>
-<script src='js/import.js'></script>
+<!--
+<script src='js/hyperdeck.min.js'></script>
+-->
 
+<script src='js/components.js'></script>
 <script src='js/components/code.js'></script>
 <script src='js/components/data.js'></script>
 <script src='js/components/file.js'></script>
 <script src='js/components/repl.js'></script>
+
+<script src='js/polyfills.js'></script>
+<script src='js/import.js'></script>
 
 <!--
 <script src='js/hot.js'></script>
@@ -103,10 +108,8 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
 
 <button onclick='Hyperdeck.Export();'>Download Workbook</button>
 <button onclick='Hyperdeck.Import();'>Upload Workbook</button>
-<select value="" onchange="Hyperdeck.AddComponent(this.value)">
+<select value="" onchange="Hyperdeck.AddComponent(this.value, true)">
 <option></option>
-<option>office</option>
-<option>tree</option>
 <option>data</option>
 <option>js</option>
 <option>html</option>
