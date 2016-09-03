@@ -54,8 +54,8 @@
     <tr style="height:3em;">
       <th style="width:3em;"></th>
       <th style="width:20em;">Name</th>
-      <th style="width:10em;"></th>
       <th style="width:10em;">Size</th>
+      <th style="width:10em;">Modified</th>
       <th style="width:3em;">Public?</th>
     </tr>
     {% for workbook in workbooks %}
@@ -74,10 +74,10 @@
           <a class="namelink" href="{% if workbook.filetype == 'F' %}http://{{ workbookSubdomain }}.hyperdeck.io{% endif %}{{ workbook.uri }}">{{ workbook.name }}</a>
         </td>
         <td>
-          {{ workbook.type }}
+          {% if workbook.filetype == 'F' %}{{ workbook.size|filesizeformat }}{% endif %}
         </td>
         <td>
-          {% if workbook.filetype == 'F' %}{{ workbook.size|filesizeformat }}{% endif %}
+          {{ workbook.modified|date:"Y-m-d" }}&nbsp;&nbsp;{{ workbook.modified|time:"H:i" }}
         </td>
         <td>
           {% if workbook.filetype == 'F' %}
