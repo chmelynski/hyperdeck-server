@@ -12,47 +12,47 @@ var Repl = function(json, type, name) {
 		json.snips = [ '' ];
 	}
 	
-	this.type = json.type;
-	this.name = json.name;
-	this.visible = json.visible;
+	this._type = json.type;
+	this._name = json.name;
+	this._visible = json.visible;
 	
-	this.div = null;
-	this.inputDiv = null;
+	this._div = null;
+	this._inputDiv = null;
 	
-	this.snips = json.snips;
-	this.funcs = [];
+	this._snips = json.snips;
+	this._funcs = [];
 	
-	this.inputs = [];
-	this.outputs = [];
+	this._inputs = [];
+	this._outputs = [];
 };
-Repl.prototype.add = function() {
+Repl.prototype._add = function() {
 	
 	var comp = this;
 	
-	this.div.html('');
-	comp.div.append($('<button>Clear</button>').on('click', function() { comp.clear(); }));
-	comp.div.append($('<br />'));
-	comp.inputDiv = $('<div></div>').appendTo(comp.div);
-	this.snips.forEach(function(snip, index) { comp.addInput(snip, index); });
-	if (comp.type == 'snips') { comp.div.append($('<button>Add</button>').on('click', function() { comp.addInput(); })); }
+	comp._div.html('');
+	comp._div.append($('<button>Clear</button>').on('click', function() { comp._clear(); }));
+	comp._div.append($('<br />'));
+	comp._inputDiv = $('<div></div>').appendTo(comp._div);
+	comp._snips.forEach(function(snip, index) { comp._addInput(snip, index); });
+	if (comp._type == 'snips') { comp._div.append($('<button>Add</button>').on('click', function() { comp._addInput(); })); }
 };
-Repl.prototype.addInput = function(snip, index) {
+Repl.prototype._addInput = function(snip, index) {
 	
 	var comp = this;
 	
-	this.markDirty();
+	comp._markDirty();
 	
 	if (typeof(snip) == 'undefined')
 	{
 		snip = '';
-		comp.snips.push(snip);
-		comp.funcs.push(null);
-		index = comp.snips.length - 1;
+		comp._snips.push(snip);
+		comp._funcs.push(null);
+		index = comp._snips.length - 1;
 	}
 	
-	var row = $('<span></span>').appendTo(comp.inputDiv);
+	var row = $('<span></span>').appendTo(comp._inputDiv);
 	
-	if (comp.type == 'snips') { row.append($('<button>-</button>').on('click', function() { comp.remove(index); })); }
+	if (comp._type == 'snips') { row.append($('<button>-</button>').on('click', function() { comp._remove(index); })); }
 	
 	var arrowIndex = index;
 	
@@ -62,8 +62,8 @@ Repl.prototype.addInput = function(snip, index) {
 		if (keyEvent.which == 38 || keyEvent.which == 40)
 		{
 			if (keyEvent.which == 38) { arrowIndex = Math.max(arrowIndex - 1, 0); }
-			if (keyEvent.which == 40) { arrowIndex = Math.min(arrowIndex + 1, comp.snips.length-1); }
-			this.value = comp.snips[arrowIndex];
+			if (keyEvent.which == 40) { arrowIndex = Math.min(arrowIndex + 1, comp._snips.length-1); }
+			this.value = comp._snips[arrowIndex];
 			this.selectionStart = this.value.length;
 			this.selectionEnd = this.value.length;
 			keyEvent.preventDefault();
@@ -78,81 +78,94 @@ Repl.prototype.addInput = function(snip, index) {
 		if (keyEvent.which == 13)
 		{
 			arrowIndex = index; // reset the arrow control
-			comp.snips[index] = this.value;
-			if (comp.type == 'repl') { comp.exec(index); if (index == comp.snips.length - 1) { comp.addInput()[0].focus(); } }
+			comp._snips[index] = this.value;
+			if (comp._type == 'repl') { comp._exec(index); if (index == comp._snips.length - 1) { comp._addInput()[0].focus(); } }
 		}
 	}).appendTo(row);
 	
-	comp.inputs.push(input);
+	comp._inputs.push(input);
 	
-	if (comp.type == 'snips') { row.append($('<button>Run</button>').on('click', function() { comp.exec(index); })); }
+	if (comp._type == 'snips') { row.append($('<button>Run</button>').on('click', function() { comp._exec(index); })); }
 	
-	comp.outputs.push($('<div></div>').appendTo(row)); // snips need an output div to display errors
+	comp._outputs.push($('<div></div>').appendTo(row)); // snips need an output div to display errors
 	
 	return input;
 };
-Repl.prototype.compile = function() {
+Repl.prototype._compile = function() {
 	
-	for (var i = 0; i < this.snips.length; i++)
+	var comp = this;
+	
+	for (var i = 0; i < comp._snips.length; i++)
 	{
-		this.outputs[i].text('');
+		comp._outputs[i].text('');
 		
 		try
 		{
-			this.funcs[i] = new Function('', 'return ' + this.snips[i]);
+			comp._funcs[i] = new Function('', 'return ' + comp._snips[i]);
 		}
 		catch (e)
 		{
-			this.outputs[i].css('color', 'red');
-			this.outputs[i].text(e);
+			comp._outputs[i].css('color', 'red');
+			comp._outputs[i].text(e);
 		}
 	}
 };
-Repl.prototype.afterLoad = function() {
+Repl.prototype._afterLoad = function() {
+	
+	var comp = this;
 	
 	// we do this here rather than in the constructor because the errorSpan has to be in place
 	// we do this here rather than in add because we don't want to exec inline <script>s until all components have loaded
-	this.compile();
+	comp._compile();
 };
-Repl.prototype.exec = function(k) {
+Repl.prototype._exec = function(k) {
 	
-	this.outputs[k].text('');
+	var comp = this;
+	
+	comp._outputs[k].text('');
 	
 	try
 	{
-		this.funcs[k] = new Function('', 'return ' + this.snips[k]);
-		var output = this.funcs[k]();
+		comp._funcs[k] = new Function('', 'return ' + comp._snips[k]);
+		var output = comp._funcs[k]();
 		
-		if (this.type == 'repl')
+		if (comp._type == 'repl')
 		{
-			this.outputs[k].css('color', 'black');
-			this.outputs[k].text(output);
+			comp._outputs[k].css('color', 'black');
+			comp._outputs[k].text(output);
 		}
 	}
 	catch (e)
 	{
-		this.outputs[k].css('color', 'red');
-		this.outputs[k].text(e);
+		comp._outputs[k].css('color', 'red');
+		comp._outputs[k].text(e);
 	}
 };
-Repl.prototype.remove = function(k) {
+Repl.prototype._remove = function(k) {
 	
-	this.snips.splice(k, 1);
-	this.funcs.splice(k, 1);
-	this.inputs.splice(k, 1);
-	this.outputs.splice(k, 1);
-	this.inputDiv.children().eq(k).remove();
-	this.markDirty();
+	var comp = this;
+	
+	comp._snips.splice(k, 1);
+	comp._funcs.splice(k, 1);
+	comp._inputs.splice(k, 1);
+	comp._outputs.splice(k, 1);
+	comp._inputDiv.children().eq(k).remove();
+	comp._markDirty();
 };
-Repl.prototype.clear = function() {
-	this.snips = [''];
-	this.funcs = [null];
-	this.inputs = [];
-	this.outputs = [];
-	this.add();
-	this.markDirty();
+Repl.prototype._clear = function() {
+	
+	var comp = this;
+	
+	comp._snips = [''];
+	comp._funcs = [null];
+	comp._inputs = [];
+	comp._outputs = [];
+	comp._add();
+	comp._markDirty();
 };
-Repl.prototype.displayError = function(e) {
+Repl.prototype._displayError = function(e) {
+	
+	var comp = this;
 	
 	var lines = e.stack.split('\n');
 	var evalLine = null;
@@ -168,21 +181,25 @@ Repl.prototype.displayError = function(e) {
 	var functionName = fnLineColArray[0];
 	var lineNumber = fnLineColArray[1] - 2; // not sure why the line number is 2 off
 	var colNumber = fnLineColArray[2];
-	this.errorSpan.text('Error: ' + e.message + ' (at line ' + lineNumber + ', column ' + colNumber + ')');
+	comp._errorSpan.text('Error: ' + e.message + ' (at line ' + lineNumber + ', column ' + colNumber + ')');
 };
-Repl.prototype.write = function() {
+Repl.prototype._write = function() {
+	
+	var comp = this;
 	
 	var json = {};
-	json.type = this.type;
-	json.name = this.name;
-	json.visible = this.visible;
-	json.snips = ((this.type == 'snips') ? this.snips : []);
+	json.type = comp._type;
+	json.name = comp._name;
+	json.visible = comp._visible;
+	json.snips = ((comp._type == 'snips') ? comp._snips : []);
 	return json;
 };
 
-Repl.prototype.get = function(options) {
+Repl.prototype._get = function(options) {
 	
-	if (this.type == 'repl') { throw new Error('The "repl" component does not support Get/Set.'); }
+	var comp = this;
+	
+	if (comp._type == 'repl') { throw new Error('The "repl" component does not support Get/Set.'); }
 	
 	var result = null;
 	
@@ -190,11 +207,11 @@ Repl.prototype.get = function(options) {
 	{
 		if (options.format == 'text')
 		{
-			result = this.snips.join('\n');
+			result = comp._snips.join('\n');
 		}
 		else if (options.format == 'list')
 		{
-			result = this.snips;
+			result = comp._snips;
 		}
 		else
 		{
@@ -206,14 +223,16 @@ Repl.prototype.get = function(options) {
 	}
 	else
 	{
-		result = this.snips;
+		result = comp._snips;
 	}
 	
 	return result;
 };
-Repl.prototype.set = function(data, options) {
+Repl.prototype._set = function(data, options) {
 	
-	if (this.type == 'repl') { throw new Error('The "repl" component does not support Get/Set.'); }
+	var comp = this;
+	
+	if (comp._type == 'repl') { throw new Error('The "repl" component does not support Get/Set.'); }
 	
 	var thedata = null;
 	
@@ -240,7 +259,7 @@ Repl.prototype.set = function(data, options) {
 		throw new Error('Must specify { format : "text" or "list" }.');
 	}
 	
-	this.snips = thedata;
+	comp._snips = thedata;
 };
 
 Hyperdeck.Components.repl = Repl;

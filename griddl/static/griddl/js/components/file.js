@@ -1,4 +1,7 @@
 
+// files need to be able to be linked, and processed in the reciepient
+// which means that a lot of this code will need to be visible to link.js - probably will need to abstract some of it into util functions
+
 (function() {
 
 var File = function(json, type, name) {
@@ -41,130 +44,92 @@ var File = function(json, type, name) {
 		}
 	}
 	
-	this.type = json.type; // file, jsfile, imgfile, textfile, binaryfile
-	this.name = json.name;
-	this.visible = json.visible;
+	this._type = json.type; // file, jsfile, imgfile, textfile, binaryfile
+	this._name = json.name;
+	this._visible = json.visible;
 	
-	this.div = null;
-	this.span = null;
+	this._div = null;
+	this._span = null;
 	
-	// for binary files, _b64 is null - the b64 property getter converts from uint8array on the fly
-	// for text files, _uint8array is null, and just isn't used
 	// _b64 holds the plain not-b64-encoded text of textfiles.  maybe we should change its name to _text 
-	this._b64 = null;
-	this._uint8array = null;
+	this._text = null; // only used for text files
+	this._uint8array = null; // only used for binary files
 	
-	if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+	if (this._type == 'binaryfile' || this._type == 'imgfile' || this._type == 'zipfile')
 	{
 		this._uint8array = Base64StringToUint8Array(json.data.substr(json.data.indexOf(','))); // data:text/plain;base64,
 	}
-	else if (this.type == 'textfile' || this.type == 'jsfile')
+	else if (this._type == 'textfile' || this._type == 'jsfile')
 	{
-		this._b64 = json.data;
+		this._text = json.data;
 	}
 	
-	this.files = null; // for zipfile only - { filename  : String , uint8array : Uint8Array , size : String }
+	this._files = null; // for zipfile only - { filename  : String , uint8array : Uint8Array , size : String }
 	
-	this.filenameControl = null;
+	this._filenameControl = null;
 	this._filename = json.filename;
 	
-	//this.ext = this._filename.substr(this._filename.lastIndexOf('.') + 1);
-	Object.defineProperty(this, 'ext', { 
-		get : function() {
-			this._filename.substr(this._filename.lastIndexOf('.') + 1);
-		},
+	Object.defineProperty(this, 'filename', {
+		get : function() { return this._filename; },
+		set : function (value) { this._filename = value; }
 	});
 	
-	Object.defineProperty(this, 'filename', { 
-		get : function() {
-			return this._filename;
-		},
-		set : function(value) {
-			this._filename = value;
-			this.filenameControl.updateDisplay();
-			this.markDirty();
-		}
+	Object.defineProperty(this, 'upload', {
+		get : function() { return this._upload; }
 	});
 	
-	Object.defineProperty(this, 'b64', { 
-		get : function() {
-			if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
-			{
-				return 'data:text/plain;base64,' + Uint8ArrayToBase64String(this._uint8array);
-			}
-			else if (this.type == 'textfile' || this.type == 'jsfile')
-			{
-				return this._b64;
-			}
-		},
-		set : function(value) {
-			
-			if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
-			{
-				this._uint8array = Base64StringToUint8Array(value.substr(value.indexOf(','))); // data:text/plain;base64,
-			}
-			else if (this.type == 'textfile' || this.type == 'jsfile')
-			{
-				this._b64 = value;
-			}
-			
-			this.add();
-			this.markDirty();
-		}
+	Object.defineProperty(this, 'download', {
+		get : function() { return this._download; }
 	});
 	
-	Object.defineProperty(this, 'uint8array', { 
-		get : function() {
-			return this._uint8array;
-		},
-		set : function(value) {
-			this._uint8array = value;
-			//this._b64 = 'data:text/plain;base64,' + Uint8ArrayToBase64String(this._uint8array);
-			this.add();
-			this.markDirty();
-		}
-	});
+	// var b64 = 'data:text/plain;base64,' + Uint8ArrayToBase64String(this._uint8array);
+	// var uint8array = Base64StringToUint8Array(this._text.substr(this._text.indexOf(','))); // data:text/plain;base64,
 };
-File.prototype.add = function() {
+File.prototype._add = function() {
 	
 	var comp = this;
 	
-	this.div.html('');
+	comp._div.html('');
 	
 	var gui = new dat.GUI({autoPlace:false, width:"100%"});
-	this.filenameControl = gui.add(this, 'filename');
-	gui.add(this, 'download');
-	gui.add(this, 'upload');
-	this.div[0].appendChild(gui.domElement);
+	comp._filenameControl = gui.add(comp, 'filename');
+	gui.add(comp, 'download');
+	gui.add(comp, 'upload');
+	comp._div[0].appendChild(gui.domElement);
 	
-	//this.filenameSpan = $('<span></span>').text(this.uint8array.length); // a filename or something?  but we don't save the filename
-	//this.div.append(this.filenameSpan);
+	//comp._filenameSpan = $('<span></span>').text(comp._uint8array.length); // a filename or something?  but we don't save the filename
+	//comp._div.append(comp._filenameSpan);
 	
-	if (this.type == 'binaryfile')
+	if (comp._type == 'binaryfile')
 	{
-		this.span = $('<span style="margin:1em"></span>');
-		this.span.text(this.uint8array.length.toString() + ' bytes'); // or we could do a hexdump or something
-		this.div.append(this.span);
+		comp._span = $('<span style="margin:1em"></span>');
+		comp._span.text(comp._uint8array.length.toString() + ' bytes'); // or we could do a hexdump or something
+		comp._div.append(comp._span);
 	}
-	else if (this.type == 'textfile')
+	else if (comp._type == 'textfile')
 	{
-		this.span = $('<span style="margin:1em"></span>');
-		this.span.text(this.b64.length.toString() + ' chars');
-		this.div.append(this.span);
+		comp._span = $('<span style="margin:1em"></span>');
+		comp._span.text(comp._text.length.toString() + ' chars');
+		comp._div.append(comp._span);
 	}
-	else if (this.type == 'jsfile')
+	else if (comp._type == 'jsfile')
 	{
 		// do we load now or some other time?
-		var b64 = this.b64;
-		$('#output').append($('<script></script>').text(atob(b64.substr(b64.indexOf(',')+1)))); // jQuery encodes the text
+		var text = atob(comp._text);
+		$('#output').append($('<script></script>').text(text)); // jQuery encodes the text
 	}
-	else if (this.type == 'imgfile')
+	else if (comp._type == 'imgfile')
 	{
+		var ext = comp._filename.substr(comp._filename.lastIndexOf('.') + 1);
+		
+		// can we do the b64 conversion using the Blob below?
+		var b64 = 'data:image/' + ext + ';base64,' + Uint8ArrayToBase64String(comp._uint8array);
+		
 		var imgdiv = $('<div style="margin:1em;overflow:auto"></div>');
-		var imageElement = $('<img src="' + this.b64 + '"></img>');
+		var imageElement = $('<img src="' + b64 + '"></img>');
 		imgdiv.append(imageElement);
 		
-		var blob = new Blob([this._uint8array], {type: 'image/' + this.ext});
+		var blob = new Blob([comp._uint8array], {type: 'image/' + ext});
 		var url = URL.createObjectURL(blob);
 		var urlDiv = $('<div style="margin:1em"></div>');
 		urlDiv.text('url: ' + url);
@@ -172,15 +137,15 @@ File.prototype.add = function() {
 		var dimensionDiv = $('<div style="margin:1em"></div>');
 		dimensionDiv.text(imageElement[0].width + ' x ' + imageElement[0].height);
 		
-		this.div.append(urlDiv);
-		this.div.append(dimensionDiv);
-		this.div.append(imgdiv);
+		comp._div.append(urlDiv);
+		comp._div.append(dimensionDiv);
+		comp._div.append(imgdiv);
 	}
-	else if (this.type == 'zipfile')
+	else if (comp._type == 'zipfile')
 	{
-		var zip = new JSZip(this.uint8array.buffer);
+		var zip = new JSZip(comp._uint8array.buffer);
 		
-		this.files = []; // Proxy this
+		comp._files = []; // Proxy this
 		
 		for (var filename in zip.files)
 		{
@@ -249,11 +214,11 @@ File.prototype.add = function() {
 					};
 				};
 				
-				this.files.push(fileobj);
+				comp._files.push(fileobj);
 			}
 		}
 		
-		this.div.append($('<button>Upload File</button>').on('click', function() {
+		comp._div.append($('<button>Upload File</button>').on('click', function() {
 			
 			var fileInput = document.createElement('input');
 			fileInput.type = 'file';
@@ -273,7 +238,7 @@ File.prototype.add = function() {
 					{
 						fileobj.uint8array = new Uint8Array(event.target.result);
 						fileobj.size = fileobj.uint8array.length.toString();
-						comp.files.push(fileobj); // refresh tablegui, somehow
+						comp._files.push(fileobj); // refresh tablegui, somehow
 					};
 					
 					fileReader.readAsArrayBuffer(f);
@@ -283,29 +248,43 @@ File.prototype.add = function() {
 			fileInput.click();
 		}));
 		
-		var tablegui = new TableGui(this.files);
+		var tablegui = new TableGui(comp._files);
 		//tablegui.add('upload', 'button', {header:''});
 		tablegui.add('download', 'button', {header:''});
 		tablegui.add('filename', 'text', {size:30});
 		tablegui.add('size', 'label');
-		this.div[0].appendChild(tablegui.table);
+		comp._div[0].appendChild(tablegui.table);
 	}
 	else
 	{
 		throw new Error();
 	}
 };
-File.prototype.write = function() {
+File.prototype._write = function() {
+	
+	var comp = this;
 	
 	var json = {};
-	json.type = this.type;
-	json.name = this.name;
-	json.visible = this.visible;
-	json.data = this.b64;
-	json.filename = this.filename;
+	json.type = comp._type;
+	json.name = comp._name;
+	json.visible = comp._visible;
+	
+	var text = null;
+	
+	if (comp._type == 'binaryfile' || comp._type == 'imgfile' || comp._type == 'zipfile')
+	{
+		text = 'data:text/plain;base64,' + Uint8ArrayToBase64String(comp._uint8array);
+	}
+	else if (comp._type == 'textfile' || comp._type == 'jsfile')
+	{
+		text = comp._text;
+	}
+	
+	json.data = text;
+	json.filename = comp._filename;
 	return json;
 };
-File.prototype.upload = function() {
+File.prototype._upload = function() {
 	
 	var comp = this;
 	
@@ -318,26 +297,30 @@ File.prototype.upload = function() {
 		
 		fileReader.onload = function(event)
 		{
-			if (comp.type == 'binaryfile' || comp.type == 'imgfile' || comp.type == 'zipfile')
+			if (comp._type == 'binaryfile' || comp._type == 'imgfile' || comp._type == 'zipfile')
 			{
-				comp.uint8array = new Uint8Array(event.target.result);
+				comp._uint8array = new Uint8Array(event.target.result);
 			}
-			else if (comp.type == 'textfile' || comp.type == 'jsfile')
+			else if (comp._type == 'textfile' || comp._type == 'jsfile')
 			{
-				comp.b64 = event.target.result;
+				comp._text = event.target.result;
 			}
+			
+			comp._add();
 		};
 		
 		if (fileInput.files.length > 0)
 		{
 			var f = fileInput.files[0];
-			comp.filename = f.name;
+			comp._filename = f.name;
+			comp._filenameControl.updateDisplay();
+			comp._markDirty();
 			
-			if (comp.type == 'binaryfile' || comp.type == 'imgfile' || comp.type == 'zipfile')
+			if (comp._type == 'binaryfile' || comp._type == 'imgfile' || comp._type == 'zipfile')
 			{
 				fileReader.readAsArrayBuffer(f);
 			}
-			else if (comp.type == 'textfile' || comp.type == 'jsfile')
+			else if (comp._type == 'textfile' || comp._type == 'jsfile')
 			{
 				fileReader.readAsText(f);
 			}
@@ -346,72 +329,81 @@ File.prototype.upload = function() {
 	
 	fileInput.click();
 };
-File.prototype.download = function() {
+File.prototype._download = function() {
+	
+	var comp = this;
 	
 	var a = document.createElement('a');
-	a.href = this.compile();
+	a.href = comp._compile();
 	
 	var filename = null;
 	
-	if (this.filename.endsWith('.js'))
+	if (comp._filename.endsWith('.js'))
 	{
-		filename = this.filename.substring(0, this.filename.length - 3) + '.txt'; // chrome blocks downloading of js files
+		filename = comp._filename.substring(0, comp._filename.length - 3) + '.txt'; // chrome blocks downloading of js files
 	}
 	else
 	{
-		filename = this.filename;
+		filename = comp._filename;
 	}
 	
 	a.download = filename;
 	a.click();
 };
-File.prototype.compile = function() {
+File.prototype._compile = function() {
 	
-	if (this.type == 'zipfile')
+	var comp = this;
+	
+	if (comp._type == 'zipfile')
 	{
 		var zip = new JSZip();
 		
-		for (var i = 0; i < this.files.length; i++)
+		for (var i = 0; i < comp._files.length; i++)
 		{
-			var fileobj = this.files[i];
+			var fileobj = comp._files[i];
 			var uint8array = fileobj.uint8array ? fileobj.uint8array : fileobj.file.asUint8Array();
 			zip.file(fileobj.filename, uint8array);
 		}
 		
-		this.b64 = 'data:application/zip;base64,' + zip.generate();
+		comp._text = 'data:application/zip;base64,' + zip.generate();
 	}
 };
 
-File.prototype.get = function(options) {
+File.prototype._get = function(options) {
+	
+	var comp = this;
 	
 	var result = null;
 	
 	if (options && options.format)
 	{
+		// we need to put in explicit conversions from uint8array to b64 when needed below
+		throw new Error();
+		
 		if (options.format == 'text')
 		{
-			result = this.b64;
+			result = comp._text;
 		}
 		else if (options.format == 'base64')
 		{
-			if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+			if (comp._type == 'binaryfile' || comp._type == 'imgfile' || comp._type == 'zipfile')
 			{
-				result = this.b64;
+				result = comp._text;
 			}
-			else if (this.type == 'textfile' || this.type == 'jsfile')
+			else if (comp._type == 'textfile' || comp._type == 'jsfile')
 			{
-				throw new Error('Unsupported format: components of type "' + this.type + '" only support the "text" format.');
+				throw new Error('Unsupported format: components of type "' + comp._type + '" only support the "text" format.');
 			}
 		}
 		else if (options.format == 'uint8array')
 		{
-			if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+			if (comp._type == 'binaryfile' || comp._type == 'imgfile' || comp._type == 'zipfile')
 			{
-				result = this.uint8array;
+				result = comp._uint8array;
 			}
-			else if (this.type == 'textfile' || this.type == 'jsfile')
+			else if (comp._type == 'textfile' || comp._type == 'jsfile')
 			{
-				throw new Error('Unsupported format: components of type "' + this.type + '" only support the "text" format.');
+				throw new Error('Unsupported format: components of type "' + comp._type + '" only support the "text" format.');
 			}
 		}
 		else
@@ -421,46 +413,51 @@ File.prototype.get = function(options) {
 	}
 	else
 	{
-		if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+		if (comp._type == 'binaryfile' || comp._type == 'imgfile' || comp._type == 'zipfile')
 		{
-			result = this.uint8array;
+			result = comp._uint8array;
 		}
-		else if (this.type == 'textfile' || this.type == 'jsfile')
+		else if (comp._type == 'textfile' || comp._type == 'jsfile')
 		{
-			result = this.b64;
+			result = comp._text;
 		}
 	}
 	
 	return result;
 };
-File.prototype.set = function(data, options) {
+File.prototype._set = function(data, options) {
+	
+	var comp = this;
 	
 	if (options && options.format)
 	{
+		// we need to put in explicit conversions from b64 to uint8array when needed below
+		throw new Error();
+		
 		if (options.format == 'text')
 		{
-			this.b64 = data;
+			comp._text = data;
 		}
 		else if (options.format == 'base64')
 		{
-			if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+			if (comp._type == 'binaryfile' || comp._type == 'imgfile' || comp._type == 'zipfile')
 			{
-				this.b64 = data;
+				comp._text = data;
 			}
-			else if (this.type == 'textfile' || this.type == 'jsfile')
+			else if (comp._type == 'textfile' || comp._type == 'jsfile')
 			{
-				throw new Error('Unsupported format: components of type "' + this.type + '" only support the "text" format.');
+				throw new Error('Unsupported format: components of type "' + comp._type + '" only support the "text" format.');
 			}
 		}
 		else if (options.format == 'uint8array')
 		{
-			if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+			if (comp._type == 'binaryfile' || comp._type == 'imgfile' || comp._type == 'zipfile')
 			{
-				this.uint8array = data;
+				comp._uint8array = data;
 			}
-			else if (this.type == 'textfile' || this.type == 'jsfile')
+			else if (comp._type == 'textfile' || comp._type == 'jsfile')
 			{
-				throw new Error('Unsupported format: components of type "' + this.type + '" only support the "text" format.');
+				throw new Error('Unsupported format: components of type "' + comp._type + '" only support the "text" format.');
 			}
 		}
 		else
@@ -471,16 +468,18 @@ File.prototype.set = function(data, options) {
 	else
 	{
 		// should check 'data' to make sure it's the correct format
-		if (this.type == 'binaryfile' || this.type == 'imgfile' || this.type == 'zipfile')
+		if (comp._type == 'binaryfile' || comp._type == 'imgfile' || comp._type == 'zipfile')
 		{
-			this.uint8array = data;
+			comp._uint8array = data;
 		}
-		else if (this.type == 'textfile' || this.type == 'jsfile')
+		else if (comp._type == 'textfile' || comp._type == 'jsfile')
 		{
-			this.b64 = data;
+			comp._text = data;
 		}
 	}
 	
+	comp._add();
+	comp._markDirty();
 };
 
 function Base64StringToUint8Array(str) {
