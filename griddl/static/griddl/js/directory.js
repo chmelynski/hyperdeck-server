@@ -90,15 +90,16 @@ $(document).ready(function() {
   $('#moveForm').on('submit', function(event) {
     event.preventDefault();
     
-    dest = $('select', event.target).val();
-    $.post("/move",
+    //var $dest = $('select', event.target);
+    //var dest = $dest.val();
+    $.post('/move',
       $(event.target).serialize(),
       function(response) {
         if (response.success) { 
-          $sel = $('.selected');
-          name = $sel.find('.namelink').text();
+          var $sel = $('.selected');
+          var name = $sel.find('.namelink').text();
           $sel.remove();
-          $.alert("Workbook '" + name + "' was moved to '" + dest + "' folder.", 'success');
+          $.alert('"' + name + '" was moved to "' + response.dstFolder + '" folder.', 'success');
           $('#moveModal').modal('hide');
         } else {
           $.alert("Sorry, something went wrong. Please try again later.");
