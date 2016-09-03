@@ -74,7 +74,7 @@ var AlignButton = Controls.AlignButton = function() {
 	
 };
 
-Griddl.Controls = Controls;
+Hyperdeck.Controls = Controls;
 
 })();
 
