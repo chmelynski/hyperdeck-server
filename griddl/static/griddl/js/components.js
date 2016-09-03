@@ -475,17 +475,19 @@ var ConfirmDelete = function (event) {
 // there's a case to be made that show/hide should destroy/recreate the component body, rather than just show/hide
 // Show2 and Hide2 implement the destroy/recreate variant
 var Show2 = function(comp) {
+	comp._markDirty();
 	comp._add();
 	comp._div.parent().find('i.fa-plus').removeClass('fa-plus').addClass('fa-minus');
 	comp._visible = true;
 };
 var Hide2 = function(comp) {
+	comp._markDirty();
 	comp._div.html('');
 	comp._div.parent().find('i.fa-minus').removeClass('fa-minus').addClass('fa-plus');
 	comp._visible = false;
 };
 var Show = function(comp) {
-	
+	comp._markDirty();
 	comp._div.removeClass('griddl-component-body-hidden');
 	comp._div.parent().find('i.fa-plus').removeClass('fa-plus').addClass('fa-minus');
 	comp._visible = true;
@@ -494,6 +496,7 @@ var Show = function(comp) {
 	if (comp._codemirror) { comp._codemirror.refresh(); }
 };
 var Hide = function(comp) {
+	comp._markDirty();
 	comp._div.addClass('griddl-component-body-hidden');
 	comp._div.parent().find('i.fa-minus').removeClass('fa-minus').addClass('fa-plus');
 	comp._visible = false;
