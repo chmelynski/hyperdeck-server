@@ -74,10 +74,14 @@
           <a class="namelink" href="{% if workbook.filetype == 'F' %}http://{{ workbookSubdomain }}.hyperdeck.io{% endif %}{{ workbook.uri }}">{{ workbook.name }}</a>
         </td>
         <td>
-          {% if workbook.filetype == 'F' %}{{ workbook.size|filesizeformat }}{% endif %}
+          {% if workbook.filetype == 'F' %}
+            {{ workbook.size|filesizeformat }}
+          {% endif %}
         </td>
         <td>
-          {{ workbook.modified|date:"Y-m-d" }}&nbsp;&nbsp;{{ workbook.modified|time:"H:i" }}
+          {% if workbook.filetype == 'F' %}
+            {{ workbook.modified|date:"Y-m-d" }}&nbsp;&nbsp;{{ workbook.modified|time:"H:i" }}
+          {% endif %}
         </td>
         <td>
           {% if workbook.filetype == 'F' %}
