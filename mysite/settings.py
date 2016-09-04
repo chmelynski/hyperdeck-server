@@ -255,7 +255,8 @@ MESSAGE_STORAGE = 'stored_messages.storage.PersistentStorage'
 # NB: also used on live to notify admins of Error-level log messages
 EMAIL_BACKEND = 'postmark.django_backend.EmailBackend'
 POSTMARK_SENDER = 'admin@hyperdeck.io'
-if DEBUG:  # don't waste our free emails on DEBUG
+DEFAULT_FROM_EMAIL = 'admin@hyperdeck.io' # password reset uses this, not sure who reads POSTMARK_SENDER
+if noahDev or herokuDev:  # don't waste our free emails on dev
     POSTMARK_TEST_MODE = True
 else:
     POSTMARK_API_KEY = os.getenv("POSTMARK_API_KEY", False)
