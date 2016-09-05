@@ -182,9 +182,11 @@ Data.prototype._add = function() {
 	
 	if (comp._display == 'json' || comp._display == 'yaml' || comp._display == 'csv' || comp._display == 'tsv')
 	{
+		var mode = {json:{name:'javascript',json:true},yaml:'yaml',csv:'text',tsv:'text'}[comp._display];
+		
 		var textbox = $(document.createElement('textarea'));
 		comp._tableDiv.append(textbox);
-		comp._codemirror = CodeMirror.fromTextArea(textbox[0], { mode : 'javascript' , smartIndent : false , lineNumbers : true , lineWrapping : true });
+		comp._codemirror = CodeMirror.fromTextArea(textbox[0], { mode : mode , smartIndent : false , lineNumbers : true , lineWrapping : true });
 		
 		initText = Write.apply(comp, [comp._display]);
 		
