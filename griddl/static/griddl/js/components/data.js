@@ -1161,7 +1161,7 @@ var WriteObjToString = function(obj) {
 	
 	// this is currently called only when writing to json/yaml, which requires that we return 'null'
 	// but if we start calling this function from the csv/tsv writer, we'll need to return ''
-	if (obj === null or obj === undefined) { return 'null'; }
+	if (obj === null || obj === undefined) { return 'null'; }
 	
 	var type = Object.prototype.toString.call(obj);
 	
