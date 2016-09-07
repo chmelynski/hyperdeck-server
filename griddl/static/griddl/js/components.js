@@ -2,6 +2,7 @@
 var Hyperdeck = (function() {
 
 var comps = [];
+var names = {}; // key is component name 'foo', value is the component
 
 var lastDeletedObj = null;
 var password = null;
@@ -80,7 +81,7 @@ var NewComponent = function(json, type, name) {
 	
 	var comp = new Components[type](json, type, name);
 	comp._markDirty = MarkDirty;
-	comps[comp._name] = comp;
+	names[comp._name] = comp;
 	comps.push(comp);
 	comp._div = createComponentDivToUse($('#cells'), comp);
 	comp._div.css('border', '1px solid gray');
@@ -94,18 +95,26 @@ var AddComponent = function(type, useLocalCreateComponentDiv) {
 	MakeSortable();
 };
 var RenameComponent = function(comp, newname) {
-	delete comps[comp._name];
-	while (comps[newname]) { newname += ' - copy'; } // if there is a conflict, just add suffixes until there isn't
+	
+	// if there is a conflict, post an error message and return the old name to be set in the input
+	if (names[newname])
+	{
+		$.alert('Name "' + newname + '" conflicts with an existing name.', 'danger');
+		return comp._name;
+	}
+	
+	delete names[comp._name];
 	$('#'+comp._name).attr('id', newname);
 	$('#'+comp._name+'Component').attr('id', newname+'Component');
 	comp._name = newname;
-	comps[comp._name] = comp;
+	names[comp._name] = comp;
+	return comp._name;
 };
 var DeleteComponent = function(comp) {
 	lastDeletedObj = comp;
 	$('#'+comp._name).remove();
 	comp._div.parent().remove();
-	delete comps[comp._name];
+	delete names[comp._name];
 	var i = comps.indexOf(comp);
 	comps.splice(i, 1);
 };
@@ -113,13 +122,13 @@ var RestoreComponent = function() {
 	
 	// basically the same code as NewComponent
 	var comp = lastDeletedObj;
-	while (comps[comp._name]) { comp._name += ' - copy'; }
+	while (names[comp._name]) { comp._name += ' - copy'; }
 	comp._div = CreateComponentDiv($('#cells'), comp);
 	comp._div.css('border', '1px solid gray');
 	comp._div.css('background-color', 'rgb(230,230,230)');
 	comp._add();
 	if (!dirty) { MarkDirty(); }
-	comps[comp._name] = comp;
+	names[comp._name] = comp;
 	comps.push(comp);
 	MakeSortable();
 	lastDeletedObj = null;
@@ -155,7 +164,7 @@ var UniqueName = function(type, n) {
 	do {
 		name = type + n.toString();
 		n++;
-	} while (comps[name] || elementIds[name]);
+	} while (names[name] || elementIds[name]);
 	
 	elementIds[name] = true;
 	
@@ -180,7 +189,8 @@ var MakeSortable = function() {
 		
 		$(this).children().each(function(index, elt) {
 			var id = $(elt).children().eq(1).attr('id');
-			comps[index] = comps[id.substr(0, id.length - 'Component'.length)];
+			var name = id.substr(0, id.length - 'Component'.length);
+			comps[index] = names[name];
 		});
 		
 		$('#output').html('');
@@ -259,7 +269,8 @@ function AddNameBox(comp) {
 	nameBox.addClass('griddl-component-head-name form-control input-sm');
 	
 	nameBox.on('blur', function(e) {
-		RenameComponent(comp, this.value);
+		var newname = RenameComponent(comp, this.value);
+		this.value = newname;
 		MarkDirty();
 	});
 	
@@ -504,8 +515,8 @@ var Hide = function(comp) {
 
 var FetchComponent = function(name) {
 	if (!name) { throw new Error('FetchComponent error: invalid name'); }
-	if (!comps[name]) { throw new Error("Error: there is no object named '" + name + "'"); }
-	return comps[name];
+	if (!names[name]) { throw new Error("Error: there is no object named '" + name + "'"); }
+	return names[name];
 };
 
 
