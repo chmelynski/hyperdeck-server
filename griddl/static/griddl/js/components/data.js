@@ -15,6 +15,7 @@ var Data = function(json, type, name) {
 		json.params.display = 'tsv';
 		json.params.headers = ['A','B','C'];
 		json.params.form = 'listOfObjects';
+		json.params.afterChange = '';
 	}
 	
 	this._type = json.type;
@@ -43,10 +44,16 @@ var Data = function(json, type, name) {
 	this._display = json.params.display; // json, yaml, csv, tsv, grid, pre, (tree - to do; matrix, formula - to finish)
 	this._form = json.params.form; // object, list, listOfObjects, listOfLists, other
 	this._headers = json.params.headers; // this is needed to specify which columns to display and in what order - handsontable gives the user the ability to reorder columns, and we want to save that configuration
+	this._afterChange = json.params.afterChange ? json.params.afterChange : '';
 	
 	Object.defineProperty(this, 'display', {
 		get : function() { return this._display; },
 		set : function (value) { this._display = value; }
+	});
+	
+	Object.defineProperty(this, 'afterChange', {
+		get : function() { return this._afterChange; },
+		set : function (value) { this._afterChange = value; }
 	});
 	
 	if (this._format == 'headerList')
@@ -163,6 +170,8 @@ Data.prototype._add = function() {
 	downloadFolder.add(comp, 'downloadYAML');
 	if (displayOptions.indexOf('tsv') >= 0) { downloadFolder.add(comp, 'downloadTSV'); }
 	if (displayOptions.indexOf('csv') >= 0) { downloadFolder.add(comp, 'downloadCSV'); }
+	var hooksFolder = gui.addFolder('hooks');
+	hooksFolder.add(comp, 'afterChange');
 	var tools = gui.addFolder('tools');
 	tools.add(comp, 'Undo');
 	tools.add(comp, 'Redo');
@@ -193,54 +202,15 @@ Data.prototype._add = function() {
 		comp._codemirror.getDoc().setValue(initText);
 		
 		comp._codemirror.on('blur', function() {
-			comp._markDirty();
-			
-			comp._errorSpan.text('');
 			
 			var text = comp._codemirror.getValue();
-			
-			var success = false;
-			
-			try
-			{
-				if (text == '')
-				{
-					comp._data = [];
-					comp._form = 'listOfObjects';
-					comp._headers = [];
-				}
-				else if (comp._display == 'json')
-				{
-					ReadJson.apply(comp, [text]);
-				}
-				else if (comp._display == 'yaml')
-				{
-					ReadYaml.apply(comp, [text]);
-				}
-				else if (comp._display == 'csv')
-				{
-					ReadCsv.apply(comp, [text]);
-				}
-				else if (comp._display == 'tsv')
-				{
-					ReadTsv.apply(comp, [text]);
-				}
-				else
-				{
-					throw new Error('Invalid display type: ' + comp._display);
-				}
-				
-				success = true;
-			}
-			catch (e)
-			{
-				comp._showError(e, comp._display);
-			}
+			var success = comp._setText(text);
 			
 			if (success)
 			{
-				comp._codemirror.getDoc().setValue(Write.apply(comp, [comp._display]));
-				//comp._add();
+				var formattedText = Write.apply(comp, [comp._display]);
+				comp._codemirror.getDoc().setValue(formattedText);
+				comp._runAfterChange();
 			}
 		});
 	}
@@ -358,6 +328,7 @@ Data.prototype._write = function() {
 	json.params.display = comp._display;
 	json.params.form = comp._form;
 	json.params.headers = comp._headers;
+	json.params.afterChange = comp._afterChange;
 	return json;
 };
 Data.prototype._introspectHeaders = function() {
@@ -617,6 +588,76 @@ function DetermineDataForm(data) {
 	return form;
 }
 
+Data.prototype._runAfterChange = function() {
+	var comp = this;
+	(new Function('args', comp._afterChange))();
+};
+
+Data.prototype._setText = function(text) {
+	
+	var comp = this;
+	var success = false;
+	comp._errorSpan.text('');
+	
+	try
+	{
+		if (text == '')
+		{
+			comp._data = [];
+			comp._form = 'listOfObjects';
+			comp._headers = [];
+		}
+		else if (comp._display == 'json')
+		{
+			ReadJson.apply(comp, [text]);
+		}
+		else if (comp._display == 'yaml')
+		{
+			ReadYaml.apply(comp, [text]);
+		}
+		else if (comp._display == 'csv')
+		{
+			ReadCsv.apply(comp, [text]);
+		}
+		else if (comp._display == 'tsv')
+		{
+			ReadTsv.apply(comp, [text]);
+		}
+		else
+		{
+			throw new Error('Invalid display type: ' + comp._display);
+		}
+		
+		success = true;
+	}
+	catch (e)
+	{
+		comp._showError(e, comp._display);
+	}
+	
+	return success;
+};
+Data.prototype._setData = function(data) {
+	
+		var comp = this;
+		var success = false;
+		comp._errorSpan.text('');
+		
+		try
+		{
+			comp._data = JSON.parse(JSON.stringify(data));
+			comp._markDirty();
+			comp._determineDataForm();
+			comp._introspectHeaders();
+			success = true;
+		}
+		catch(e)
+		{
+			comp._showError(e, comp._display);
+		}
+		
+		return success;
+};
 
 Data.prototype._get = function(options) {
 	
@@ -638,43 +679,25 @@ Data.prototype._get = function(options) {
 Data.prototype._set = function(data, options) {
 	
 	var comp = this;
+	var success = false;
 	
 	if (options && options.format)
 	{
-		if (options.format == 'json')
-		{
-			ReadJson.apply(comp, [data]);
-		}
-		else if (options.format == 'yaml')
-		{
-			ReadYaml.apply(comp, [data]);
-		}
-		else if (options.format == 'tsv')
-		{
-			ReadTsv.apply(comp, [data]);
-		}
-		else if (options.format == 'csv')
-		{
-			ReadCsv.apply(comp, [data]);
-		}
-		else
-		{
-			throw new Error('Unsupported format: "' + options.format + '"');
-		}
-		
-		comp._add();
+		comp._display = options.format;
+		success = comp._setText(data);
 	}
 	else
 	{
-		comp._data = data;
-		
-		comp._markDirty();
-		comp._determineDataForm();
-		comp._introspectHeaders();
-		
+		success = comp._setData(data);
+	}
+	
+	if (success)
+	{
 		// pushUndo is called from add - problem is, if we set this.data while hidden, and then trigger an add() by changing to visible, we'll push twice
 		//if (this.visible) { this.add(); } else { this.pushUndo(JSON.stringify(this._data).length); }
+		comp._markDirty();
 		comp._add();
+		comp._runAfterChange();
 	}
 };
 
@@ -957,7 +980,9 @@ function ReadCsv(text) { ReadSeparatedValues.apply(this, [text, ',']); }
 function WriteTsv() { return WriteSeparatedValues.apply(this, ['\t']); }
 function WriteCsv() { return WriteSeparatedValues.apply(this, [',']); }
 
-var stringRegexString = '"([^"]|\\\\")*"'; // only supports double quoted strings
+var singleQuotedStringRegexString = "'([^']|\\\\')*'";
+var doubleQuotedStringRegexString = '"([^"]|\\\\")*"';
+var stringRegexString = '(' + singleQuotedStringRegexString + '|' + doubleQuotedStringRegexString + ')';
 var newlineRegexString = '(\\r\\n|\\r|\\n)'; // newlines act as object delimiters
 
 function SeparatedValuesToMatrix(text, delimiter) {
@@ -994,6 +1019,11 @@ function SeparatedValuesToMatrix(text, delimiter) {
 			matrix.push(row);
 			row = [];
 			afterEntry = false;
+		}
+		else if (token[0] == '"' || token[0] == "'")
+		{
+			row.push(token.substr(1, token.length-2));
+			afterEntry = true;
 		}
 		else
 		{

@@ -6,6 +6,16 @@
 // we compile() on blur, but we don't actually compile the js in compile() anymore, we compile it in exec()
 // for html, css, and md, compile() just calls exec()
 
+var typeDict = {};
+typeDict.txt = {mode:'plain',tag:null,execOnLoad:false,execOnBlur:false,execOnClick:false};
+typeDict.html = {mode:'xml',tag:'div',execOnLoad:true,execOnBlur:true,execOnClick:false};
+typeDict.md = {mode:'markdown',tag:'div',execOnLoad:true,execOnBlur:true,execOnClick:false};
+typeDict.css = {mode:'css',tag:'style',execOnLoad:true,execOnBlur:true,execOnClick:false};
+typeDict.js = {mode:'javascript',tag:null,execOnLoad:false,execOnBlur:false,execOnClick:true};
+typeDict.script = {mode:'javascript',tag:'div',execOnLoad:true,execOnBlur:true,execOnClick:false};
+typeDict.jshtml = {mode:'javascript',tag:'div',execOnLoad:true,execOnBlur:false,execOnClick:true};
+typeDict.canvas = {mode:'javascript',tag:'div',execOnLoad:true,execOnBlur:false,execOnClick:true};
+
 var Code = function(json, type, name) {
 	
 	if (!json)
@@ -32,12 +42,9 @@ Code.prototype._add = function() {
 	
 	var comp = this;
 	
-	if (comp._type == 'js')
+	if (typeDict[comp._type].execOnClick)
 	{
-		var button = $('<button></button>');
-		button.text({js:'Run Code',html:'Add to DOM',css:'Add to DOM'}[comp._type]);
-		button[0].onclick = function() { comp._exec(); };
-		comp._div.append(button);
+		comp._div.append($('<button>Run Code</button>').on('click', function() { comp._exec(); }));
 	}
 	
 	var textarea = $(document.createElement('textarea'));
@@ -59,7 +66,7 @@ Code.prototype._add = function() {
 		for (var key in Hyperdeck.Preferences.CodeMirror) { options[key] = Hyperdeck.Preferences.CodeMirror[key]; }
 	}
 	
-	options.mode = {txt:'plain',js:'javascript',css:'css',html:'xml',md:'markdown'}[comp._type];
+	options.mode = typeDict[comp._type].mode;
 	
 	comp._codemirror = CodeMirror.fromTextArea(textarea[0], options);
 	
@@ -69,7 +76,7 @@ Code.prototype._add = function() {
 	
 	comp._codemirror.on('blur', function() {
 		comp._text = comp._codemirror.getValue();
-		comp._compile();
+		comp._onblur();
 	});
 	
 	comp._codemirror.getDoc().setValue(comp._text);
@@ -84,60 +91,36 @@ Code.prototype._addOutputElements = function() {
 	
 	var comp = this;
 	
-	if (comp._type == 'html' || comp._type == 'css' || comp._type == 'md')
+	var tagname = typeDict[comp._type].tag;
+	
+	if (tagname)
 	{
-		var tagname = ((comp._type == 'css') ? 'style' : 'div');
 		var elt = $('<' + tagname + ' id="' + comp._name + '"></' + tagname + '>');
 		$('#output').append(elt);
 	}
 };
-Code.prototype._compile = function() {
+Code.prototype._onblur = function() {
 	
 	var comp = this;
-	
-	if (comp._type == 'js')
-	{
-		 // we call compile on blur, and can't change that because it works well for html/css/md
-		 // but for js, compiling on blur is kind of a pain.  just compile before exec
-		//comp._fn = new Function('args', comp._text);
-		
-		//comp._errorSpan.text('');
-		//try
-		//{
-		//	comp._fn = new Function('args', comp._text);
-		//}
-		//catch (e)
-		//{
-		//	comp._displayError(e);
-		//}
-	}
-	else if (comp._type == 'html' || comp._type == 'css' || comp._type == 'md')
-	{
-		comp._fn = null;
-		comp._exec();
-	}
-	else
-	{
-		comp._fn = null;
-	}
+	if (typeDict[comp._type].execOnBlur) { comp._exec(); }
 };
 Code.prototype._afterLoad = function() {
 	
 	var comp = this;
-	
-	// we do this here rather than in the constructor because the errorSpan has to be in place
 	// we do this here rather than in add because we don't want to exec inline <script>s until all components have loaded
-	comp._compile();
+	if (typeDict[comp._type].execOnLoad) { comp._exec(); }
 };
 Code.prototype._exec = function() {
 	
 	var comp = this;
 	
-	comp._text = comp._codemirror.getDoc().getValue();
-	
 	if (comp._type == 'css')
 	{
 		$('#' + comp._name).html(comp._text);
+	}
+	else if (comp._type == 'script')
+	{
+		$('#' + comp._name).html('<script>' + comp._text + '</script>');
 	}
 	else if (comp._type == 'html' || comp._type == 'md')
 	{
@@ -147,22 +130,22 @@ Code.prototype._exec = function() {
 	}
 	else if (comp._type == 'js')
 	{
-		comp._fn = new Function('args', comp._text);
-		comp._fn();
-		
-		//comp._errorSpan.text('');
-		//try
-		//{
-		//	comp._fn();
-		//}
-		//catch (e)
-		//{
-		//	comp._displayError(e);
-		//}
+		(new Function('args', comp._text))();
+	}
+	else if (comp._type == 'canvas')
+	{
+		var canvas = document.createElement('canvas');
+		var ctx = canvas.getContext('2d');
+		$('#' + comp._name).html('')[0].appendChild(canvas);
+		(new Function('ctx', comp._text))(ctx);
+	}
+	else if (comp._type == 'jshtml')
+	{
+		$('#' + comp._name).html((new Function('args', comp._text))());
 	}
 	else
 	{
-		throw new Error("'" + comp._name + "' is a " + comp._type + ", not an executable js/css/html object");
+		throw new Error("'" + comp._name + "' is not an executable object");
 	}
 };
 Code.prototype._displayError = function(e) {
@@ -218,7 +201,7 @@ Code.prototype._set = function(text, options) {
 	comp._text = text;
 	comp._markDirty();
 	comp._codemirror.getDoc().setValue(comp._text);
-	comp._compile();
+	comp._onblur();
 };
 
 Hyperdeck.Components.txt = Code;
@@ -226,6 +209,9 @@ Hyperdeck.Components.js = Code;
 Hyperdeck.Components.html = Code;
 Hyperdeck.Components.css = Code;
 Hyperdeck.Components.md = Code;
+Hyperdeck.Components.canvas = Code;
+Hyperdeck.Components.jshtml = Code;
+Hyperdeck.Components.script = Code;
 
 })();
 
