@@ -44,7 +44,7 @@ Code.prototype._add = function() {
 	comp._div.append(textarea);
 	
 	var options = {};
-	options.smartIndent = false;
+	options.smartIndent = true;
 	options.lineNumbers = true;
 	options.lineWrapping = true;
 	options.foldGutter = true;
