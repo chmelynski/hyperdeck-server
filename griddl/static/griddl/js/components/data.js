@@ -201,6 +201,7 @@ Data.prototype._add = function() {
 		
 		comp._codemirror.getDoc().setValue(initText);
 		
+		comp._codemirror.on('change', function() { comp._markDirty(); });
 		comp._codemirror.on('blur', function() {
 			
 			var text = comp._codemirror.getValue();
