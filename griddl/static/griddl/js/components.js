@@ -523,6 +523,15 @@ var FetchComponent = function(name) {
 
 window.addEventListener('message', receiveMessage, false);
 
+window.addEventListener('beforeunload', function(event) {
+	if (dirty)
+	{
+		var confirmationMessage = 'Warning: workbook is unsaved.  Discard changes?';
+  		event.returnValue = confirmationMessage;     // Gecko, Trident, Chrome 34+
+ 		return confirmationMessage;                  // Gecko, WebKit, Chrome <34	
+	}
+});
+
 var playground = window.location.protocol + "//";
 var chunks = window.location.hostname.split('.');
 if (chunks[0] == "sandbox") {
