@@ -621,7 +621,6 @@ function receiveMessage(event) {
 				Main(data.text);
 				break;
 			case 'resolve':
-				console.log(data);
 				window[data.deferred].resolve(data.success);
 				break;
 			case 'modal_close':
