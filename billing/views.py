@@ -112,7 +112,7 @@ def subscriptions(request):
     '''
     plans = Plan.objects.all()
     upgrades = []
-    
+
     if request.user.is_authenticated():
         if request.user.account.plan.pk <= 1:
             endpoint = 'billing'
@@ -132,7 +132,7 @@ def subscriptions(request):
                 details['current_plan'] = True
                 details['btn_class'] = "default disabled"
             elif (request.user.account.subscription.status == 2
-                  and plan.pk == request.user.account.subscription.status_detail):
+                  and plan.pk == int(request.user.account.subscription.status_detail)):   # noqa
                     details['direction'] = "Downgrade Pending"
                     details['btn_class'] = "default disabled"
             upgrades.append(details)
@@ -140,7 +140,7 @@ def subscriptions(request):
         for plan in plans:
             details = plan.details()
             upgrades.append(details)
-            
+
     context = {'upgrades': upgrades}
     copy = Copy.objects.get(key='subscriptions')
     keyvals = copy.val.splitlines()
@@ -279,11 +279,6 @@ class Change(FastSpringNotificationView):
                 acct = Account.objects.get(subscription=sub)
                 acct.plan = plan
                 acct.save()
-                msg = "Notice: Your account has been changed to a %s -- \
-                       if you believe there has been an error please \
-                       contact us."
-                stored_messages.api.add_message_for([acct.user],
-                                                    messages.WARNING, msg)
 
         return HttpResponse()
 
