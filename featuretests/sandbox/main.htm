@@ -1,0 +1,34 @@
+
+<html>
+<head>
+</head>
+<body>
+
+<button onclick="Save()">Save</button><br />
+<iframe src="iframe.htm"></iframe>
+
+<p></p>
+
+<script>
+
+function Save() {
+	
+	var iframe = document.getElementsByTagName('iframe')[0];
+	iframe.contentWindow.postMessage('save', '*');
+}
+
+window.addEventListener("message", receiveMessage, false);
+
+function receiveMessage(event) {
+	
+	var origin = event.origin || event.originalEvent.origin;
+	// test for expected origin?
+	document.getElementsByTagName('p')[0].innerText = event.data;
+}
+
+</script>
+
+</body>
+</html>
+
+

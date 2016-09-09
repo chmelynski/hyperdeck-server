@@ -3,11 +3,13 @@ from __future__ import unicode_literals
 import hashlib
 import json
 import logging
+from datetime import datetime
 
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.db import transaction
 from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseNotFound
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -18,7 +20,7 @@ import requests
 import stored_messages
 
 from mysite import settings
-from griddl.models import Account, Plan
+from griddl.models import Account, Plan, Copy
 from .models import BillingRedirect, Subscription, API_URL
 
 logger = logging.getLogger(__name__)
@@ -31,7 +33,7 @@ def billing_redirect(request, planid, userid):
     lots of other possible benefits, including analytics on abandonment
     '''
     timestamp = timezone.now()
-    redirect = BillingRedirect.create(accountid=userid, planid=planid,
+    redirect = BillingRedirect.create(account_id=userid, planid=planid,
                                       created=timestamp)
     redirect.save()
     return HttpResponseRedirect(redirect.url)
@@ -112,29 +114,42 @@ def subscriptions(request):
     '''
     plans = Plan.objects.all()
     upgrades = []
-    if request.user.account.plan.pk <= 1:
-        endpoint = 'billing'
-    else:
-        endpoint = 'sub_change'
-    for plan in plans:
-        details = plan.details()
-        details['link'] = "/%s/%d/%d" % (endpoint, plan.id,
-                                         request.user.account.pk)
-        if plan.pk < request.user.account.plan.pk:
-            details['direction'] = "Downgrade"
-            details['btn_class'] = "warning"
-        elif plan.pk > request.user.account.plan.pk:
-            details['direction'] = "Upgrade"
-            details['btn_class'] = "success"
-        elif plan == request.user.account.plan:
-            details['current_plan'] = True
-            details['btn_class'] = "default disabled"
-        elif (request.user.account.subscription.status == 2
-              and plan.pk == request.user.account.subscription.status_detail):
-                details['direction'] = "Downgrade Pending"
+
+    if request.user.is_authenticated():
+        if request.user.account.plan.pk <= 1:
+            endpoint = 'billing'
+        else:
+            endpoint = 'sub_change'
+        for plan in plans:
+            details = plan.details()
+            details['link'] = "/%s/%d/%d" % (endpoint, plan.id,
+                                             request.user.account.pk)
+            if (request.user.account.subscription.status == 2
+                  and plan.pk == int(request.user.account.subscription.status_detail)):   # noqa
+                    details['direction'] = "Downgrade Pending"
+                    details['btn_class'] = "default disabled"
+            elif plan.pk < request.user.account.plan.pk:
+                details['direction'] = "Downgrade"
+                details['btn_class'] = "warning"
+            elif plan.pk > request.user.account.plan.pk:
+                details['direction'] = "Upgrade"
+                details['btn_class'] = "success"
+            elif plan == request.user.account.plan:
+                details['current_plan'] = True
                 details['btn_class'] = "default disabled"
-        upgrades.append(details)
+            upgrades.append(details)
+    else:
+        for plan in plans:
+            details = plan.details()
+            upgrades.append(details)
+
     context = {'upgrades': upgrades}
+    copy = Copy.objects.get(key='subscriptions')
+    keyvals = copy.val.splitlines()
+    for keyval in keyvals:
+        key = keyval.split(':')[0]
+        val = keyval.split(':')[1]
+        context[key] = val
     return render(request, 'billing/subscribe.htm', context)
 
 
@@ -143,7 +158,7 @@ class FastSpringNotificationView(View):
 
     private_key = ''  # all child views must define this value
 
-    # this block allows notifications to bypass CSRF protection
+    # this block bypasses CSRF protection for incoming notifications
     @method_decorator(csrf_exempt)
     def dispatch(self, *args, **kwargs):
         return super(FastSpringNotificationView, self) \
@@ -154,14 +169,14 @@ class FastSpringNotificationView(View):
         Verify message authenticity using FS's private key scheme
         (done this way bc i'm not sure how to do as decorator)
         todo: apparently mixins are the trick for class-based views
-        also todo: prob should raise an exception on fail
+        also todo: prob should raise an exception here on failure
         '''
 
-        if not request.META['User-Agent'] == "FS":
+        if not request.META['HTTP_USER_AGENT'] == "FS":
             return False
 
-        msg_data = request.META['X-Security-Data']
-        msg_hash = request.META['X-Security-Hash']
+        msg_data = request.META['HTTP_X_SECURITY_DATA']
+        msg_hash = request.META['HTTP_X_SECURITY_HASH']
         challenge = hashlib.md5(msg_data + private_key).hexdigest()
         return (challenge == msg_hash)
 
@@ -175,11 +190,12 @@ class FastSpringNotificationView(View):
 
     def post(self, request):
         if not settings.DEBUG:
-            if not self.verify_msg(self.private_key, request):
+            if not self.verify(self.private_key, request):
                 logger.warn('bad POST to FS notification endpoint' + request)
+                print("bad POST - sanity check")
                 return HttpResponse(403)
 
-        logger.debug("{}: {}".format(request.path, request.body))
+#        logger.debug("{}: {}".format(request.path, request.body))
         return self.process(json.loads(request.body))
 
     def process(self, data):
@@ -208,6 +224,8 @@ class Create(FastSpringNotificationView):
             subscription.plan = referrer.plan
             subscription.reference_id = data['id']
             subscription.details_url = data['fs_url']
+            pd_end = datetime.strptime(data['next_period'], "%b %d, %Y")
+            subscription._period_end = pd_end.date()
             logger.debug(subscription)
             subscription.save()
             referrer.account.subscription = subscription
@@ -247,7 +265,13 @@ class Change(FastSpringNotificationView):
                 logger.error("error changing subscription: {}".format(
                              json.loads(data)))
                 return
-            plan = Plan.objects.get(name=data['plan'])
+            planid = next((i[0] for i in Plan.NAMES if i[1] == data['plan']),
+                          None)  # None if no match found
+            try:
+                plan = Plan.objects.get(name=planid)
+            except:
+                logger.error("Plan '" + data['plan'] + "' not found.")
+                return HttpResponseNotFound()
             if plan is not sub.plan:
                 sub.plan = plan
                 if data['end_date']:  # set "downgrade pending" if end date set
@@ -257,11 +281,6 @@ class Change(FastSpringNotificationView):
                 acct = Account.objects.get(subscription=sub)
                 acct.plan = plan
                 acct.save()
-                msg = "Notice: Your account has been changed to a %s -- \
-                       if you believe there has been an error please \
-                       contact us."
-                stored_messages.api.add_message_for([acct.user],
-                                                    messages.WARNING, msg)
 
         return HttpResponse()
 
@@ -282,6 +301,7 @@ class Deactivate(FastSpringNotificationView):
             sub.delete()
             acct = Account.objects.get(subscription=sub)
             if not acct:  # huh? bail.
+                logger.error("Account for subscription '" + data['id'] + "' not found.")
                 return
             acct.plan = Plan.FREE
             acct.save()  # note - auto-triggers workbook locking
@@ -304,6 +324,7 @@ class PayFail(FastSpringNotificationView):
 
         sub = Subscription.objects.get(reference_id=data['id'])
         if not sub:  # weird, bail
+            logger.error("Subscription '" + data['id'] + "' not found.")
             return
 
         acct = Account.objects.get(subscription=sub)

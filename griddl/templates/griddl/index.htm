@@ -3,17 +3,41 @@
 
 {% block meta-tags %}
   {{ block.super }}
+  <meta name="google-site-verification" content="5rFpHVPuH7mu2NdT8ZGo9n353_1cyuQg-oHhvkXrTFk" />
 {% endblock %}
 
 {% block styles %}
-  {{ block.super }}
   <link href="{% static 'griddl/css/jumbotron-narrow.css' %}" rel="stylesheet">
+  {{ block.super }}
 {% endblock %}
 
 {% block body %}
-  <div class="jumbotron">
-    <h1>Hyperbench</h1>
-    <p class="lead">A notebook for creating documents</p>
-    <p><a class="btn btn-lg btn-success" href="/signup" role="button">Sign up</a></p>
-  </div>
+    <div class="jumbotron">
+      <div class="container">
+        <h1>Hyperdeck</h1>
+        <p>{{ subtitle }}</p>
+        <p><a class="btn btn-lg btn-success" href="/signup" role="button">Sign up</a></p>
+      </div>
+    </div>
+
+    {% comment %}
+    <div class="container">
+      <div class="row">
+        <div class="col-md-4">
+          <h2>{{ subheading1title }}</h2>
+          <p>{{ subheading1blurb }}</p>
+        </div>
+        <div class="col-md-4">
+          <h2>{{ subheading2title }}</h2>
+          <p>{{ subheading2blurb }}</p>
+       </div>
+        <div class="col-md-4">
+          <h2>{{ subheading3title }}</h2>
+          <p>{{ subheading3blurb }}</p>
+        </div>
+      </div>
+      <hr>
+    </div>
+    {% endcomment %}
+    
 {% endblock %}

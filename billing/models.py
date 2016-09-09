@@ -54,17 +54,42 @@ class Subscription(models.Model):
                                                 e.g. '$10 monthly'"
                                    )
     created = models.DateField(default=timezone.now)
-    _period_end = models.DateField(default=None,  # note: this is error state
+
+    # hidden column managed by @property `period_end`
+    _period_end = models.DateField(default=None,
                                    null=True,
                                    db_column="period_end")
 
-    plan = models.ForeignKey('griddl.Plan', to_field='name')
+    plan = models.ForeignKey('griddl.Plan', to_field='name',
+                             related_name="plan")
 
     @property
     def period_end(self):
-        if not self._period_end or (self._period_end and
-                                    self._period_end < datetime.date.today()):
+        '''
+        getter for period_end -- actually manages subscription state tho
+        it's highly possible that there's a better way to manage this :(
+
+        note that free plans don't (or shouldn't!) have Subscriptions
+        for others, we check FS for updates when needed.
+        '''
+        if not self._period_end:
             self.next_period()
+        elif self._period_end < datetime.date.today():
+            if self.status == 2 and int(self.status_detail) > 1:
+                # not 100% sure this is safe tbh?
+                acct = self.account_set.get()
+                acct.plan = Plan.objects.get(name=int(self.status_detail))
+                acct.save()
+                self.next_period()
+            elif self.status == 2 and int(self.status_detail) == 1:
+                acct = self.account_set.get()
+                acct.plan = Plan.objects.get(name=1)
+                acct.save()
+                self.delete()
+                return "Never"
+            else:
+                self.next_period()
+
         return self._period_end
 
     @period_end.setter
@@ -88,7 +113,7 @@ class Subscription(models.Model):
             except:
                 node = dom.getElementsByTagName('end')[0][:-1]
             date_str = node.data[:-1]
-            self._period_end = datetime.strptime(date_str, "%Y-%m-%d")
+            self._period_end = datetime.strptime(date_str, "%b %d, %Y").date()
             self.save()
         else:
             msg = "FS sub details API error: {} - {}".format(raw.status_code,
@@ -106,7 +131,7 @@ class BillingRedirect(models.Model):
     Tracks billing redirects for fulfillment & analytics.
     '''
 
-    STATES = (  # not sure what else we need here yet.
+    STATES = (
         (0, 'Sent'),
         (1, 'Completed')
     )
@@ -119,14 +144,14 @@ class BillingRedirect(models.Model):
     status = models.IntegerField(choices=STATES, default=0)
 
     @classmethod
-    def create(cls, accountid, planid, created):
+    def create(cls, account_id, planid, created):
         '''
         create object, including automatic referrer generation
         '''
-        account = Account.objects.get(pk=accountid)
+        account = Account.objects.get(pk=account_id)
         plan = Plan.objects.get(pk=planid)
         redirect = cls(account=account, plan=plan, created=created)
-        redirect.referrer = hashlib.md5(str(accountid) + str(planid) +
+        redirect.referrer = hashlib.md5(str(account_id) + str(planid) +
                                         str(created)).hexdigest()
         return redirect
 

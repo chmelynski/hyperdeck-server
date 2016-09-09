@@ -1,0 +1,156 @@
+[
+	{
+		"type": "document",
+		"name": "document",
+		"visible": false,
+		"params": {
+			"pageSize": {
+				"unit": "in",
+				"width": 8.5,
+				"height": 11
+			},
+			"scale": {
+				"pixelsPerUnit": 70,
+				"cubitsPerUnit": 100
+			},
+			"snapGrid": {
+				"gridlineSpacing": 25,
+				"gridlineHighlight": 100
+			},
+			"pageNumbering" : {
+				"doPageNumbering": true,
+				"firstPage": false,
+				"hAlign": "center",
+				"vAlign": "bottom",
+				"hOffset": 0,
+				"vOffset": 50,
+				"fontSize": 12,
+				"fontFamily": "serif",
+				"bold": false,
+				"italic": false,
+				"color": "rgb(0,0,0)"
+			}
+		}
+	},
+	{
+		"type": "section",
+		"name": "section1",
+		"visible": true,
+		"text": "Lorem ipsum dolor sit amet, diceret fierent dissentiunt ne vel. Sed dicit fuisset sapientem no. Id mel iuvaret placerat antiopam. Vim at viris mentitum omnesque, partem everti animal per in, appetere postulant similique eu qui. Sit harum iuvaret te, est ut timeam theophrastus, ad pri feugait platonem deterruisset.\n\nIn sea stet verterem, est ei inimicus voluptatum, vidisse luptatum sea id. Usu cu porro malorum petentium, sea no dicunt admodum dolores. Te qui qualisque accusamus consetetur, ne nam dicta possim suscipit, no rebum dissentias mel. Id vitae moderatius duo, an aeque nobis vim. Noster epicuri at vis, ex vim aperiam volumus denique, qui sint case atqui an. Ex electram vituperatoribus vix, vel id integre inermis phaedrum.\n\nQui deleniti consequuntur in, iuvaret euripidis has eu. Prompta apeirian quo at. Has ex lorem accommodare, id quo congue eripuit. Semper utroque has an, possim verear nam in. An est quis apeirian inciderint.\n\nHas no tota harum partem. Et nam phaedrum interpretaris, aliquam propriae recusabo ius te, eam quando discere et. Nec at oratio referrentur conclusionemque, option legimus atomorum ut vel, clita urbanitas te pri. Eam stet magna te. Pro melius utroque maiorum id, dolores similique ad eos.\n\nEst eligendi senserit ea, eos quis fierent democritum ad, tantas similique mei te. Per quodsi partiendo euripidis te, populo accusam adolescens ei cum. Et dolor quidam blandit vim, est dicant possit antiopam id. Sit probo cetero option ei. Eu vel enim nonumy corrumpit, qui at purto dolore. Et falli tamquam pro.\n\n",
+		"params": {
+			"page": {
+				"orientation": "portrait"
+			},
+			"textStyle": {
+				"style": "",
+				"fontSize": 12,
+				"fontFamily": "serif",
+				"bold": false,
+				"italic": false,
+				"color": "rgb(0,0,0)",
+				"substyles": ""
+			},
+			"textPositioning": {
+				"indent": 25,
+				"lineHeight": 20
+			},
+			"columns": {
+				"numberOfColumns": 1,
+				"interColumnMargin": 50
+			},
+			"margin": {
+				"top": 100,
+				"left": 100,
+				"right": 100,
+				"bottom": 100
+			}
+		}
+	},
+	{
+		"type": "text",
+		"name": "text1",
+		"visible": true,
+		"text": "1. foo\n a. bar\n b. baz\n2. huh",
+		"params": {
+			"textPositioning": {
+				"indent": 20,
+				"lineHeight": 25,
+				"textMargin": 5,
+				"textAlign": "left"
+			},
+			"textStyle": {
+				"styles": "",
+				"fontSize": 24,
+				"fontFamily": "serif",
+				"bold": false,
+				"italic": false,
+				"fill": "rgb(0,0,0)",
+				"stroke": "rgb(0,0,0)",
+				"lineWidth": 0
+			},
+			"markerStyle": {
+				"shape": "circle",
+				"diameter": 10
+			},
+			"box": {
+				"hAlign": "center",
+				"vAlign": "center",
+				"xAnchor": "center",
+				"yAnchor": "center",
+				"x": 200,
+				"y": 500,
+				"wd": 200
+			},
+			"margin": {
+				"top": 100,
+				"left": 100,
+				"right": 100,
+				"bottom": 100
+			}
+		}
+	},
+	{
+		"type": "text",
+		"name": "text2",
+		"visible": true,
+		"text": "Adam Chmelynski\n1261 Bethel Green Dr.\nBethel Park, PA 15102\n",
+		"params": {
+			"textPositioning": {
+				"indent": 20,
+				"lineHeight": 25,
+				"textMargin": 5,
+				"textAlign": "left"
+			},
+			"textStyle": {
+				"styles": "",
+				"fontSize": 24,
+				"fontFamily": "serif",
+				"bold": false,
+				"italic": false,
+				"fill": "rgb(0,0,0)",
+				"stroke": "rgb(0,0,0)",
+				"lineWidth": 0
+			},
+			"markerStyle": {
+				"shape": "circle",
+				"diameter": 10
+			},
+			"box": {
+				"hAlign": "center",
+				"vAlign": "center",
+				"xAnchor": "center",
+				"yAnchor": "center",
+				"x": 200,
+				"y": 200,
+				"wd": 200
+			},
+			"margin": {
+				"top": 100,
+				"left": 100,
+				"right": 100,
+				"bottom": 100
+			}
+		}
+	}
+]
+

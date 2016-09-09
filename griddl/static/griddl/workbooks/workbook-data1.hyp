@@ -1,0 +1,14 @@
+[
+	{
+		"type": "data",
+		"name": "data1",
+		"visible": true,
+		"data": [{"foo":1,"bar":2},{"foo":3,"bar":4},{"foo":5,"bar":6}],
+		"params": {
+			"format": "json",
+			"display": "grid",
+			"form": null,
+			"headers": null
+		}
+	}
+]

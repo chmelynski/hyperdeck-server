@@ -1,0 +1,73 @@
+[
+	{
+		"type": "document",
+		"name": "document",
+		"visible": true,
+		"params": {
+			"unit": "in",
+			"pageDimensions": {
+				"width": 8.5,
+				"height": 11
+			},
+			"pixelsPerUnit": 70,
+			"cubitsPerUnit": 100,
+			"snapGrid": {
+				"gridlineSpacing": 0.25,
+				"gridlineHighlight": 1.00
+			},
+			"pageNumbering" : {
+				"doPageNumbering": true,
+				"hAlign": "center",
+				"vAlign": "bottom",
+				"hOffset": 0,
+				"vOffset": 50,
+				"firstPage": false,
+				"font": "12pt serif",
+				"fill": "rgb(0,0,0)"
+			}
+		}
+	},
+	{
+		"type": "section",
+		"name": "section1",
+		"visible": true,
+		"text": "Lorem ipsum dolor sit amet, diceret fierent dissentiunt ne vel. Sed dicit fuisset sapientem no. Id mel iuvaret placerat antiopam. Vim at viris mentitum omnesque, partem everti animal per in, appetere postulant similique eu qui. Sit harum iuvaret te, est ut timeam theophrastus, ad pri feugait platonem deterruisset.\n\nIn sea stet verterem, est ei inimicus voluptatum, vidisse luptatum sea id. Usu cu porro malorum petentium, sea no dicunt admodum dolores. Te qui qualisque accusamus consetetur, ne nam dicta possim suscipit, no rebum dissentias mel. Id vitae moderatius duo, an aeque nobis vim. Noster epicuri at vis, ex vim aperiam volumus denique, qui sint case atqui an. Ex electram vituperatoribus vix, vel id integre inermis phaedrum.\n\nQui deleniti consequuntur in, iuvaret euripidis has eu. Prompta apeirian quo at. Has ex lorem accommodare, id quo congue eripuit. Semper utroque has an, possim verear nam in. An est quis apeirian inciderint.\n\nHas no tota harum partem. Et nam phaedrum interpretaris, aliquam propriae recusabo ius te, eam quando discere et. Nec at oratio referrentur conclusionemque, option legimus atomorum ut vel, clita urbanitas te pri. Eam stet magna te. Pro melius utroque maiorum id, dolores similique ad eos.\n\nEst eligendi senserit ea, eos quis fierent democritum ad, tantas similique mei te. Per quodsi partiendo euripidis te, populo accusam adolescens ei cum. Et dolor quidam blandit vim, est dicant possit antiopam id. Sit probo cetero option ei. Eu vel enim nonumy corrumpit, qui at purto dolore. Et falli tamquam pro.\n\nLorem ipsum dolor sit amet, diceret fierent dissentiunt ne vel. Sed dicit fuisset sapientem no. Id mel iuvaret placerat antiopam. Vim at viris mentitum omnesque, partem everti animal per in, appetere postulant similique eu qui. Sit harum iuvaret te, est ut timeam theophrastus, ad pri feugait platonem deterruisset.\n\nIn sea stet verterem, est ei inimicus voluptatum, vidisse luptatum sea id. Usu cu porro malorum petentium, sea no dicunt admodum dolores. Te qui qualisque accusamus consetetur, ne nam dicta possim suscipit, no rebum dissentias mel. Id vitae moderatius duo, an aeque nobis vim. Noster epicuri at vis, ex vim aperiam volumus denique, qui sint case atqui an. Ex electram vituperatoribus vix, vel id integre inermis phaedrum.\n\nQui deleniti consequuntur in, iuvaret euripidis has eu. Prompta apeirian quo at. Has ex lorem accommodare, id quo congue eripuit. Semper utroque has an, possim verear nam in. An est quis apeirian inciderint.\n\nHas no tota harum partem. Et nam phaedrum interpretaris, aliquam propriae recusabo ius te, eam quando discere et. Nec at oratio referrentur conclusionemque, option legimus atomorum ut vel, clita urbanitas te pri. Eam stet magna te. Pro melius utroque maiorum id, dolores similique ad eos.\n\nEst eligendi senserit ea, eos quis fierent democritum ad, tantas similique mei te. Per quodsi partiendo euripidis te, populo accusam adolescens ei cum. Et dolor quidam blandit vim, est dicant possit antiopam id. Sit probo cetero option ei. Eu vel enim nonumy corrumpit, qui at purto dolore. Et falli tamquam pro.\n\nLorem ipsum dolor sit amet, diceret fierent dissentiunt ne vel. Sed dicit fuisset sapientem no. Id mel iuvaret placerat antiopam. Vim at viris mentitum omnesque, partem everti animal per in, appetere postulant similique eu qui. Sit harum iuvaret te, est ut timeam theophrastus, ad pri feugait platonem deterruisset.\n\nIn sea stet verterem, est ei inimicus voluptatum, vidisse luptatum sea id. Usu cu porro malorum petentium, sea no dicunt admodum dolores. Te qui qualisque accusamus consetetur, ne nam dicta possim suscipit, no rebum dissentias mel. Id vitae moderatius duo, an aeque nobis vim. Noster epicuri at vis, ex vim aperiam volumus denique, qui sint case atqui an. Ex electram vituperatoribus vix, vel id integre inermis phaedrum.\n\nQui deleniti consequuntur in, iuvaret euripidis has eu. Prompta apeirian quo at. Has ex lorem accommodare, id quo congue eripuit. Semper utroque has an, possim verear nam in. An est quis apeirian inciderint.\n\nHas no tota harum partem. Et nam phaedrum interpretaris, aliquam propriae recusabo ius te, eam quando discere et. Nec at oratio referrentur conclusionemque, option legimus atomorum ut vel, clita urbanitas te pri. Eam stet magna te. Pro melius utroque maiorum id, dolores similique ad eos.\n\nEst eligendi senserit ea, eos quis fierent democritum ad, tantas similique mei te. Per quodsi partiendo euripidis te, populo accusam adolescens ei cum. Et dolor quidam blandit vim, est dicant possit antiopam id. Sit probo cetero option ei. Eu vel enim nonumy corrumpit, qui at purto dolore. Et falli tamquam pro.\n\nLorem ipsum dolor sit amet, diceret fierent dissentiunt ne vel. Sed dicit fuisset sapientem no. Id mel iuvaret placerat antiopam. Vim at viris mentitum omnesque, partem everti animal per in, appetere postulant similique eu qui. Sit harum iuvaret te, est ut timeam theophrastus, ad pri feugait platonem deterruisset.\n\nIn sea stet verterem, est ei inimicus voluptatum, vidisse luptatum sea id. Usu cu porro malorum petentium, sea no dicunt admodum dolores. Te qui qualisque accusamus consetetur, ne nam dicta possim suscipit, no rebum dissentias mel. Id vitae moderatius duo, an aeque nobis vim. Noster epicuri at vis, ex vim aperiam volumus denique, qui sint case atqui an. Ex electram vituperatoribus vix, vel id integre inermis phaedrum.\n\nQui deleniti consequuntur in, iuvaret euripidis has eu. Prompta apeirian quo at. Has ex lorem accommodare, id quo congue eripuit. Semper utroque has an, possim verear nam in. An est quis apeirian inciderint.\n\nHas no tota harum partem. Et nam phaedrum interpretaris, aliquam propriae recusabo ius te, eam quando discere et. Nec at oratio referrentur conclusionemque, option legimus atomorum ut vel, clita urbanitas te pri. Eam stet magna te. Pro melius utroque maiorum id, dolores similique ad eos.\n\nEst eligendi senserit ea, eos quis fierent democritum ad, tantas similique mei te. Per quodsi partiendo euripidis te, populo accusam adolescens ei cum. Et dolor quidam blandit vim, est dicant possit antiopam id. Sit probo cetero option ei. Eu vel enim nonumy corrumpit, qui at purto dolore. Et falli tamquam pro.\n\nLorem ipsum dolor sit amet, diceret fierent dissentiunt ne vel. Sed dicit fuisset sapientem no. Id mel iuvaret placerat antiopam. Vim at viris mentitum omnesque, partem everti animal per in, appetere postulant similique eu qui. Sit harum iuvaret te, est ut timeam theophrastus, ad pri feugait platonem deterruisset.\n\nIn sea stet verterem, est ei inimicus voluptatum, vidisse luptatum sea id. Usu cu porro malorum petentium, sea no dicunt admodum dolores. Te qui qualisque accusamus consetetur, ne nam dicta possim suscipit, no rebum dissentias mel. Id vitae moderatius duo, an aeque nobis vim. Noster epicuri at vis, ex vim aperiam volumus denique, qui sint case atqui an. Ex electram vituperatoribus vix, vel id integre inermis phaedrum.\n\nQui deleniti consequuntur in, iuvaret euripidis has eu. Prompta apeirian quo at. Has ex lorem accommodare, id quo congue eripuit. Semper utroque has an, possim verear nam in. An est quis apeirian inciderint.\n\nHas no tota harum partem. Et nam phaedrum interpretaris, aliquam propriae recusabo ius te, eam quando discere et. Nec at oratio referrentur conclusionemque, option legimus atomorum ut vel, clita urbanitas te pri. Eam stet magna te. Pro melius utroque maiorum id, dolores similique ad eos.\n\nEst eligendi senserit ea, eos quis fierent democritum ad, tantas similique mei te. Per quodsi partiendo euripidis te, populo accusam adolescens ei cum. Et dolor quidam blandit vim, est dicant possit antiopam id. Sit probo cetero option ei. Eu vel enim nonumy corrumpit, qui at purto dolore. Et falli tamquam pro.\n\nLorem ipsum dolor sit amet, diceret fierent dissentiunt ne vel. Sed dicit fuisset sapientem no. Id mel iuvaret placerat antiopam. Vim at viris mentitum omnesque, partem everti animal per in, appetere postulant similique eu qui. Sit harum iuvaret te, est ut timeam theophrastus, ad pri feugait platonem deterruisset.\n\nIn sea stet verterem, est ei inimicus voluptatum, vidisse luptatum sea id. Usu cu porro malorum petentium, sea no dicunt admodum dolores. Te qui qualisque accusamus consetetur, ne nam dicta possim suscipit, no rebum dissentias mel. Id vitae moderatius duo, an aeque nobis vim. Noster epicuri at vis, ex vim aperiam volumus denique, qui sint case atqui an. Ex electram vituperatoribus vix, vel id integre inermis phaedrum.\n\nQui deleniti consequuntur in, iuvaret euripidis has eu. Prompta apeirian quo at. Has ex lorem accommodare, id quo congue eripuit. Semper utroque has an, possim verear nam in. An est quis apeirian inciderint.\n\nHas no tota harum partem. Et nam phaedrum interpretaris, aliquam propriae recusabo ius te, eam quando discere et. Nec at oratio referrentur conclusionemque, option legimus atomorum ut vel, clita urbanitas te pri. Eam stet magna te. Pro melius utroque maiorum id, dolores similique ad eos.\n\nEst eligendi senserit ea, eos quis fierent democritum ad, tantas similique mei te. Per quodsi partiendo euripidis te, populo accusam adolescens ei cum. Et dolor quidam blandit vim, est dicant possit antiopam id. Sit probo cetero option ei. Eu vel enim nonumy corrumpit, qui at purto dolore. Et falli tamquam pro.\n\nLorem ipsum dolor sit amet, diceret fierent dissentiunt ne vel. Sed dicit fuisset sapientem no. Id mel iuvaret placerat antiopam. Vim at viris mentitum omnesque, partem everti animal per in, appetere postulant similique eu qui. Sit harum iuvaret te, est ut timeam theophrastus, ad pri feugait platonem deterruisset.\n\nIn sea stet verterem, est ei inimicus voluptatum, vidisse luptatum sea id. Usu cu porro malorum petentium, sea no dicunt admodum dolores. Te qui qualisque accusamus consetetur, ne nam dicta possim suscipit, no rebum dissentias mel. Id vitae moderatius duo, an aeque nobis vim. Noster epicuri at vis, ex vim aperiam volumus denique, qui sint case atqui an. Ex electram vituperatoribus vix, vel id integre inermis phaedrum.\n\nQui deleniti consequuntur in, iuvaret euripidis has eu. Prompta apeirian quo at. Has ex lorem accommodare, id quo congue eripuit. Semper utroque has an, possim verear nam in. An est quis apeirian inciderint.\n\n",
+		"params": {
+			"orientation": "portrait",
+			"margin": {
+				"top": 100,
+				"left": 100,
+				"right": 100,
+				"bottom": 100
+			},
+			"indent": 25,
+			"pitch": 20,
+			"style": "serif",
+			"font": "12pt serif",
+			"fill": "rgb(0,0,0)",
+			"nColumns": 2,
+			"interColumnMargin": 50
+		}
+	},
+	{
+		"type": "image",
+		"name": "image1",
+		"visible": true,
+		"data": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAIAAAAC64paAAAACXBIWXMAAA7DAAAOwwHHb6hkAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAERJREFUOE9j3LJlCwMMeHt7w9lbt24lKM4A1AwH/5EAMeIDqJlUpyKrZxiimomJElxeG8CoosjZQzSqKHI2RQE2NDUDAEVWy5NpqgO1AAAAAElFTkSuQmCC",
+		"params": {
+			"x": 396,
+			"y": 206,
+			"hAlign": "center",
+			"vAlign": "center",
+			"width": 200,
+			"height": 200,
+			"margin": {
+				"top": 100,
+				"left": 100,
+				"right": 100,
+				"bottom": 100
+			}
+		}
+	}
+]
+

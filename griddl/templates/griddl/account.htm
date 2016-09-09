@@ -18,10 +18,12 @@
 
   <div class="row">
     <div class="col-xs-12 text-center">
-      <p><label>Plan:</label> {{ acct.plan }}</p> 
-      {% if acct.plan > 1 %}
-        <p><label>{% if acct.subscription.status == 1 %}Renews{% else %}Ends{% endif %} on:</label> {{ acct.subscription.next_renew }}</p>
-      {% endif %}
+      <p>
+        <label>Plan:</label> {{ acct.plan }}
+      </p> 
+      <p>
+        <label>{% if acct.subscription_set.0.status == 1 %}Renews{% else %}Ends{% endif %}:</label> {{ sub_end }}
+      </p>
       <p>
         {% if action %} <a class='btn btn-inline btn-success' href='/subscriptions'>{% if action == 'billing' %}Upgrade{% else %}Modify Subscription{% endif %}</a>{% endif %}</p>
       </p>

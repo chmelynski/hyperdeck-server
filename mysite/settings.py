@@ -1,29 +1,22 @@
-# we can use os.getcwd() to distinguigh between development and production
-# in development, os.getcwd() => '/cygdrive/c/Users/Adam/Desktop/frce/mysite'
-# i don't know what it is in production, but it ain't that
-import os
+# flake8: noqa
 
-developmentServer = (os.getcwd() != '/app')
+import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 noahDev = os.getenv('griddlDev')
-if noahDev:
-    developmentServer = False
+herokuDev = os.getenv('herokuDev')
+staging = os.getenv('staging')
+production = os.getenv('production')
 
-if developmentServer:
+if noahDev or herokuDev or staging:
     DEBUG = True
-    TEMPLATE_DEBUG = DEBUG
-elif noahDev:
-    DEBUG = True
-    TEMPLATE_DEBUG = DEBUG
 else:
-    DEBUG = True
-    TEMPLATE_DEBUG = DEBUG
+    DEBUG = False
 
 ADMINS = (
-    # ('Your Name', 'your_email@example.com'),
-    ("Noah Hall", "noah.t.hall@gmail.com")
+    ("Noah Hall", "noah.t.hall@gmail.com"),
+    ("Adam Chmelynski", "adam.chmelynski@gmail.com")
 )
 
 MANAGERS = ADMINS
@@ -34,41 +27,22 @@ MANAGERS = ADMINS
 #        or '127.0.0.1' for localhost through TCP
 # PORT : Set to empty string for default
 
-
-if developmentServer:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': 'C:/cygwin64/home/adam/frce/mysite/db.sqlite3'
-        }
-    }
-elif noahDev:
+if noahDev:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': '/var/www/griddl/db.sqlite3'
         }
     }
-
 else:
     import dj_database_url
     DATABASES = {'default': dj_database_url.config()}
-    # DATABASES = {
-    #    'default' : {
-    #        'ENGINE' : 'django.db.backends.postgresql_psycopg2' ,
-    #        'NAME' : 'griddl' ,
-    #        'USER' : env['DOTCLOUD_DB_SQL_LOGIN'],
-    #        'PASSWORD' : env['DOTCLOUD_DB_SQL_PASSWORD'],
-    #        'HOST' : env['DOTCLOUD_DB_SQL_HOST'],
-    #        'PORT' : int(env['DOTCLOUD_DB_SQL_PORT'])
-    #    }
-    # }
 
 # DATABASE_ROUTERS = [ 'path.to.AuthRouter' , 'path.to.MasterSlaveRouter' ]
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['hyperdeck.io','workbook.hyperdeck.io','sandbox.hyperdeck.io','www.hyperdeck.io']
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -101,14 +75,6 @@ MEDIA_URL = ''
 # in apps' "static/" subdirectories and in STATICFILES_DIRS.
 # Example: "/var/www/example.com/static/"
 
-# if developmentServer:
-#    STATIC_ROOT = ''
-# else:
-#    STATIC_ROOT = '/home/dotcloud/volatile/static/'
-
-# not sure what heroku demands for this
-
-
 # URL prefix for static files.
 # Example: "http://example.com/static/", "http://static.example.com/"
 # Additional locations of static files
@@ -116,23 +82,20 @@ MEDIA_URL = ''
 # Always use forward slashes, even on Windows.
 # Don't forget to use absolute paths, not relative paths.
 
-if developmentServer:
-    STATIC_ROOT = ''
-    STATIC_URL = '/static/'
-    STATICFILES_DIRS = ()
-else:
-    # STATIC_ROOT = '/app/griddl/static'
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    STATIC_URL = '/static/'
-    STATICFILES_DIRS = (os.path.join(os.path.dirname(
+# STATIC_ROOT = '/app/griddl/static'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_URL = '/static/'
+STATICFILES_DIRS = (os.path.join(os.path.dirname(
                         os.path.abspath(__file__)), 'static'), )
 
-STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
+# STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'pipeline.storage.PipelineCachedStorage'
 
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
     #    'django.contrib.staticfiles.finders.DefaultStorageFinder',
+    'pipeline.finders.PipelineFinder',
 )
 
 # Make this unique, and don't share it with anybody.
@@ -145,6 +108,7 @@ TEMPLATES = [
         'DIRS': [os.path.join(BASE_DIR, 'griddl/templates')],  # override for password_reset templates
         'APP_DIRS': True,
         'OPTIONS': {
+            'debug': DEBUG,
             'context_processors': [
                 'django.contrib.auth.context_processors.auth',
                 'django.template.context_processors.debug',
@@ -159,6 +123,8 @@ TEMPLATES = [
 ]
 
 MIDDLEWARE_CLASSES = (
+    'subdomains.middleware.SubdomainMiddleware',
+    'subdomains.middleware.SubdomainURLRoutingMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -175,47 +141,38 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 
 INSTALLED_APPS = (
     'django.contrib.auth',
+    'django.contrib.admin',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.sites',
     'django.contrib.messages',
-    'django.contrib.staticfiles',  # enable static files
-    'django.contrib.admin',  # enable admin
+    'django.contrib.staticfiles',
     # 'django.contrib.admindocs', # enable admin documentation
 
-    'stored_messages',
-    'bootstrap3',  # django-bootstrap3
-    'crispy_forms',
-    'password_reset',
+    'stored_messages', # django-stored-messages
+    'bootstrap3',      # django-bootstrap3
+    'crispy_forms',    # django-crispy-forms
+    'password_reset',  # django-password-reset
+    'pipeline',        # django-pipeline
 
     'griddl',
     'billing'
 )
+
+# workaround for migration problem
+AUTH_USER_MODEL = 'auth.User'
 
 # crispy_forms setting
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
 
-# REST_FRAMEWORK = {
-#    # Use hyperlinked styles by default.
-#    # Only used if the `serializer_class` attribute is not set on a view.
-#    'DEFAULT_MODEL_SERIALIZER_CLASS':
-#        'rest_framework.serializers.HyperlinkedModelSerializer',
-#
-#    # Use Django's standard `django.contrib.auth` permissions,
-#    # or allow read-only access for unauthenticated users.
-#    'DEFAULT_PERMISSION_CLASSES': [
-#        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
-#    ]
-# }
-
 # See http://docs.djangoproject.com/en/dev/topics/logging for more details
 # on how to customize your logging configuration.
 
 # this is quickly going to force us to adopt a mutiple-settings-file approach
 # or risk madness, maybe both
-if noahDev or developmentServer:
+if noahDev:
     default_handler = 'file'
 else:
     default_handler = 'stdout'
@@ -258,7 +215,7 @@ LOGGING = {
         }
     },
     'loggers': {
-        'django.request': {
+        'django': {
             'handlers': ['mail_admins'],
             'level': 'ERROR',
             'propagate': True,
@@ -271,7 +228,7 @@ LOGGING = {
         'billing': {
             'handlers': [default_handler],
             'level': 'DEBUG',
-            'propagate': False,
+            'propagate': True,
         }
     }
 }
@@ -281,7 +238,7 @@ API_CREDENTIALS = {
     'fastspring': {
         'company': 'adamchmelynski',
         'login': 'adam.chmelynski+fsapi@gmail.com',
-        'password':  'CAssIce548L4'
+        'password':  os.getenv('FASTSPRING_PASSWD', False)
     }
 }
 
@@ -295,6 +252,65 @@ MAX_WORKBOOK_SIZE = 524288000  # 500MB?
 MESSAGE_STORAGE = 'stored_messages.storage.PersistentStorage'
 
 # email settings / impt for password_reset
-# implicit default is smtp rather than console.
-if DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# NB: also used on live to notify admins of Error-level log messages
+EMAIL_BACKEND = 'postmark.django_backend.EmailBackend'
+POSTMARK_SENDER = 'admin@hyperdeck.io'
+DEFAULT_FROM_EMAIL = 'admin@hyperdeck.io' # password reset uses this, not sure who reads POSTMARK_SENDER
+if noahDev or herokuDev:  # don't waste our free emails on dev
+    POSTMARK_TEST_MODE = True
+else:
+    POSTMARK_API_KEY = os.getenv("POSTMARK_API_KEY", False)
+
+# subdomain settings
+SUBDOMAINS = {
+    'main': 'workbook',
+    'sandbox': 'sandbox',
+    'notWorkbook': '', # at some point delete main and rename notWorkbook->main
+    'workbook': 'workbook'
+}
+
+if noahDev or herokuDev:
+    SUBDOMAINS = {
+        'main': 'dev',
+        'sandbox': 'griddl-dev',
+        'notWorkbook': 'dev',
+        'workbook': 'dev'
+    }
+
+if staging:
+    SUBDOMAINS = {
+        'main': 'staging',
+        'sandbox': 'griddl-staging',
+        'notWorkbook': 'staging',
+        'workbook': 'staging'
+    }
+
+SUBDOMAIN_URLCONFS = {
+    SUBDOMAINS['main']: 'mysite.urls',
+    SUBDOMAINS['sandbox']: 'mysite.urls',
+} 
+
+# session is cross-subdomain unless that's too insecure
+SESSION_COOKIE_DOMAIN = ".hyperdeck.io"
+SESSION_COOKIE_NAME = SUBDOMAINS['main'] + 'sessionid'
+
+PIPELINE = {
+    'PIPELINE_ENABLED': staging or production, # True = compress
+    'JS_COMPRESSOR': 'pipeline.compressors.uglifyjs.UglifyJSCompressor',
+    'UGLIFYJS_BINARY': os.path.join(BASE_DIR, 'node_modules', '.bin', 'uglifyjs'),
+    'UGLIFYJS_ARGUMENTS': '--mangle --mangle-props --mangle-regex="/^_/"',
+    'DISABLE_WRAPPER': True, # by default, output is wrapped in an anonymous function
+    'JAVASCRIPT': {
+        'hyperdeck': {
+            'source_filenames': (
+              'griddl/js/components.js',
+              'griddl/js/components/code.js',
+              'griddl/js/components/data.js',
+              'griddl/js/components/file.js',
+              'griddl/js/components/repl.js',
+              'griddl/js/components/link.js',
+            ),
+            'output_filename': 'griddl/js/hyperdeck.min.js',
+        },
+    },
+}

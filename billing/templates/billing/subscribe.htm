@@ -4,37 +4,32 @@
 {% block title %}Manage Subscription | {{ block.super }}{% endblock %}
 
 {% block body %}
-<div class="row">
-  <div class="col-sm-12">
-    <a href="/{{ user.account.pk }}/account" class="btn btn-default pull-right" style="margin-top: 1em;">
-      <span class="fa fa-cogs fa-2x" style="vertical-align:middle;"></span>
-      &nbsp;Account
-    </a>
-  </div>
-</div>
 <div class='row'>
   <div class="col-sm-12">
-    <h1>Subscription Plans</h1>
-    <p>
-      Subscription plans for GridPile are based on the amount of storage you require. When your needs change, so can your plan! All billing is managed by FastSpring.
-    </p>
+    <h1>{{ header }}</h1>
+    <p>{{ blurb }}</p>
   </div>
 </div>
 <div class="row">
-  <div class='col-sm-8 col-sm-offset-2'>
-    <div class='row'>
-      {% for upgrade in upgrades %}
-        <div class='col-sm-3 subscription {% if upgrade.current_plan %}current-plan{% endif %} {% if upgrade.disabled %}disable-upgrade{% endif %} text-center'>
-          <h3>{{ upgrade.name }}</h3>
-          <p class='plan-size'>{{ upgrade.size }}</p>
-          {% if upgrade.current_plan %}
-            <button class="disabled btn btn-success">This is your current plan</button>
-          {% else %}
-            <a target='_blank' title='{{ upgrade.direction}} to a {{ upgrade.name }} plan' class='btn btn-{{ upgrade.btn_class }}' href='{{ upgrade.link }}'>{{ upgrade.direction}} to {{ upgrade.name }} plan</a>
-          {% endif %}
-        </div>
-      {% endfor %}
+  {% for upgrade in upgrades %}
+    <div class='col-sm-3 subscription {% if upgrade.current_plan %}current-plan{% endif %} {% if upgrade.disabled %}disable-upgrade{% endif %} text-center'>
+      <div class='row'>
+        <h3>{{ upgrade.name }}</h3>
+      </div>
+      <div class='row'>
+        <p class='plan-price'>{{ upgrade.price }}</p>
+      </div>
+      <div class='row'>
+        <p class='plan-size'>{{ upgrade.size }}</p>
+      </div>
+      <div class='row'>
+        {% if upgrade.current_plan %}
+          <button class="disabled btn btn-success">This is your current plan</button>
+        {% else %}
+          <a target='_blank' title='{{ upgrade.direction}} to<br />a {{ upgrade.name }} plan' class='btn btn-{{ upgrade.btn_class }}' href='{{ upgrade.link }}'>{{ upgrade.direction}} to {{ upgrade.name }} plan</a>
+        {% endif %}
+      </div>
     </div>
-  </div>
+  {% endfor %}
 </div>
 {% endblock body %}

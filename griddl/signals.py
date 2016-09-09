@@ -1,9 +1,12 @@
+import logging
+
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
-from .management import workbook_locks
-from .models import Account, DefaultWorkbook, Workbook
+from .models import Account, Workbook, AccountSizeError
+
+logger = logging.getLogger(__name__)
 
 
 @receiver(post_save, sender=User)
@@ -21,9 +24,6 @@ def account_setup(sender, created, instance, **kwargs):
         wb = Workbook()
         wb.owner = account
         wb.name = 'My First Workbook'
-        default = DefaultWorkbook.objects.filter(name='bubble-chart')[0]
-        wb.type = default.type
-        wb.text = default.text
         wb.public = False
         wb.save()
 
@@ -31,20 +31,15 @@ def account_setup(sender, created, instance, **kwargs):
 @receiver(pre_save, sender=Workbook)
 def check_size(sender, instance, **kwargs):
     '''
-    check whether size of WB has changed and if so,
-    manage lock status across account WBs
-
-    this way we only run the lock manager if size changes.
-    (so, avoid dumb recursion!)
+    determine post-save account size and if it's too big, raise the exception
     '''
-    if instance.pk:
+    try:
         orig = Workbook.objects.get(pk=instance.pk)
-        if instance.size == orig.size:
-            return
-
-    workbook_locks(instance.owner)
-
-
-@receiver(post_save, sender=Account)
-def account_size(sender, created, instance, **kwargs):
-    workbook_locks(instance)
+        new_size = (instance.owner.size - orig.size) + instance.size
+    except:
+        new_size = instance.size + instance.owner.size
+    if new_size > instance.owner.plan_size:
+        logger.debug("plan size: {}, account owner size: {}".format(instance.owner.plan_size, new_size))
+        logger.debug("instance size: {}".format(instance.size))
+        raise AccountSizeError("Saving this workbook would cause your account\
+                                to exceed its storage limit.")

@@ -8,7 +8,7 @@
       <meta http-equiv="X-UA-Compatible" content="IE=edge">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <link rel="shortcut icon" href="{% static 'griddl/favicon.ico' %}">
-      <title>{% block title %}GridPile{% endblock %}</title>
+      <title>{% block title %}Hyperdeck{% endblock %}</title>
     {% endblock meta-tags %}
 
     {% block styles %}
@@ -18,8 +18,9 @@
     {% endblock styles %}
 
     {% block scripts %}
-      <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
-      <script src="{% static 'griddl/js/lib/bootstrap.min.js' %}"></script>
+      <script type='text/javascript' src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+      <script type='text/javascript' src="{% static 'griddl/js/lib/bootstrap.min.js' %}"></script>
+      <script type='text/javascript' src="{% static 'griddl/js/utils.js' %}"></script>
       <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
 
       <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -33,7 +34,7 @@
     {% include "griddl/topnav.htm" %}
     {% block pre-container %}
     {% endblock %}
-    <div class="container">
+    <div class="container full-height">
       {% bootstrap_messages %}
       <div class="header">
         {% block header %}

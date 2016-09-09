@@ -1,5 +1,28 @@
-body {
-  padding-top: 70px;
+body:not(.framed){
+  overflow: hidden;
+  padding: 4em 0px 0px 0px;
+  margin: 0px;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+}
+
+body.framed {
+  overflow: hidden;
+  margin: 1em 0px 0px;
+  padding: 0px;
+  height: 100%;
+  width: 100%;
+}
+
+body.framed > .container-fluid {
+  height: 100%;
+}
+
+.row.tab-content {
+  height: 90%;
 }
 
 .navbar-right {
@@ -10,56 +33,76 @@ body {
   vertical-align: middle;
 }
 
-/* CodeMirror Bootstrap CSS from: http://stackoverflow.com/questions/12742058/apply-twitter-bootstrap-stylings-to-codemirror  -- may need updates :P */
-.CodeMirror {
-  line-height: 1.3em;
+tr.workbook:hover { background-color:rgb(240,240,240) !important; }
+tr.workbook:hover td { background-color:rgba(0,0,0,0) !important; }
+tr.selected { background-color:rgb(220,220,255) !important; }
+tr.selected td { background-color:rgba(0,0,0,0) !important; }
+tr.selected:hover { background-color:rgb(220,220,255) !important; }
+tr.selected:hover td { background-color:rgba(0,0,0,0) !important; }
+
+button + button,
+a.button + a.button {
+  margin-left: .5em;
+}
+
+button.bg-danger, .btn.bg-danger {
+  background-color: #f2dede;
+}
+
+#topMenu h2 {
+  display: inline;
+  vertical-align: bottom;
+  text-overflow: ellipsis;
+}
+
+.btn .fa {
+  vertical-align: middle;
+}
+
+span.fa.text-label {
   font-family: monospace;
+}
 
-  /* Necessary so the scrollbar can be absolutely positioned within the wrapper on Lion. */
+iframe#results {
+  width: 100%;
+  border: none;
+  height: 100%;
+  margin-top: 1em;
   position: relative;
-  /* This prevents unwanted scrollbars from showing up on the body and wrapper in IE. */
   overflow: hidden;
-  background-color: white;
-  width: 100% !important; /* this enforces col sizing -nh */
-
-  /* Copied from Bootstrap's textarea */
-  display: inline-block;
-  padding: 4px 6px;
-  margin-bottom: 9px;
-  color: #555555;
-  border: 1px solid #ccc;
-  -webkit-border-radius: 3px;
-  -moz-border-radius: 3px;
-  border-radius: 3px;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-  -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075);
-  -webkit-transition: border linear 0.2s, box-shadow linear 0.2s;
-  -moz-transition: border linear 0.2s, box-shadow linear 0.2s;
-  -ms-transition: border linear 0.2s, box-shadow linear 0.2s;
-  -o-transition: border linear 0.2s, box-shadow linear 0.2s;
-  transition: border linear 0.2s, box-shadow linear 0.2s;  
+  max-width: 100%;
 }
 
-.CodeMirror-focused {
-  /* Copied from Bootstrap's textarea */
-  border-color: rgba(82, 168, 236, 0.8);
-  outline: 0;
-  outline: thin dotted \9;
-  /* IE6-9 */
-
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
-     -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);
-          box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(82, 168, 236, 0.6);  
-}
-
-
-/* temporary */
 #frce {
   display: none;
 }
 
+#workbookName {
+  display: inline;
+}
+
+#cells-container {
+  height: 100%;
+  overflow-y: auto;
+}
+
+#cells { 
+  height: auto;
+}
+
+#output-container {
+  height: 100%;
+  overflow-y: auto;
+}
+
 #output {
-  display: block;
-  background-color: rgba(117,103,132, .7);
+  height: auto;
+}
+
+.full-height {
+  height: 100%;
+}
+    
+.form-align {
+  margin-top: 1.8em !important;
 }

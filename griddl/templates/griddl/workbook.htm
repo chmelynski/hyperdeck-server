@@ -1,0 +1,46 @@
+{% extends 'griddl/__base.htm' %}
+{% load static from staticfiles %}
+{% load bootstrap3 %}
+
+
+{% block title %}{{ workbook.name }} | {{ block.super }}{% endblock %}
+
+
+{% block styles %}
+  {{ block.super }}
+{% endblock %}
+
+
+{% block scripts %}
+  {{ block.super }}
+  <script type='text/javascript' src="{% static 'griddl/js/workbook.js' %}"></script>
+{% endblock %}
+
+
+{% block body %}
+  <div class="row full-height">
+    <div id='frce'>{{ workbook.text }}</div>
+    <iframe src="http://{{ sandbox }}.hyperdeck.io/results{{ workbook.uri }}" id="results" height="100%" width="100%" frameborder="0" sandbox='allow-forms allow-popups allow-scripts allow-same-origin allow-modals' seamless></iframe>
+  </div>
+
+
+  <form id="saveForm" action="/save" method="POST" style="display:none;">
+    {% csrf_token %}
+    <input type="hidden" name="id" value="{{ workbook.pk }}"></input>
+    <input id="saveFormTextInput" type="hidden" name="text" value=""></input>
+  </form>
+          
+          
+  <form class='form-horizontal' id="saveAsForm" style="display:none;">
+    {% csrf_token %}
+    <input type="hidden" name="id" value="{{ workbook.pk }}"></input>
+    <input id="saveAsFormTextInput" type="hidden" name="text" value=""></input>
+    <div class="form-group">
+      <label class='col-sm-3 form-label'>New name:</label>
+      <div class='col-sm-9'>
+        <input class="form-control" type="text" name="newname"></input>
+      </div>
+    </div>
+  </form>
+
+{% endblock %}

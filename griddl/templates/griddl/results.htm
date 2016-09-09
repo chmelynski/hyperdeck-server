@@ -1,0 +1,341 @@
+{% load static from staticfiles %}
+{% load pipeline %}
+{% load bootstrap3 %}
+<!DOCTYPE html>
+<html>
+<head>
+  <link href="{% static 'griddl/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet">
+  <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/codemirror-5.0.css' %}" />
+  <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/jquery.ui.css' %}" />
+  <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/custom.css' %}" />
+  <link rel='stylesheet' type='text/css' href="{% static 'griddl/css/griddl.css' %}" />
+  <link rel="stylesheet" href="{% static 'griddl/js/lib/fold/foldgutter.css' %}" />
+  
+  <style>{{ user.preferences.style }}</style>
+  
+  <script type='text/javascript' src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/jquery-ui.sortable.min.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/bootstrap.min.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/dat.gui.js' %}"></script>
+  
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-javascript.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-css.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-xml.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-markdown.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-yaml.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/fold/foldcode.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/fold/foldgutter.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/fold/brace-fold.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/fold/indent-fold.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/fold/xml-fold.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/fold/markdown-fold.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/fold/comment-fold.js' %}"></script>
+  
+  <script type='text/javascript' src="{% static 'griddl/js/lib/markdown.min.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/js-yaml.min.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/jquery.csv.min.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/sjcl.js' %}"></script>
+  
+  <script type='text/javascript' src="{% static 'griddl/js/utils.js' %}"></script>
+  
+  {% javascript 'hyperdeck' %}
+  
+  {% if user.is_superuser or user.account.plan.pk == 4 %}
+  	<script type='text/javascript' src="{% static 'griddl/js/import.js' %}"></script>
+  {% endif %}
+  
+  {% if user.username == 'adam' %}
+    <script type='text/javascript' src="{% static 'griddl/js/widgets/box.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/widgets/controls.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/widgets/geometry.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/widgets/grid.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/widgets/twig.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/widgets/tablegui.js' %}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r80/three.min.js"></script>
+  {% endif %}
+  
+  {# these are for PDF documents  #}
+  {% comment %}
+    <script type='text/javascript' src="{% static 'griddl/js/lib/opentype.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/box.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/text.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/font.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/document.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/section.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/table.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/subcanvas.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/image.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/styles.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/chart.bar.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/chart.line.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/axis.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/key.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/components/arrow.js' %}"></script>
+  {% endcomment %}
+  
+  <script src='http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML'></script>
+
+<script type="text/x-mathjax-config">
+// http://docs.mathjax.org/en/latest/options/hub.html
+MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/TeX','output/HTML-CSS'],messageStyle:'none',skipStartupTypeset:true,showMathMenu:true,showMathMenuMSIE:true});
+</script>
+
+{% if user.preferences.editorKeymap == 'vim' %}<script src="{% static 'griddl/js/lib/keymap/vim.js' %}"></script>{% endif %}
+{% if user.preferences.editorKeymap == 'emacs' %}<script src="{% static 'griddl/js/lib/keymap/emacs.js' %}"></script>{% endif %}
+{% if user.preferences.editorKeymap == 'sublime' %}<script src="{% static 'griddl/js/lib/keymap/sublime.js' %}"></script>{% endif %}
+
+<script>{{ user.preferences.script }}</script>
+<script>
+  Hyperdeck.preferences = {};
+  Hyperdeck.preferences.showTooltips = {{ user.preferences.showTooltips|yesno:"true,false,true" }};
+  Hyperdeck.preferences.editorTheme = "{{ user.preferences.editorTheme }}";
+  Hyperdeck.preferences.editorKeymap = "{{ user.preferences.editorKeymap }}";
+</script>
+
+</head>
+<body class="framed">
+  <div class="container-fluid"> 
+    <div class="header"></div>
+ 
+    <div class="row" id="documentMenu">
+      <div class="col-sm-6">
+
+
+        <div style="display: inline-block;">
+          {% if user.is_authenticated and user.account == workbook.owner %}
+            <a id="up" style="margin-right:1em;" class="btn btn-default" href="{{ parentdir }}">
+              <i class="fa fa-level-up fa-flip-horizontal fa-lg" style="vertical-align: middle;"></i>
+              Up
+            </a>
+          {% endif %}
+          <h4 id="workbookName" style="margin-right:1em;">{{ workbook.name }}</h4>
+        </div>
+
+
+        <div class="btn-group">
+          <button class="btn btn-default dropdown-toggle" data-toggle='dropdown' aria-haspopup="true" aria-expanded="false">
+            <i class="fa fa-cube fa-lg"></i>
+            Add<span class="hidden-xs"> Component</span>
+            <span class="caret"></span>
+          </button>
+            <ul class="dropdown-menu">
+              <li>
+                <a onclick="Hyperdeck.AddComponent('data');">
+                  Data
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('js');">
+                  Javascript
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('md');">
+                  Markdown
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('html');">
+                  Html
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('css');">
+                  Css
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('txt');">
+                  Plain Text
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('textfile');">
+                  Text File
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('binaryfile');">
+                  Binary File
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('jsfile');">
+                  Javascript File
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('imgfile');">
+                  Image File
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('repl');">
+                  Javascript REPL
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('snips');">
+                  Javascript Snippets
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('link');">
+                  Link
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('canvas');">
+                  Canvas
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('script');">
+                  Script
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('jshtml');">
+                  JsHtml
+                </a>
+              </li>
+            </ul>
+        </div>
+        
+        <div class="btn-group">
+          <button class="btn btn-default dropdown-toggle" data-toggle='dropdown' aria-haspopup="true" aria-expanded="false">
+            <i class="fa fa-wrench fa-lg"></i>
+            Tools
+            <span class="caret"></span>
+          </button>
+            <ul class="dropdown-menu">
+              <li>
+                <a onclick="Hyperdeck.Export()">
+                  Export
+                </a>
+              </li>
+              {% if user.is_superuser or user.account.plan.pk == 4 %}
+              <li>
+                <a onclick="Hyperdeck.Import()">
+                  Import
+                </a>
+              </li>
+              {% endif %}
+              <li>
+                <a onclick="Hyperdeck.ShowPasswordInput()">
+                  Encrypt
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.ShowAll()">
+                  Show All
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.HideAll()">
+                  Hide All
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.RestoreObj()">
+                  Restore Deleted
+                </a>
+              </li>
+            </ul>
+        </div>
+        
+      </div>
+
+      <div class="col-sm-6">
+              
+        <div class="btn-group btn-group" role="tablist" id="ui-toggle">
+          <button class="btn btn-default" id="show-components" title="View Components">
+            <i class="fa fa-cubes fa-lg"></i>
+            <span class="hidden-xs hidden-sm">Components</span>
+          </button>
+          <button class="btn btn-default active" id="show-all" title="View Split Screen">
+            <i class="fa fa-columns fa-lg"></i>
+            <span class="hidden-xs hidden-sm">Split</span>
+          </button>
+          <button class="btn btn-default" id="show-widgets" title="View Document">
+            <i class="fa fa-file-text-o fa-lg"></i>
+            <span class="hidden-xs hidden-sm">Document</span>
+          </button>
+        </div>
+
+        <div class="pull-right">
+          {% if user.is_authenticated and user.account == workbook.owner %}
+            <button class="btn btn-default" id="saveMenuButton">
+              <i class="fa fa-save fa-lg"></i>
+              Save
+            </button>
+          {% endif %}
+          <button class="btn btn-default" id="saveasMenuButton" data-toggle="modal" data-target='#saveAsModal'>
+            <i class="fa fa-files-o fa-lg"></i>
+            Save As
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="row tab-content">
+      <div class="col-sm-6" id='cells-container'>
+
+        <div id="frce"></div>
+
+        <div role="tabpanel" class="active" id='cells'></div>
+      </div>
+      <div class="col-sm-6" id='output-container'>
+        <div role="tabpanel" class="active" id='output'>
+          <!-- <label class="griddl-component-head-type">Output</label> -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="saveAsModal" class="modal fade">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-body">
+          <form class='form-horizontal' id="saveAsForm">
+            {% csrf_token %}
+            <input type="hidden" name="id" value="{{ workbook.pk }}"></input>
+            <input id="saveAsFormTextInput" type="hidden" name="text" value=""></input>
+            <div class="form-group">
+              <label class='col-sm-3 form-label'>New name:</label>
+              <div class='col-sm-9'>
+                <input class="form-control" type="text" name="newname"></input>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button id="saveAsSubmit" class="btn btn-success" type="submit" value="Save">Save</input>
+          <button class="btn btn-danger" type="button" value="Cancel" data-dismiss="modal">Cancel</input>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div id="passwordModal" class="modal fade">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4>Set a password to encrypt the workbook</h4>
+        </div>
+        <div class="modal-body">
+          <input class='form-control' id="passwordInput" type="password" name="text" value=""></input>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-success set-encryption" value="Save">Save</input>
+          <button class="btn btn-danger" type="button" value="Cancel" data-dismiss="modal">Cancel</input>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>

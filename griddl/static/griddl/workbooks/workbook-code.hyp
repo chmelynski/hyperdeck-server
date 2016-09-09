@@ -1,0 +1,33 @@
+
+[
+	{
+		"type": "txt",
+		"name": "text1",
+		"visible": true,
+		"text": "Add arbitrary HTML, CSS to the DOM.  Execute arbitrary JS (don't worry, this is a secure sandbox)"
+	},
+	{
+		"type": "js",
+		"name": "js1",
+		"visible": true,
+		"text": "$('#html1').css('color', 'green');"
+	},
+	{
+		"type": "html",
+		"name": "html1",
+		"visible": true,
+		"text": "foo"
+	},
+	{
+		"type": "md",
+		"name": "md1",
+		"visible": true,
+		"text": "\n*foo*\n\n**foo**\n"
+	},
+	{
+		"type": "css",
+		"name": "css1",
+		"visible": true,
+		"text": "#html1 { color: red }"
+	}
+]

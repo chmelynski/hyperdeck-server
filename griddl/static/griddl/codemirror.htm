@@ -1,0 +1,67 @@
+<html>
+<head>
+<style> .CodeMirror { border : 1px solid gray } </style>
+</head>
+<body>
+
+<link rel="stylesheet" href="CodeMirror-5.16.0/lib/codemirror.css" />
+<script src="CodeMirror-5.16.0/lib/codemirror.js"></script>
+
+<!-- modes -->
+<script src="CodeMirror-5.16.0/mode/javascript/javascript.js"></script>
+<script src="CodeMirror-5.16.0/mode/xml/xml.js"></script>
+<script src="CodeMirror-5.16.0/mode/markdown/markdown.js"></script>
+
+<!-- code folding -->
+<link rel="stylesheet" href="CodeMirror-5.16.0/addon/fold/foldgutter.css" />
+<script src="CodeMirror-5.16.0/addon/fold/foldcode.js"></script>
+<script src="CodeMirror-5.16.0/addon/fold/foldgutter.js"></script>
+<script src="CodeMirror-5.16.0/addon/fold/brace-fold.js"></script>
+<script src="CodeMirror-5.16.0/addon/fold/indent-fold.js"></script>
+<script src="CodeMirror-5.16.0/addon/fold/xml-fold.js"></script>
+<script src="CodeMirror-5.16.0/addon/fold/markdown-fold.js"></script>
+<script src="CodeMirror-5.16.0/addon/fold/comment-fold.js"></script>
+
+<!-- hinting -->
+<!-- https://codemirror.net/demo/complete.html -->
+<link rel="stylesheet" href="CodeMirror-5.16.0/addon/hint/show-hint.css">
+<script src="CodeMirror-5.16.0/addon/hint/show-hint.js"></script>
+<script src="CodeMirror-5.16.0/addon/hint/javascript-hint.js"></script>
+<script src="CodeMirror-5.16.0/addon/hint/css-hint.js"></script>
+
+<!-- highlight all instances of selected word -->
+<!-- https://codemirror.net/demo/matchhighlighter.html -->
+<style> .cm-matchhighlight { background-color : lightgreen } </style>
+<script src="CodeMirror-5.16.0/addon/search/match-highlighter.js"></script>
+<script src="CodeMirror-5.16.0/addon/scroll/annotatescrollbar.js"></script>
+<script src="CodeMirror-5.16.0/addon/search/matchesonscrollbar.js"></script>
+<script src="CodeMirror-5.16.0/addon/search/searchcursor.js"></script>
+
+<!-- panels (gutter rows above or below the editor) could be used to display errors -->
+<!-- https://codemirror.net/demo/panel.html -->
+
+<!-- smart javascript - completions, context-sensitive documentation, etc. -->
+<!-- https://codemirror.net/demo/tern.html -->
+
+<textarea></textarea>
+<script>
+
+var textarea = document.getElementsByTagName("textarea")[0];
+var options = {};
+options.mode = "javascript";
+options.lineNumbers = true;
+options.lineWrapping = true;
+options.extraKeys = {};
+options.extraKeys["Ctrl-Q"] = function(cm) { cm.foldCode(cm.getCursor()); };
+options.extraKeys["Ctrl-Space"] = "autocomplete",
+options.foldGutter = true;
+options.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"];
+
+options.highlightSelectionMatches = true; // { annotateScrollbar : true }
+
+var codemirror = CodeMirror.fromTextArea(textarea, options);
+
+</script>
+</body>
+</html>
+
