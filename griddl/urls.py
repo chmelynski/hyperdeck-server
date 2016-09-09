@@ -15,6 +15,7 @@ urlpatterns = patterns(
     url(r'^signup$', views.signup),
     url(r'^register$', views.register),
     url(r'^ajaxregister$', views.ajaxregister),
+    url(r'^export$', views.export),
 
     url(r'^(?P<userid>[0-9]+)/account$', views.account, name='account'),
     url(r'^password_change_redirect$', views.password_change_redirect, name='password_change_redirect'),
