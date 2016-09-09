@@ -15,59 +15,50 @@ var Data = function(json, type, name) {
 		json.params.display = 'tsv';
 		json.params.headers = ['A','B','C'];
 		json.params.form = 'listOfObjects';
+		json.params.afterChange = '';
 	}
 	
-	this.type = json.type;
-	this.name = json.name;
-	this.visible = json.visible; // can't use ?: here because visible can be set to false
+	this._type = json.type;
+	this._name = json.name;
+	this._visible = json.visible; // can't use ?: here because visible can be set to false
 	
-	this.div = null;
-	this.errorSpan = null;
-	this.tableDiv = null; // for unknown reasons we pass a sub div to Handsontable / add the <table> or <pre> to the sub div
-	this.handsontable = null;
-	this.codemirror = null;
+	this._div = null;
+	this._errorSpan = null;
+	this._tableDiv = null; // for unknown reasons we pass a sub div to Handsontable / add the <table> or <pre> to the sub div
+	this._handsontable = null;
+	this._codemirror = null;
 	
 	this._data = json.data;
-	this.htData = null; // in many cases, we have to convert the data to a different form to get HT to display it the way we want - this holds the converted data
+	this._htData = null; // in many cases, we have to convert the data to a different form to get HT to display it the way we want - this holds the converted data
 	
-	// the top of the undo stack is the current state - new states get pushed on add and on setting this.data
-	this.undo = {};
-	this.undo.stack = []; // { data , headers } - entirely possible that we should store display and form as well
-	this.undo.index = -1;
-	this.undo.size = 0;
-	this.undo.sizes = [];
-	this.undo.capacity = 50;
-	this.undo.pushOnAdd = true;
+	// the top of the undo stack is the current state - new states get pushed on add and on setting this._data
+	this._undo = {};
+	this._undo.stack = []; // { data , headers } - entirely possible that we should store display and form as well
+	this._undo.index = -1;
+	this._undo.size = 0;
+	this._undo.sizes = [];
+	this._undo.capacity = 50;
+	this._undo.pushOnAdd = true;
 	
-	Object.defineProperty(this, 'data', { 
-		get : function() {
-			return this._data;
-		},
-		set : function(value) {
-			
-			// in general, setting this.data should be a thing done by external code
-			// internal code should preferentially set to this._data, to avoid all this
-			
-			this.markDirty();
-			
-			this._data = value;
-			this.determineDataForm();
-			this.introspectHeaders();
-			
-			// pushUndo is called from add - problem is, if we set this.data while hidden, and then trigger an add() by changing to visible, we'll push twice
-			//if (this.visible) { this.add(); } else { this.pushUndo(JSON.stringify(this._data).length); }
-			this.add();
-		}
+	this._format = json.params.format; // json, headerList
+	this._display = json.params.display; // json, yaml, csv, tsv, grid, pre, (tree - to do; matrix, formula - to finish)
+	this._form = json.params.form; // object, list, listOfObjects, listOfLists, other
+	this._headers = json.params.headers; // this is needed to specify which columns to display and in what order - handsontable gives the user the ability to reorder columns, and we want to save that configuration
+	this._afterChange = json.params.afterChange ? json.params.afterChange : '';
+	
+	Object.defineProperty(this, 'display', {
+		get : function() { return this._display; },
+		set : function (value) { this._display = value; }
 	});
 	
-	this.format = json.params.format; // json, headerList
-	this.display = json.params.display; // json, yaml, csv, tsv, grid, pre, (tree - to do; matrix, formula - to finish)
-	this.form = json.params.form; // object, list, listOfObjects, listOfLists, other
-	this.headers = json.params.headers; // this is needed to specify which columns to display and in what order - handsontable gives the user the ability to reorder columns, and we want to save that configuration
+	Object.defineProperty(this, 'afterChange', {
+		get : function() { return this._afterChange; },
+		set : function (value) { this._afterChange = value; }
+	});
 	
-	if (this.format == 'headerList')
+	if (this._format == 'headerList')
 	{
-		// this.headers: ["foo","bar"]
+		// this._headers: ["foo","bar"]
 		// this._data: [[1,2],[3,4]]
 		// => [{"foo":1,"bar":2},{"foo":3,"bar":4}]
 		
@@ -77,9 +68,9 @@ var Data = function(json, type, name) {
 		{
 			var obj = {};
 			
-			for (var k = 0; k < this.headers.length; k++)
+			for (var k = 0; k < this._headers.length; k++)
 			{
-				obj[this.headers[k]] = this._data[i][k];
+				obj[this._headers[k]] = this._data[i][k];
 			}
 			
 			data.push(obj);
@@ -87,7 +78,7 @@ var Data = function(json, type, name) {
 		
 		this._data = data;
 	}
-	else if (this.format == 'json')
+	else if (this._format == 'json')
 	{
 		
 	}
@@ -99,22 +90,24 @@ var Data = function(json, type, name) {
 	// determining form can be an expensive operation, so we cache the result and remember it as long as we can
 	// for example, if the data is modified by the user interacting with a grid, we can be assured the data stays in a certain form
 	// the only time the slate gets completely cleared is when the user introduces arbitrary data - via script, upload, or blur
-	if (this.form === null) { this.determineDataForm(); }
-	if (this.headers === null) { this.introspectHeaders(); }
+	if (this._form === null) { this._determineDataForm(); }
+	if (this._headers === null) { this._introspectHeaders(); }
 };
-Data.prototype.add = function() {
+Data.prototype._add = function() {
 	
-	this.div.html('');
+	var comp = this;
+	
+	comp._div.html('');
 	
 	var displayOptions = ['json','yaml']; // 'grid' temporarily removed
 	
-	if (this.form == 'listOfObjects')
+	if (comp._form == 'listOfObjects')
 	{
 		displayOptions.push('csv');
 		displayOptions.push('tsv');
 	}
 	
-	if (this.form == 'listOfLists')
+	if (comp._form == 'listOfLists')
 	{
 		// add csv,tsv options with 0,1,2,3 headers?  or dummy $ header?  or no headers and just interpret as listOfLists
 		// (which means that the user is unable to convert from listOfLists to listOfObjects with a paste-in)
@@ -145,177 +138,140 @@ Data.prototype.add = function() {
 		displayOptions.push('tsv');
 	}
 	
-	if (this.form == 'list')
+	if (comp._form == 'list')
 	{
 		// these display the same thing - a simple list of values - no header
 		displayOptions.push('csv');
 		displayOptions.push('tsv');
 	}
 	
-	if (this.form == 'listOfObjects' || this.form == 'listOfLists' || this.form == 'object' || this.form == 'list')
+	if (comp._form == 'listOfObjects' || comp._form == 'listOfLists' || comp._form == 'object' || comp._form == 'list')
 	{
 		//displayOptions.push('grid');
 		displayOptions.push('pre');
 	}
 	
-	if (displayOptions.indexOf(this.display) == -1) { this.display = 'json'; }
+	if (displayOptions.indexOf(comp._display) == -1) { comp._display = 'json'; }
 	
 	var gui = new dat.GUI({autoPlace:false, width:"100%"});
-	var displayControl = gui.add(this, 'display', displayOptions);
+	var displayControl = gui.add(comp, 'display', displayOptions);
 	
-	var comp = this;
-	displayControl.onChange(function(value) { comp.undo.pushOnAdd = false; comp.add(); comp.undo.pushOnAdd = true; });
+	displayControl.onChange(function(value) { comp._undo.pushOnAdd = false; comp._add(); comp._undo.pushOnAdd = true; });
 	
 	// upload and download folders?  also, restrict based on form
 	var uploadFolder = gui.addFolder('upload');
-	uploadFolder.add(this, 'uploadJSON');
-	uploadFolder.add(this, 'uploadYAML');
-	uploadFolder.add(this, 'uploadTSV');
-	uploadFolder.add(this, 'uploadCSV');
-	//uploadFolder.add(this, 'uploadXLSX');
+	uploadFolder.add(comp, 'uploadJSON');
+	uploadFolder.add(comp, 'uploadYAML');
+	uploadFolder.add(comp, 'uploadTSV');
+	uploadFolder.add(comp, 'uploadCSV');
+	//uploadFolder.add(comp, 'uploadXLSX');
 	var downloadFolder = gui.addFolder('download');
-	downloadFolder.add(this, 'downloadJSON');
-	downloadFolder.add(this, 'downloadYAML');
-	if (displayOptions.indexOf('tsv') >= 0) { downloadFolder.add(this, 'downloadTSV'); }
-	if (displayOptions.indexOf('csv') >= 0) { downloadFolder.add(this, 'downloadCSV'); }
+	downloadFolder.add(comp, 'downloadJSON');
+	downloadFolder.add(comp, 'downloadYAML');
+	if (displayOptions.indexOf('tsv') >= 0) { downloadFolder.add(comp, 'downloadTSV'); }
+	if (displayOptions.indexOf('csv') >= 0) { downloadFolder.add(comp, 'downloadCSV'); }
+	var hooksFolder = gui.addFolder('hooks');
+	hooksFolder.add(comp, 'afterChange');
 	var tools = gui.addFolder('tools');
-	tools.add(this, 'Undo');
-	tools.add(this, 'Redo');
-	//tools.add(this, 'AddHeaders');
-	//downloadFolder.add(this, 'downloadXLSX');
+	tools.add(comp, 'Undo');
+	tools.add(comp, 'Redo');
+	//tools.add(comp, 'AddHeaders');
+	//downloadFolder.add(comp, 'downloadXLSX');
 	
-	this.div[0].appendChild(gui.domElement);
+	comp._div[0].appendChild(gui.domElement);
 	
-	this.errorSpan = $('<span></span>');
-	this.errorSpan.css('color', 'red');
-	this.div.append(this.errorSpan);
+	comp._errorSpan = $('<span></span>');
+	comp._errorSpan.css('color', 'red');
+	comp._div.append(comp._errorSpan);
 	
-	this.tableDiv = $(document.createElement('div'));
-	this.div.append(this.tableDiv);
-	
-	var comp = this;
+	comp._tableDiv = $(document.createElement('div'));
+	comp._div.append(comp._tableDiv);
 	
 	var initText = null;
 	
-	if (this.display == 'json' || this.display == 'yaml' || this.display == 'csv' || this.display == 'tsv')
+	if (comp._display == 'json' || comp._display == 'yaml' || comp._display == 'csv' || comp._display == 'tsv')
 	{
+		var mode = {json:{name:'javascript',json:true},yaml:'yaml',csv:'text',tsv:'text'}[comp._display];
+		
 		var textbox = $(document.createElement('textarea'));
-		this.tableDiv.append(textbox);
-		this.codemirror = CodeMirror.fromTextArea(textbox[0], { mode : 'javascript' , smartIndent : false , lineNumbers : true , lineWrapping : true });
+		comp._tableDiv.append(textbox);
+		comp._codemirror = CodeMirror.fromTextArea(textbox[0], { mode : mode , smartIndent : false , lineNumbers : true , lineWrapping : true });
 		
-		initText = Write.apply(this);
+		initText = Write.apply(comp, [comp._display]);
 		
-		this.codemirror.getDoc().setValue(initText);
+		comp._codemirror.getDoc().setValue(initText);
 		
-		this.codemirror.on('blur', function() {
-			comp.markDirty();
+		comp._codemirror.on('change', function() { comp._markDirty(); });
+		comp._codemirror.on('blur', function() {
 			
-			comp.errorSpan.text('');
-			
-			var text = comp.codemirror.getValue();
-			
-			var success = false;
-			
-			try
-			{
-				if (text == '')
-				{
-					comp._data = [];
-					comp.form = 'listOfObjects';
-					comp.headers = [];
-				}
-				else if (comp.display == 'json')
-				{
-					ReadJson.apply(comp, [text]);
-				}
-				else if (comp.display == 'yaml')
-				{
-					ReadYaml.apply(comp, [text]);
-				}
-				else if (comp.display == 'csv')
-				{
-					ReadCsv.apply(comp, [text]);
-				}
-				else if (comp.display == 'tsv')
-				{
-					ReadTsv.apply(comp, [text]);
-				}
-				else
-				{
-					throw new Error('Invalid display type: ' + comp.display);
-				}
-				
-				success = true;
-			}
-			catch (e)
-			{
-				comp.displayError(e, comp.display);
-			}
+			var text = comp._codemirror.getValue();
+			var success = comp._setText(text);
 			
 			if (success)
 			{
-				comp.codemirror.getDoc().setValue(Write.apply(comp));
-				//comp.add();
+				var formattedText = Write.apply(comp, [comp._display]);
+				comp._codemirror.getDoc().setValue(formattedText);
+				comp._runAfterChange();
 			}
 		});
 	}
-	else if (this.display == 'grid')
+	else if (comp._display == 'grid')
 	{
-		//Grid.Add.apply(this); // enable this when Grid is ready
+		//Grid.Add.apply(comp); // enable this when Grid is ready
 	}
-	else if (this.display == 'pre')
+	else if (comp._display == 'pre')
 	{
-		// this.tableDiv[0].innerHTML = '<pre>' + this.matrix.map(row => row.join('\t')).join('\n') + '</pre>';
+		// comp._tableDiv[0].innerHTML = '<pre>' + comp._matrix.map(row => row.join('\t')).join('\n') + '</pre>';
 		
 		var l = [];
 		
-		if (this.form == 'listOfObjects')
+		if (comp._form == 'listOfObjects')
 		{
-			l.push('\t' + this.headers.join('\t'));
+			l.push('\t' + comp._headers.join('\t'));
 			
-			for (var i = 0; i < this._data.length; i++)
+			for (var i = 0; i < comp._data.length; i++)
 			{
 				var row = [];
 				row.push(i.toString());
 				
-				for (var k = 0; k < this.headers.length; k++)
+				for (var k = 0; k < comp._headers.length; k++)
 				{
-					row.push(this._data[i][this.headers[k]]);
+					row.push(comp._data[i][comp._headers[k]]);
 				}
 				
 				l.push(row.join('\t'));
 			}
 		}
-		else if (this.form == 'listOfLists')
+		else if (comp._form == 'listOfLists')
 		{
-			l.push('\t' + this.headers.join('\t'));
+			l.push('\t' + comp._headers.join('\t'));
 			
-			for (var i = 0; i < this._data.length; i++)
+			for (var i = 0; i < comp._data.length; i++)
 			{
 				var row = [];
 				row.push(i.toString());
 				
-				for (var j = 0; j < this._data[i].length; j++)
+				for (var j = 0; j < comp._data[i].length; j++)
 				{
-					row.push(this._data[i][j]);
+					row.push(comp._data[i][j]);
 				}
 				
 				l.push(row.join('\t'));
 			}
 		}
-		else if (this.form == 'object')
+		else if (comp._form == 'object')
 		{
-			for (var k = 0; k < this.headers.length; k++)
+			for (var k = 0; k < comp._headers.length; k++)
 			{
-				var key = this.headers[k];
-				l.push(key + '\t' + this._data[key]);
+				var key = comp._headers[k];
+				l.push(key + '\t' + comp._data[key]);
 			}
 		}
-		else if (this.form == 'list')
+		else if (comp._form == 'list')
 		{
-			for (var i = 0; i < this._data.length; i++)
+			for (var i = 0; i < comp._data.length; i++)
 			{
-				l.push(i.toString() + '\t' + this._data[i]);
+				l.push(i.toString() + '\t' + comp._data[i]);
 			}
 		}
 		else
@@ -324,35 +280,37 @@ Data.prototype.add = function() {
 		}
 		
 		initText = '<pre>' + l.join('\n') + '</pre>';
-		this.tableDiv[0].innerHTML = initText;
+		comp._tableDiv[0].innerHTML = initText;
 	}
 	else
 	{
 		throw new Error();
 	}
 	
-	if (this.undo.pushOnAdd) { this.pushUndo(initText.length); }
+	if (comp._undo.pushOnAdd) { comp._pushUndo(initText.length); }
 };
-Data.prototype.write = function() {
+Data.prototype._write = function() {
+	
+	var comp = this;
 	
 	var json = {};
-	json.type = this.type;
-	json.name = this.name;
-	json.visible = this.visible;
+	json.type = comp._type;
+	json.name = comp._name;
+	json.visible = comp._visible;
 	
-	if (this.form == 'listOfObjects')
+	if (comp._form == 'listOfObjects')
 	{
-		this.format = 'headerList';
+		comp._format = 'headerList';
 		
 		var matrix = [];
 		
-		for (var i = 0; i < this._data.length; i++)
+		for (var i = 0; i < comp._data.length; i++)
 		{
 			var row = [];
 			
-			for (var k = 0; k < this.headers.length; k++)
+			for (var k = 0; k < comp._headers.length; k++)
 			{
-				row.push(this._data[i][this.headers[k]]);
+				row.push(comp._data[i][comp._headers[k]]);
 			}
 			
 			matrix.push(row);
@@ -362,88 +320,99 @@ Data.prototype.write = function() {
 	}
 	else
 	{
-		json.data = this._data;
+		comp._format = 'json';
+		json.data = comp._data;
 	}
 	
 	json.params = {};
-	json.params.format = this.format;
-	json.params.display = this.display;
-	json.params.form = this.form;
-	json.params.headers = this.headers;
+	json.params.format = comp._format;
+	json.params.display = comp._display;
+	json.params.form = comp._form;
+	json.params.headers = comp._headers;
+	json.params.afterChange = comp._afterChange;
 	return json;
 };
-Data.prototype.introspectHeaders = function() {
+Data.prototype._introspectHeaders = function() {
 	
-	this.headers = [];
+	var comp = this;
 	
-	if (this.form == 'object')
+	comp._headers = [];
+	
+	if (comp._form == 'object')
 	{
-		for (var key in this._data)
+		for (var key in comp._data)
 		{
-			this.headers.push(key);
+			comp._headers.push(key);
 		}
 	}
-	else if (this.form == 'listOfObjects')
+	else if (comp._form == 'listOfObjects')
 	{
-		for (var i = 0; i < this._data.length; i++)
+		for (var i = 0; i < comp._data.length; i++)
 		{
-			for (var key in this._data[i])
+			for (var key in comp._data[i])
 			{
-				if (this.headers.indexOf(key) == -1)
+				if (comp._headers.indexOf(key) == -1)
 				{
-					this.headers.push(key);
+					comp._headers.push(key);
 				}
 			}
 		}
 	}
-	else if (this.form == 'listOfLists')
+	else if (comp._form == 'listOfLists')
 	{
 		var max = 0;
 		
-		for (var i = 0; i < this._data.length; i++)
+		for (var i = 0; i < comp._data.length; i++)
 		{
-			max = Math.max(max, this._data[i].length);
+			max = Math.max(max, comp._data[i].length);
 		}
 		
 		for (var k = 0; k < max; k++)
 		{
-			this.headers.push(k);
+			comp._headers.push(k);
 		}
 	}
 	else
 	{
-		this.headers = null;
+		comp._headers = null;
 	}
 };
-Data.prototype.enforceHeaderOrder = function() {
+Data.prototype._enforceHeaderOrder = function() {
+	
+	var comp = this;
 	
 	// the json, csv, and yaml writers have no way of knowing the proper header order, which means they screw it up if there were insertions/deletions
 	// so we recreate all objects here
 	
 	var newdata = [];
 	
-	for (var i = 0; i < this._data.length; i++)
+	for (var i = 0; i < comp._data.length; i++)
 	{
 		var obj = {};
 		
-		for (var k = 0; k < this.headers.length; k++)
+		for (var k = 0; k < comp._headers.length; k++)
 		{
-			var header = this.headers[k];
-			obj[header] = this._data[i][header];
+			var header = comp._headers[k];
+			obj[header] = comp._data[i][header];
 		}
 		
 		newdata.push(obj);
 	}
 	
-	this._data = newdata;
+	comp._data = newdata;
 };
-Data.prototype.displayError = function(e) {
+Data.prototype._showError = function(e) {
 	
-	this.errorSpan.text(e);
-	//this.errorSpan.text(e.message);
+	var comp = this;
+	
+	comp._errorSpan.text(e);
+	//comp._errorSpan.text(e.message);
 };
-Data.prototype.determineDataForm = function() {
-	this.form = DetermineDataForm(this._data);
+Data.prototype._determineDataForm = function() {
+	
+	var comp = this;
+	
+	comp._form = DetermineDataForm(comp._data);
 };
 function DetermineDataForm(data) {
 	
@@ -620,71 +589,116 @@ function DetermineDataForm(data) {
 	return form;
 }
 
+Data.prototype._runAfterChange = function() {
+	var comp = this;
+	(new Function('args', comp._afterChange))();
+};
 
-Data.prototype.get = function(options) {
+Data.prototype._setText = function(text) {
+	
+	var comp = this;
+	var success = false;
+	comp._errorSpan.text('');
+	
+	try
+	{
+		if (text == '')
+		{
+			comp._data = [];
+			comp._form = 'listOfObjects';
+			comp._headers = [];
+		}
+		else if (comp._display == 'json')
+		{
+			ReadJson.apply(comp, [text]);
+		}
+		else if (comp._display == 'yaml')
+		{
+			ReadYaml.apply(comp, [text]);
+		}
+		else if (comp._display == 'csv')
+		{
+			ReadCsv.apply(comp, [text]);
+		}
+		else if (comp._display == 'tsv')
+		{
+			ReadTsv.apply(comp, [text]);
+		}
+		else
+		{
+			throw new Error('Invalid display type: ' + comp._display);
+		}
+		
+		success = true;
+	}
+	catch (e)
+	{
+		comp._showError(e, comp._display);
+	}
+	
+	return success;
+};
+Data.prototype._setData = function(data) {
+	
+		var comp = this;
+		var success = false;
+		comp._errorSpan.text('');
+		
+		try
+		{
+			comp._data = JSON.parse(JSON.stringify(data));
+			comp._markDirty();
+			comp._determineDataForm();
+			comp._introspectHeaders();
+			success = true;
+		}
+		catch(e)
+		{
+			comp._showError(e, comp._display);
+		}
+		
+		return success;
+};
+
+Data.prototype._get = function(options) {
+	
+	var comp = this;
 	
 	var result = null;
 	
 	if (options && options.format)
 	{
-		if (options.format == 'json')
-		{
-			result = WriteJson.apply(this);
-		}
-		else if (options.format == 'yaml')
-		{
-			result = WriteYaml.apply(this);
-		}
-		else if (options.format == 'tsv')
-		{
-			result = WriteTsv.apply(this);
-		}
-		else if (options.format == 'csv')
-		{
-			result = WriteCsv.apply(this);
-		}
-		else
-		{
-			throw new Error('Unsupported format: "' + options.format + '"');
-		}
+		result = Write.apply(comp, [options.format]);
 	}
 	else
 	{
-		result = this.data;
+		result = comp._data;
 	}
 	
 	return result;
 };
-Data.prototype.set = function(data, options) {
+Data.prototype._set = function(data, options) {
+	
+	var comp = this;
+	var success = false;
 	
 	if (options && options.format)
 	{
-		if (options.format == 'json')
-		{
-			ReadJson.apply(this, [data]);
-		}
-		else if (options.format == 'yaml')
-		{
-			ReadYaml.apply(this, [data]);
-		}
-		else if (options.format == 'tsv')
-		{
-			ReadTsv.apply(this, [data]);
-		}
-		else if (options.format == 'csv')
-		{
-			ReadCsv.apply(this, [data]);
-		}
-		else
-		{
-			throw new Error('Unsupported format: "' + options.format + '"');
-		}
-		
-		this.add();
+		comp._display = options.format;
+		success = comp._setText(data);
 	}
 	else
 	{
-		this.data = data;
+		success = comp._setData(data);
+	}
+	
+	if (success)
+	{
+		// pushUndo is called from add - problem is, if we set this.data while hidden, and then trigger an add() by changing to visible, we'll push twice
+		//if (this.visible) { this.add(); } else { this.pushUndo(JSON.stringify(this._data).length); }
+		comp._markDirty();
+		comp._add();
+		comp._runAfterChange();
 	}
 };
 
@@ -696,15 +710,6 @@ Data.prototype.downloadJSON = function() { Download.apply(this, [WriteJson.apply
 Data.prototype.downloadYAML = function() { Download.apply(this, [WriteYaml.apply(this), '.yaml']); };
 Data.prototype.downloadTSV = function() { Download.apply(this, [WriteTsv.apply(this), '.tsv']); };
 Data.prototype.downloadCSV = function() { Download.apply(this, [WriteCsv.apply(this), '.csv']); };
-Data.prototype.AddHeaders = function() {
-	
-	// we require that listsOfLists be displayed with headers 0,1,2,etc
-	// if you upload or paste in a csv/tsv without headers, you'll need to add them
-	
-	// but what does this edit and what effects does that edit trigger?
-	// that is, does it convert the data to listOfLists, or does it just edit the codemirror text and so we wait for blur to convert?
-	// seems that this has to convert to listOfLists, with an attending pushUndo
-};
 
 function Upload(fn, display) {
 	
@@ -720,8 +725,8 @@ function Upload(fn, display) {
 		fileReader.onload = function(event)
 		{
 			fn.apply(comp, [event.target.result]);
-			comp.display = display;
-			comp.add();
+			comp._display = display;
+			comp._add();
 		};
 		
 		if (fileChooser[0].files.length > 0)
@@ -735,7 +740,9 @@ function Upload(fn, display) {
 }
 function Download(text, ext) {
 	
-	var filename = this.name + ext;
+	var comp = this;
+	
+	var filename = comp._name + ext;
 	
 	var reader = new FileReader();
 	reader.readAsDataURL(new Blob([text], {type:'text/plain'})); 
@@ -747,33 +754,35 @@ function Download(text, ext) {
 	};
 }
 
-Data.prototype.pushUndo = function(size) {
+Data.prototype._pushUndo = function(size) {
+	
+	var comp = this;
 	
 	//console.log('----------');
 	
-	if (size > this.undo.capacity) { return; }
+	if (size > comp._undo.capacity) { return; }
 	
 	// ok, so what if index is not at the top of the stack?  that means that we're editing data that is the result of an undo
-	// basically this is a fork in the tree
+	// basically comp is a fork in the tree
 	// so the correct thing to do is to discard the potential redos in the now-defunct trunk
-	for (var i = this.undo.stack.length - 1; i > this.undo.index; i--)
+	for (var i = comp._undo.stack.length - 1; i > comp._undo.index; i--)
 	{
-		this.undo.stack.pop();
-		this.undo.size -= this.undo.sizes.pop();
+		comp._undo.stack.pop();
+		comp._undo.size -= comp._undo.sizes.pop();
 		//console.log('pop');
 	}
 	
-	this.undo.stack.push({ data : this._data , headers : this.headers });
-	this.undo.index = this.undo.stack.length - 1;
-	this.undo.sizes.push(size);
-	this.undo.size += size;
+	comp._undo.stack.push({ data : comp._data , headers : comp._headers });
+	comp._undo.index = comp._undo.stack.length - 1;
+	comp._undo.sizes.push(size);
+	comp._undo.size += size;
 	//console.log('push');
 	
-	while (this.undo.size > this.undo.capacity)
+	while (comp._undo.size > comp._undo.capacity)
 	{
-		this.undo.stack.shift();
-		this.undo.size -= this.undo.sizes.shift();
-		this.undo.index--;
+		comp._undo.stack.shift();
+		comp._undo.size -= comp._undo.sizes.shift();
+		comp._undo.index--;
 		//console.log('shift');
 	}
 	
@@ -781,89 +790,101 @@ Data.prototype.pushUndo = function(size) {
 };
 Data.prototype.Undo = function() {
 	
-	if (this.undo.index == 0) { return; }
-	this.undo.index--;
-	this._data = this.undo.stack[this.undo.index].data;
-	this.headers = this.undo.stack[this.undo.index].headers;
-	this.markDirty();
-	this.undo.pushOnAdd = false;
-	this.add();
-	this.undo.pushOnAdd = true;
+	var comp = this;
+	
+	if (comp._undo.index == 0) { return; }
+	comp._undo.index--;
+	comp._data = comp._undo.stack[comp._undo.index].data;
+	comp._headers = comp._undo.stack[comp._undo.index].headers;
+	comp._markDirty();
+	comp._undo.pushOnAdd = false;
+	comp._add();
+	comp._undo.pushOnAdd = true;
 };
 Data.prototype.Redo = function() {
 	
-	if (this.undo.index == this.undo.stack.length - 1) { return; }
-	this.undo.index++;
-	this._data = this.undo.stack[this.undo.index].data;
-	this.headers = this.undo.stack[this.undo.index].headers;
-	this.markDirty();
-	this.undo.pushOnAdd = false;
-	this.add();
-	this.undo.pushOnAdd = true;
+	var comp = this;
+	
+	if (comp._undo.index == comp._undo.stack.length - 1) { return; }
+	comp._undo.index++;
+	comp._data = comp._undo.stack[comp._undo.index].data;
+	comp._headers = comp._undo.stack[comp._undo.index].headers;
+	comp._markDirty();
+	comp._undo.pushOnAdd = false;
+	comp._add();
+	comp._undo.pushOnAdd = true;
 };
 
-function Write() {
+function Write(format) {
+	
+	var comp = this;
 	
 	var text = null;
 	
-	if (this.display == 'json')
+	if (comp._display == 'json')
 	{
-		text = WriteJson.apply(this);
+		text = WriteJson.apply(comp);
 	}
-	else if (this.display == 'yaml')
+	else if (comp._display == 'yaml')
 	{
-		text = WriteYaml.apply(this);
+		text = WriteYaml.apply(comp);
 	}
-	else if (this.display == 'csv')
+	else if (comp._display == 'csv')
 	{
-		text = WriteCsv.apply(this);
+		text = WriteCsv.apply(comp);
 	}
-	else if (this.display == 'tsv')
+	else if (comp._display == 'tsv')
 	{
-		text = WriteTsv.apply(this);
+		text = WriteTsv.apply(comp);
 	}
 	else
 	{
-		throw new Error();
+		throw new Error('Unsupported format: "' + options.format + '"');
 	}
 	
 	return text;
 }
 function ReadJson(text) {
 	
-	this._data = JSON.parse(text);
+	var comp = this;
 	
-	this.form = DetermineDataForm(this._data);
-	this.introspectHeaders();
-	this.parseDatatypes();
+	comp._data = JSON.parse(text);
+	
+	comp._form = DetermineDataForm(comp._data);
+	comp._introspectHeaders();
+	comp._parseDatatypes();
 }
 function ReadYaml(text) {
 	
-	this._data = jsyaml.load(text);
+	var comp = this;
 	
-	this.form = DetermineDataForm(this._data);
-	this.introspectHeaders();
-	this.parseDatatypes();
+	comp._data = jsyaml.load(text);
+	
+	comp._form = DetermineDataForm(comp._data);
+	comp._introspectHeaders();
+	comp._parseDatatypes();
 }
 function WriteJson() {
 	
-	if (this.form == 'listOfObjects')
+	var comp = this;
+	
+	if (comp._form == 'listOfObjects')
 	{
 		var ls = [];
 		
 		ls.push('[');
 		
-		for (var i = 0; i < this._data.length; i++)
+		for (var i = 0; i < comp._data.length; i++)
 		{
 			ls.push('\t{');
 			
-			for (var k = 0; k < this.headers.length; k++)
+			for (var k = 0; k < comp._headers.length; k++)
 			{
 				// wrong - numbers get incorrectly written as strings.  need a smarter stringify function
-				ls.push('\t\t"' + this.headers[k] + '": ' + WriteObjToString(this._data[i][this.headers[k]]) + ((k < this.headers.length - 1) ? ',' : ''));
+				ls.push('\t\t"' + comp._headers[k] + '": ' + WriteObjToString(comp._data[i][comp._headers[k]]) + ((k < comp._headers.length - 1) ? ',' : ''));
 			}
 			
-			ls.push('\t}' + ((i < this._data.length - 1) ? ',' : ''));
+			ls.push('\t}' + ((i < comp._data.length - 1) ? ',' : ''));
 		}
 		
 		ls.push(']');
@@ -872,20 +893,22 @@ function WriteJson() {
 	}
 	else
 	{
-		return JSON.stringify(this._data);
+		return JSON.stringify(comp._data);
 	}
 }
 function WriteYaml() {
 	
-	if (this.form == 'listOfObjects')
+	var comp = this;
+	
+	if (comp._form == 'listOfObjects')
 	{
 		var ls = [];
 		
-		for (var i = 0; i < this._data.length; i++)
+		for (var i = 0; i < comp._data.length; i++)
 		{
-			for (var k = 0; k < this.headers.length; k++)
+			for (var k = 0; k < comp._headers.length; k++)
 			{
-				ls.push(((k == 0) ? '-' : ' ') + ' ' + this.headers[k] + ': ' +  WriteObjToString(this._data[i][this.headers[k]]));
+				ls.push(((k == 0) ? '-' : ' ') + ' ' + comp._headers[k] + ': ' +  WriteObjToString(comp._data[i][comp._headers[k]]));
 			}
 		}
 		
@@ -893,20 +916,23 @@ function WriteYaml() {
 	}
 	else
 	{
-		return jsyaml.dump(this._data);
+		return jsyaml.dump(comp._data);
 	}
 }
 
 function ReadCsvOld(text) {
 	
+	var comp = this;
+	
 	// this csv library interprets bare numbers as strings - we need to look through the objects and parse strings to numbers
-	this._data = $.csv.toObjects(text);
-	this.form = DetermineDataForm(this._data);
-	this.introspectHeaders();
-	this.parseDatatypes();
+	comp._data = $.csv.toObjects(text);
+	comp._form = DetermineDataForm(comp._data);
+	comp._introspectHeaders();
+	comp._parseDatatypes();
 }
-Data.prototype.parseDatatypes = function() {
-	ParseDatatypeRec(this._data);
+Data.prototype._parseDatatypes = function() {
+	var comp = this;
+	ParseDatatypeRec(comp._data);
 };
 function ParseDatatypeRec(obj) {
 	
@@ -955,7 +981,9 @@ function ReadCsv(text) { ReadSeparatedValues.apply(this, [text, ',']); }
 function WriteTsv() { return WriteSeparatedValues.apply(this, ['\t']); }
 function WriteCsv() { return WriteSeparatedValues.apply(this, [',']); }
 
-var stringRegexString = '"([^"]|\\\\")*"'; // only supports double quoted strings
+var singleQuotedStringRegexString = "'([^']|\\\\')*'";
+var doubleQuotedStringRegexString = '"([^"]|\\\\")*"';
+var stringRegexString = '(' + singleQuotedStringRegexString + '|' + doubleQuotedStringRegexString + ')';
 var newlineRegexString = '(\\r\\n|\\r|\\n)'; // newlines act as object delimiters
 
 function SeparatedValuesToMatrix(text, delimiter) {
@@ -993,6 +1021,11 @@ function SeparatedValuesToMatrix(text, delimiter) {
 			row = [];
 			afterEntry = false;
 		}
+		else if (token[0] == '"' || token[0] == "'")
+		{
+			row.push(token.substr(1, token.length-2));
+			afterEntry = true;
+		}
 		else
 		{
 			row.push(token);
@@ -1008,6 +1041,8 @@ function SeparatedValuesToMatrix(text, delimiter) {
 }
 function ReadSeparatedValues(text, delimiter) {
 	
+	var comp = this;
+	
 	var matrix = SeparatedValuesToMatrix(text, delimiter);
 	var data = null;
 	var headers = null;
@@ -1017,7 +1052,7 @@ function ReadSeparatedValues(text, delimiter) {
 	
 	if (areAllRowLengthsUnity)
 	{
-		this.form = 'list';
+		comp._form = 'list';
 		data = matrix.map(function(row) { return ParseStringToObj(row[0]); }); // interpret text as a list
 	}
 	else
@@ -1057,7 +1092,7 @@ function ReadSeparatedValues(text, delimiter) {
 		
 		if (isListOfLists)
 		{
-			this.form = 'listOfLists';
+			comp._form = 'listOfLists';
 			
 			headers = [];
 			for (var j = 0; j < headerIndexes.length; j++) { headers.push(j); }
@@ -1082,7 +1117,7 @@ function ReadSeparatedValues(text, delimiter) {
 		}
 		else
 		{
-			this.form = 'listOfObjects';
+			comp._form = 'listOfObjects';
 			
 			headers = matrix[0];
 			
@@ -1100,33 +1135,35 @@ function ReadSeparatedValues(text, delimiter) {
 		}
 	}
 	
-	this._data = data;
-	this.headers = headers;
+	comp._data = data;
+	comp._headers = headers;
 }
 function WriteSeparatedValues(delimiter) {
 	
+	var comp = this;
+	
 	var ls = [];
 	
-	if (this.form == 'list')
+	if (comp._form == 'list')
 	{
-		for (var i = 0; i < this._data.length; i++)
+		for (var i = 0; i < comp._data.length; i++)
 		{
-			var val = this._data[i];
+			var val = comp._data[i];
 			var str = ((val === null) ? '' : val.toString());
 			ls.push(str);
 		}
 	}
 	else
 	{
-		ls.push(this.headers.join(delimiter));
+		ls.push(comp._headers.join(delimiter));
 		
-		for (var i = 0; i < this._data.length; i++)
+		for (var i = 0; i < comp._data.length; i++)
 		{
 			var entries = [];
 			
-			for (var k = 0; k < this.headers.length; k++)
+			for (var k = 0; k < comp._headers.length; k++)
 			{
-				var val = this._data[i][this.headers[k]];
+				var val = comp._data[i][comp._headers[k]];
 				var str = ((val === null) ? '' : val.toString());
 				
 				if (str.indexOf(delimiter) >= 0 || str.indexOf('"') >= 0 || str.indexOf('\n') >= 0 || str.indexOf('\r') >= 0)
@@ -1157,7 +1194,7 @@ var WriteObjToString = function(obj) {
 	
 	// this is currently called only when writing to json/yaml, which requires that we return 'null'
 	// but if we start calling this function from the csv/tsv writer, we'll need to return ''
-	if (obj === null) { return 'null'; }
+	if (obj === null || obj === undefined) { return 'null'; }
 	
 	var type = Object.prototype.toString.call(obj);
 	

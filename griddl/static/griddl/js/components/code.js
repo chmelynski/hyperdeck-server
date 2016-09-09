@@ -1,11 +1,20 @@
 
 (function() {
 
-// the <style> or <div> tag is added in add(), so that subsequent calls to exec() just sets the inner html
+// the <style> or <div> tag is added in addOutputElements() via add(), so that subsequent calls to exec() just sets the inner html
 
-// we compile on blur or when text is set
-// for js, compile just builds the Function object, it doesn't execute it
-// for html, css, and md, compile sets this._data and then calls exec
+// we compile() on blur, but we don't actually compile the js in compile() anymore, we compile it in exec()
+// for html, css, and md, compile() just calls exec()
+
+var typeDict = {};
+typeDict.txt = {mode:'plain',tag:null,execOnLoad:false,execOnBlur:false,execOnClick:false};
+typeDict.html = {mode:'xml',tag:'div',execOnLoad:true,execOnBlur:true,execOnClick:false};
+typeDict.md = {mode:'markdown',tag:'div',execOnLoad:true,execOnBlur:true,execOnClick:false};
+typeDict.css = {mode:'css',tag:'style',execOnLoad:true,execOnBlur:true,execOnClick:false};
+typeDict.js = {mode:'javascript',tag:null,execOnLoad:false,execOnBlur:false,execOnClick:true};
+typeDict.script = {mode:'javascript',tag:'div',execOnLoad:true,execOnBlur:true,execOnClick:false};
+typeDict.jshtml = {mode:'javascript',tag:'div',execOnLoad:true,execOnBlur:false,execOnClick:true};
+typeDict.canvas = {mode:'javascript',tag:'div',execOnLoad:true,execOnBlur:false,execOnClick:true};
 
 var Code = function(json, type, name) {
 	
@@ -18,63 +27,31 @@ var Code = function(json, type, name) {
 		json.text = '';
 	}
 	
-	this.type = json.type;
-	this.name = json.name;
-	this.visible = json.visible;
+	this._type = json.type;
+	this._name = json.name;
+	this._visible = json.visible;
 	
-	this.div = null;
-	this.codemirror = null;
-	this.errorSpan = null;
+	this._div = null;
+	this._codemirror = null;
+	this._errorSpan = null;
 	
 	this._text = json.text;
-	this._data = null; // this is the function object for js, and plain text otherwise.  we compile in add() rather than here because the errorSpan needs to be in place to display any compilation errors
-	
-	Object.defineProperty(this, 'text', {
-		get : function() {
-			return this._text;
-		},
-		set : function(value) {
-			this._text = value;
-			this.markDirty();
-			this.codemirror.getDoc().setValue(this._text);
-			this.compile();
-		}
-	});
-	
-	Object.defineProperty(this, 'data', {
-		get : function() {
-			return this._data;
-		},
-		set : function(value) {
-			
-			// if type is js, data should be a function.  otherwise, data should be plain text
-			// that said, there is a seed here for general purpose conversion between objects and their textual representations
-			// compile(string) => object
-			// textify(object) => string
-			
-			this._data = value;
-			this.markDirty();
-			this.textify();
-		}
-	});
+	this._fn = null; // this is the function object for js, and plain text otherwise.  we compile in add() rather than here because the errorSpan needs to be in place to display any compilation errors
 };
-Code.prototype.add = function() {
+Code.prototype._add = function() {
 	
 	var comp = this;
 	
-	if (this.type == 'js') //  || this.type == 'html' || this.type == 'css' - now we're modifying the DOM on blur, without needing a button click
+	if (typeDict[comp._type].execOnClick)
 	{
-		var button = $('<button></button>');
-		button.text({js:'Run Code',html:'Add to DOM',css:'Add to DOM'}[this.type]);
-		button[0].onclick = function() { comp.exec(); };
-		this.div.append(button);
+		comp._div.append($('<button>Run Code</button>').on('click', function() { comp._exec(); }));
 	}
 	
 	var textarea = $(document.createElement('textarea'));
-	this.div.append(textarea);
+	comp._div.append(textarea);
 	
 	var options = {};
-	options.smartIndent = false;
+	options.smartIndent = true;
 	options.lineNumbers = true;
 	options.lineWrapping = true;
 	options.foldGutter = true;
@@ -89,132 +66,91 @@ Code.prototype.add = function() {
 		for (var key in Hyperdeck.Preferences.CodeMirror) { options[key] = Hyperdeck.Preferences.CodeMirror[key]; }
 	}
 	
-	options.mode = {txt:'plain',js:'javascript',css:'css',html:'xml',md:'markdown'}[this.type];
+	options.mode = typeDict[comp._type].mode;
 	
-	this.codemirror = CodeMirror.fromTextArea(textarea[0], options);
+	comp._codemirror = CodeMirror.fromTextArea(textarea[0], options);
 	
-	this.codemirror.on('change', function() {
-		comp.markDirty();
+	comp._codemirror.on('change', function() {
+		comp._markDirty();
 	});
 	
-	this.codemirror.on('blur', function() {
-		comp._text = comp.codemirror.getValue(); // we avoid a setter loop by setting this._text, not this.text
-		comp.compile();
+	comp._codemirror.on('blur', function() {
+		comp._text = comp._codemirror.getValue();
+		comp._onblur();
 	});
 	
-	this.codemirror.getDoc().setValue(this.text);
+	comp._codemirror.getDoc().setValue(comp._text);
 	
-	//this.errorSpan = $('<span></span>');
-	//this.errorSpan.css('color', 'red');
-	//this.div.append(this.errorSpan);
+	//comp._errorSpan = $('<span></span>');
+	//comp._errorSpan.css('color', 'red');
+	//comp._div.append(comp._errorSpan);
 	
-	this.addOutputElements();
+	comp._addOutputElements();
 };
-Code.prototype.addOutputElements = function() {
+Code.prototype._addOutputElements = function() {
 	
-	if (this.type == 'html' || this.type == 'css' || this.type == 'md')
+	var comp = this;
+	
+	var tagname = typeDict[comp._type].tag;
+	
+	if (tagname)
 	{
-		var tagname = ((this.type == 'css') ? 'style' : 'div');
-		var elt = $('<' + tagname + ' id="' + this.name + '"></' + tagname + '>');
+		var elt = $('<' + tagname + ' id="' + comp._name + '"></' + tagname + '>');
 		$('#output').append(elt);
 	}
 };
-Code.prototype.compile = function() {
+Code.prototype._onblur = function() {
 	
-	if (this.type == 'js')
-	{
-		 // we call compile on blur, and can't change that because it works well for html/css/md
-		 // but for js, compiling on blur is kind of a pain.  just compile before exec
-		//this._data = new Function('args', this._text);
-		
-		//this.errorSpan.text('');
-		//try
-		//{
-		//	this._data = new Function('args', this._text);
-		//}
-		//catch (e)
-		//{
-		//	this.displayError(e);
-		//}
-	}
-	else if (this.type == 'html' || this.type == 'css' || this.type == 'md')
-	{
-		this._data = this._text;
-		this.exec();
-	}
-	else
-	{
-		this._data = this._text;
-	}
+	var comp = this;
+	if (typeDict[comp._type].execOnBlur) { comp._exec(); }
 };
-Code.prototype.textify = function() {
+Code.prototype._afterLoad = function() {
 	
-	if (this.type == 'js')
-	{
-		this._text = this._data.toString();
-	}
-	else
-	{
-		this._text = this._data.toString(); // this._data should be a string anyway, but no harm in calling toString
-	}
-	
-	this.codemirror.getDoc().setValue(this._text);
-};
-Code.prototype.afterLoad = function() {
-	
-	// we do this here rather than in the constructor because the errorSpan has to be in place
+	var comp = this;
 	// we do this here rather than in add because we don't want to exec inline <script>s until all components have loaded
-	this.compile();
+	if (typeDict[comp._type].execOnLoad) { comp._exec(); }
 };
-Code.prototype.exec = function() {
+Code.prototype._exec = function() {
 	
-	this._text = this.codemirror.getDoc().getValue();
+	var comp = this;
 	
-	if (this.type == 'css')
+	if (comp._type == 'css')
 	{
-		$('#' + this.name).html(this.text);
+		$('#' + comp._name).html(comp._text);
 	}
-	else if (this.type == 'html' || this.type == 'md')
+	else if (comp._type == 'script')
 	{
-		var html = (this.type == 'md') ? markdown.toHTML(this.text) : this.text;
-		$('#' + this.name).html(html);
-		
-		//var div = $('<div id="' + this.name + '"></div>');
-		//div.html(html);
-		//var id = "#" + this.name;
-		//
-		//if ($(id, '#output').length > 0)
-		//{
-		//	$('#' + this.name).replaceWith(div);
-		//}
-		//else
-		//{
-		//	$('#output').append(div);
-		//}
-		
-		if (MathJax) { MathJax.Hub.Typeset(this.name); }
+		$('#' + comp._name).html('<script>' + comp._text + '</script>');
 	}
-	else if (this.type == 'js')
+	else if (comp._type == 'html' || comp._type == 'md')
 	{
-		this._data = new Function('args', this._text);
-		this.data();
-		
-		//this.errorSpan.text('');
-		//try
-		//{
-		//	this.data();
-		//}
-		//catch (e)
-		//{
-		//	this.displayError(e);
-		//}
+		var html = (comp._type == 'md') ? markdown.toHTML(comp._text) : comp._text;
+		$('#' + comp._name).html(html);
+		if (MathJax) { MathJax.Hub.Typeset(comp._name); }
+	}
+	else if (comp._type == 'js')
+	{
+		(new Function('args', comp._text))();
+	}
+	else if (comp._type == 'canvas')
+	{
+		var canvas = document.createElement('canvas');
+		var ctx = canvas.getContext('2d');
+		$('#' + comp._name).html('')[0].appendChild(canvas);
+		(new Function('ctx', comp._text))(ctx);
+	}
+	else if (comp._type == 'jshtml')
+	{
+		$('#' + comp._name).html((new Function('args', comp._text))());
 	}
 	else
 	{
-		throw new Error("'" + this.name + "' is a " + this.type + ", not an executable js/css/html object");
+		throw new Error("'" + comp._name + "' is not an executable object");
 	}
 };
-Code.prototype.displayError = function(e) {
+Code.prototype._displayError = function(e) {
+	
+	var comp = this;
 	
 	var lines = e.stack.split('\n');
 	var evalLine = null;
@@ -228,7 +164,7 @@ Code.prototype.displayError = function(e) {
 	
 	if (evalLine == null)
 	{
-		this.errorSpan.text(e);
+		comp._errorSpan.text(e);
 	}
 	else
 	{
@@ -237,28 +173,45 @@ Code.prototype.displayError = function(e) {
 		var functionName = fnLineColArray[0];
 		var lineNumber = fnLineColArray[1] - 2; // not sure why the line number is 2 off
 		var colNumber = fnLineColArray[2];
-		this.errorSpan.text('Error: ' + e.message + ' (at line ' + lineNumber + ', column ' + colNumber + ')');
+		comp._errorSpan.text('Error: ' + e.message + ' (at line ' + lineNumber + ', column ' + colNumber + ')');
 	}
 };
-Code.prototype.write = function() {
+Code.prototype._write = function() {
+	
+	var comp = this;
 	
 	var json = {};
-	json.type = this.type;
-	json.name = this.name;
-	json.visible = this.visible;
-	json.text = this.text;
+	json.type = comp._type;
+	json.name = comp._name;
+	json.visible = comp._visible;
+	json.text = comp._text;
 	return json;
 };
 
-// maybe add option allowing to get/set the js Function object
-Code.prototype.get = function(options) { return this.text; };
-Code.prototype.set = function(data, options) { this.text = data; };
+Code.prototype._get = function(options) {
+	
+	var comp = this;
+	
+	return comp._text;
+};
+Code.prototype._set = function(text, options) {
+	
+	var comp = this;
+	
+	comp._text = text;
+	comp._markDirty();
+	comp._codemirror.getDoc().setValue(comp._text);
+	comp._onblur();
+};
 
 Hyperdeck.Components.txt = Code;
 Hyperdeck.Components.js = Code;
 Hyperdeck.Components.html = Code;
 Hyperdeck.Components.css = Code;
 Hyperdeck.Components.md = Code;
+Hyperdeck.Components.canvas = Code;
+Hyperdeck.Components.jshtml = Code;
+Hyperdeck.Components.script = Code;
 
 })();
 

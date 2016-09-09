@@ -473,13 +473,16 @@ def move(request):
         if not parent:
             raise exceptions.ValidationError('request missing param "parent"')
 
+        dstFolder = '/'
+        
         if parent == 'root':  # special case, sorry
             wb.parent = None
         else:
             wb.parent = Workbook.objects.get(pk=parent)
+            dstFolder = wb.parent.path
 
         wb.save()
-        return JsonResponse({'success': True, 'slug': wb.slug})
+        return JsonResponse({'success': True, 'slug': wb.slug, 'dstFolder': dstFolder })
     except exceptions.PermissionDenied:
         return JsonResponse({'success': False, 'redirect': '/login'})
     except Exception:

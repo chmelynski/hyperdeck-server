@@ -1,21 +1,15 @@
 # flake8: noqa
 
-# we can use os.getcwd() to distinguigh between development and production
-# in development, os.getcwd() => '/cygdrive/c/Users/Adam/Desktop/frce/mysite'
-# i don't know what it is in production, but it ain't that
 import os
-
-developmentServer = (os.getcwd() != '/app')
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 noahDev = os.getenv('griddlDev')
-staging = os.getenv('staging')
 herokuDev = os.getenv('herokuDev')
-if noahDev or staging or herokuDev:
-    developmentServer = False
+staging = os.getenv('staging')
+production = os.getenv('production')
 
-if developmentServer or noahDev or staging or herokuDev:
+if noahDev or herokuDev or staging:
     DEBUG = True
 else:
     DEBUG = False
@@ -33,41 +27,22 @@ MANAGERS = ADMINS
 #        or '127.0.0.1' for localhost through TCP
 # PORT : Set to empty string for default
 
-
-if developmentServer:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': 'C:/cygwin64/home/adam/frce/mysite/db.sqlite3'
-        }
-    }
-elif noahDev:
+if noahDev:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': '/var/www/griddl/db.sqlite3'
         }
     }
-
 else:
     import dj_database_url
     DATABASES = {'default': dj_database_url.config()}
-    # DATABASES = {
-    #    'default' : {
-    #        'ENGINE' : 'django.db.backends.postgresql_psycopg2' ,
-    #        'NAME' : 'griddl' ,
-    #        'USER' : env['DOTCLOUD_DB_SQL_LOGIN'],
-    #        'PASSWORD' : env['DOTCLOUD_DB_SQL_PASSWORD'],
-    #        'HOST' : env['DOTCLOUD_DB_SQL_HOST'],
-    #        'PORT' : int(env['DOTCLOUD_DB_SQL_PORT'])
-    #    }
-    # }
 
 # DATABASE_ROUTERS = [ 'path.to.AuthRouter' , 'path.to.MasterSlaveRouter' ]
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = ['hyperdeck.io','workbook.hyperdeck.io','sandbox.hyperdeck.io']
+ALLOWED_HOSTS = ['hyperdeck.io','workbook.hyperdeck.io','sandbox.hyperdeck.io','www.hyperdeck.io']
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -100,14 +75,6 @@ MEDIA_URL = ''
 # in apps' "static/" subdirectories and in STATICFILES_DIRS.
 # Example: "/var/www/example.com/static/"
 
-# if developmentServer:
-#    STATIC_ROOT = ''
-# else:
-#    STATIC_ROOT = '/home/dotcloud/volatile/static/'
-
-# not sure what heroku demands for this
-
-
 # URL prefix for static files.
 # Example: "http://example.com/static/", "http://static.example.com/"
 # Additional locations of static files
@@ -115,15 +82,10 @@ MEDIA_URL = ''
 # Always use forward slashes, even on Windows.
 # Don't forget to use absolute paths, not relative paths.
 
-if developmentServer:
-    STATIC_ROOT = 'griddl/static'
-    STATIC_URL = '/static/'
-    STATICFILES_DIRS = ()
-else:
-    # STATIC_ROOT = '/app/griddl/static'
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    STATIC_URL = '/static/'
-    STATICFILES_DIRS = (os.path.join(os.path.dirname(
+# STATIC_ROOT = '/app/griddl/static'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_URL = '/static/'
+STATICFILES_DIRS = (os.path.join(os.path.dirname(
                         os.path.abspath(__file__)), 'static'), )
 
 # STATICFILES_STORAGE = 'whitenoise.django.GzipManifestStaticFilesStorage'
@@ -179,12 +141,12 @@ WSGI_APPLICATION = 'mysite.wsgi.application'
 
 INSTALLED_APPS = (
     'django.contrib.auth',
-    'django.contrib.admin',  # enable admin
+    'django.contrib.admin',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.sites',
     'django.contrib.messages',
-    'django.contrib.staticfiles',  # enable static files
+    'django.contrib.staticfiles',
     # 'django.contrib.admindocs', # enable admin documentation
 
     'stored_messages', # django-stored-messages
@@ -205,25 +167,12 @@ CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
 
-# REST_FRAMEWORK = {
-#    # Use hyperlinked styles by default.
-#    # Only used if the `serializer_class` attribute is not set on a view.
-#    'DEFAULT_MODEL_SERIALIZER_CLASS':
-#        'rest_framework.serializers.HyperlinkedModelSerializer',
-#
-#    # Use Django's standard `django.contrib.auth` permissions,
-#    # or allow read-only access for unauthenticated users.
-#    'DEFAULT_PERMISSION_CLASSES': [
-#        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
-#    ]
-# }
-
 # See http://docs.djangoproject.com/en/dev/topics/logging for more details
 # on how to customize your logging configuration.
 
 # this is quickly going to force us to adopt a mutiple-settings-file approach
 # or risk madness, maybe both
-if noahDev or developmentServer:
+if noahDev:
     default_handler = 'file'
 else:
     default_handler = 'stdout'
@@ -305,8 +254,9 @@ MESSAGE_STORAGE = 'stored_messages.storage.PersistentStorage'
 # email settings / impt for password_reset
 # NB: also used on live to notify admins of Error-level log messages
 EMAIL_BACKEND = 'postmark.django_backend.EmailBackend'
-POSTMARK_SENDER = 'support@hyperdeck.io'
-if DEBUG:  # don't waste our free emails on DEBUG
+POSTMARK_SENDER = 'admin@hyperdeck.io'
+DEFAULT_FROM_EMAIL = 'admin@hyperdeck.io' # password reset uses this, not sure who reads POSTMARK_SENDER
+if noahDev or herokuDev:  # don't waste our free emails on dev
     POSTMARK_TEST_MODE = True
 else:
     POSTMARK_API_KEY = os.getenv("POSTMARK_API_KEY", False)
@@ -345,10 +295,10 @@ SESSION_COOKIE_DOMAIN = ".hyperdeck.io"
 SESSION_COOKIE_NAME = SUBDOMAINS['main'] + 'sessionid'
 
 PIPELINE = {
-    'PIPELINE_ENABLED': not DEBUG, # True = compress
+    'PIPELINE_ENABLED': staging or production, # True = compress
     'JS_COMPRESSOR': 'pipeline.compressors.uglifyjs.UglifyJSCompressor',
     'UGLIFYJS_BINARY': os.path.join(BASE_DIR, 'node_modules', '.bin', 'uglifyjs'),
-    'UGLIFYJS_ARGUMENTS': '-m',
+    'UGLIFYJS_ARGUMENTS': '--mangle --mangle-props --mangle-regex="/^_/"',
     'DISABLE_WRAPPER': True, # by default, output is wrapped in an anonymous function
     'JAVASCRIPT': {
         'hyperdeck': {
@@ -360,23 +310,7 @@ PIPELINE = {
               'griddl/js/components/repl.js',
               'griddl/js/components/link.js',
             ),
-            'output_filename': 'griddl/js/hyperdeck.js',
-        },
-        'codemirrorAddons': {
-            'source_filenames': (
-                'griddl/js/lib/codemirror-5.0-javascript.js',
-                'griddl/js/lib/codemirror-5.0-css.js',
-                'griddl/js/lib/codemirror-5.0-xml.js',
-                'griddl/js/lib/codemirror-5.0-markdown.js',
-                'griddl/js/lib/fold/foldcode.js',
-                'griddl/js/lib/fold/foldgutter.js',
-                'griddl/js/lib/fold/brace-fold.js',
-                'griddl/js/lib/fold/indent-fold.js',
-                'griddl/js/lib/fold/xml-fold.js',
-                'griddl/js/lib/fold/markdown-fold.js',
-                'griddl/js/lib/fold/comment-fold.js',
-            ),
-            'output_filename': 'griddl/js/lib/codemirror-addons.js',
+            'output_filename': 'griddl/js/hyperdeck.min.js',
         },
     },
 }

@@ -1,6 +1,8 @@
+
 var Hyperdeck = (function() {
 
-var objs = [];
+var comps = [];
+var names = {}; // key is component name 'foo', value is the component
 
 var lastDeletedObj = null;
 var password = null;
@@ -13,74 +15,78 @@ var Main = function(text) {
 		text = $('#frce').text(); // document.getElementById('frce').innerText
 	}
 	
-	var json = JSON.parse(text);
+	var jsons = JSON.parse(text);
 	
-	if (json.cipher)
+	if (jsons.cipher)
 	{
 		ciphertext = text;
+		
 		var ls = [];
-    ls.push('<div class="modal fade" id="decryption-modal"><div class="modal-dialog"><div class="modal-content">');
+		ls.push('<div class="modal fade" id="decryption-modal"><div class="modal-dialog"><div class="modal-content">');
 		ls.push('<div class="modal-body"><div id="passwordDiv">');
-    ls.push('<form class="form-horizontal" id="decrypt-form"><div class="form-group">');
-    ls.push('<label class="col-sm-3" for="decrypt-password">Password</label>');
-    ls.push('<div class="col-sm-9">');
+		ls.push('<form class="form-horizontal" id="decrypt-form"><div class="form-group">');
+		ls.push('<label class="col-sm-3" for="decrypt-password">Password</label>');
+		ls.push('<div class="col-sm-9">');
 		ls.push('<input class="form-control" name="decrypt-password" id="decrypt-password" type="password"></input>');
-    ls.push('</div></div>');
-    ls.push('</form></div></div><div class="modal-footer">');
+		ls.push('</div></div>');
+		ls.push('</form></div></div><div class="modal-footer">');
 		ls.push('<button class="btn btn-success" id="decrypt-submit">Decrypt</button>');
 		ls.push('</div></div></div></div></div>');
+		
 		var passwordDiv = $(ls.join(''));
 		$('body').append(passwordDiv);
-    $('#decryption-modal').modal('show');
-
-    var process_decrypt = function (event) {
-      event.preventDefault();
-      Hyperdeck.Decrypt($('#decrypt-password').val());
-      $('#decryption-modal').modal('hide');
-    }
-
-    $("#decrypt-form").on('submit', function(e) {
-      e.stopPropagation();
-      process_decrypt(e);
-    });
-    $("#decrypt-submit").on('click', function(e) {
-      process_decrypt(e);
-    });
+		$('#decryption-modal').modal('show');
+		
+		var process_decrypt = function (event) {
+			event.preventDefault();
+			Hyperdeck.Decrypt($('#decrypt-password').val());
+			$('#decryption-modal').modal('hide');
+		}
+		
+		$("#decrypt-form").on('submit', function(e) {
+			e.stopPropagation();
+			process_decrypt(e);
+		});
+		
+		$("#decrypt-submit").on('click', function(e) {
+			process_decrypt(e);
+		});
+		
 		return;
 	}
 	
 	$('#cells').html('');
 	
-	objs = [];
-	json.forEach(function(o) { NewComponent(o, o.type); });
-	objs.forEach(function(obj) { if (obj.afterLoad) { obj.afterLoad(); } });
+	comps = [];
+	jsons.forEach(function(json) { NewComponent(json, json.type); });
+	comps.forEach(function(comp) { if (comp._afterLoad) { comp._afterLoad(); } });
 	
 	MakeSortable();
 	MarkClean();
-
-  // hijack all links & force a new tab/window
-  // but make sure nobody's pulling a mean trick lol
-  // note: document.ready is too early for this ugh
-  $('#output a').on('click.test', function(e) {
-    e.preventDefault();
-    if (typeof(e.target.href) !== 'undefined') {
-      if (e.target.href.indexOf('javascript:') === -1) {
-        parent.postMessage({'action': 'link', 'href': e.target.href}, playground);
-        return false;
-      }
-    }
-  });
+	
+	// hijack all links & force a new tab/window
+	// but make sure nobody's pulling a mean trick lol
+	// note: document.ready is too early for this ugh
+	$('#output a').on('click.test', function(e) {
+		e.preventDefault();
+		if (typeof(e.target.href) !== 'undefined') {
+			if (e.target.href.indexOf('javascript:') === -1) {
+			parent.postMessage({'action': 'link', 'href': e.target.href}, playground);
+			return false;
+			}
+		}
+	});
 };
 var NewComponent = function(json, type, name) {
 	
-	var obj = new Components[type](json, type, name);
-	obj.markDirty = MarkDirty;
-	objs[obj.name] = obj;
-	objs.push(obj);
-	obj.div = createComponentDivToUse($('#cells'), obj);
-	obj.div.css('border', '1px solid gray');
-	obj.div.css('background-color', 'rgb(230,230,230)');
-	obj.add();
+	var comp = new Components[type](json, type, name);
+	comp._markDirty = MarkDirty;
+	names[comp._name] = comp;
+	comps.push(comp);
+	comp._div = createComponentDivToUse($('#cells'), comp);
+	comp._div.css('border', '1px solid gray');
+	comp._div.css('background-color', 'rgb(230,230,230)');
+	comp._add();
 };
 var AddComponent = function(type, useLocalCreateComponentDiv) {
 	if (useLocalCreateComponentDiv) { createComponentDivToUse = LocalCreateComponentDiv; }
@@ -88,33 +94,42 @@ var AddComponent = function(type, useLocalCreateComponentDiv) {
 	if (!dirty) { MarkDirty(); }
 	MakeSortable();
 };
-var RenameObj = function(obj, newname) {
-	delete objs[obj.name];
-	while (objs[newname]) { newname += ' - copy'; } // if there is a conflict, just add suffixes until there isn't
-	$('#'+obj.name).attr('id', newname);
-	$('#'+obj.name+'Component').attr('id', newname+'Component');
-	obj.name = newname;
-	objs[obj.name] = obj;
+var RenameComponent = function(comp, newname) {
+	
+	// if there is a conflict, post an error message and return the old name to be set in the input
+	if (names[newname])
+	{
+		$.alert('Name "' + newname + '" conflicts with an existing name.', 'danger');
+		return comp._name;
+	}
+	
+	delete names[comp._name];
+	$('#'+comp._name).attr('id', newname);
+	$('#'+comp._name+'Component').attr('id', newname+'Component');
+	comp._name = newname;
+	names[comp._name] = comp;
+	return comp._name;
 };
-var DeleteObj = function(obj) {
-	lastDeletedObj = obj;
-	$('#'+obj.name).remove();
-	delete objs[obj.name];
-	var i = objs.indexOf(obj);
-	objs.splice(i, 1);
+var DeleteComponent = function(comp) {
+	lastDeletedObj = comp;
+	$('#'+comp._name).remove();
+	comp._div.parent().remove();
+	delete names[comp._name];
+	var i = comps.indexOf(comp);
+	comps.splice(i, 1);
 };
-var RestoreObj = function() {
+var RestoreComponent = function() {
 	
 	// basically the same code as NewComponent
-	var obj = lastDeletedObj;
-	while (objs[obj.name]) { obj.name += ' - copy'; }
-	obj.div = CreateComponentDiv($('#cells'), obj);
-	obj.div.css('border', '1px solid gray');
-	obj.div.css('background-color', 'rgb(230,230,230)');
-	obj.add();
+	var comp = lastDeletedObj;
+	while (names[comp._name]) { comp._name += ' - copy'; }
+	comp._div = CreateComponentDiv($('#cells'), comp);
+	comp._div.css('border', '1px solid gray');
+	comp._div.css('background-color', 'rgb(230,230,230)');
+	comp._add();
 	if (!dirty) { MarkDirty(); }
-	objs[obj.name] = obj;
-	objs.push(obj);
+	names[comp._name] = comp;
+	comps.push(comp);
 	MakeSortable();
 	lastDeletedObj = null;
 };
@@ -149,7 +164,7 @@ var UniqueName = function(type, n) {
 	do {
 		name = type + n.toString();
 		n++;
-	} while (objs[name] || elementIds[name]);
+	} while (names[name] || elementIds[name]);
 	
 	elementIds[name] = true;
 	
@@ -163,7 +178,7 @@ var Decrypt = function(password) {
 
 var SaveToText = function() {
 	// possible vector for dataloss: clicking save before you decrypt.  maybe add a 'decrypted' flag to prevent this
-	var text = JSON.stringify(objs.map(function(obj) {return obj.write();}));
+	var text = JSON.stringify(comps.map(function(comp) {return comp._write();}));
 	if (password != null) { text = sjcl.encrypt(password, text); }
 	return text;
 };
@@ -174,34 +189,35 @@ var MakeSortable = function() {
 		
 		$(this).children().each(function(index, elt) {
 			var id = $(elt).children().eq(1).attr('id');
-			objs[index] = objs[id.substr(0, id.length - 'Component'.length)];
+			var name = id.substr(0, id.length - 'Component'.length);
+			comps[index] = names[name];
 		});
 		
 		$('#output').html('');
 		
-		objs.forEach(function(obj) {
-			if (obj.type == 'html' || obj.type == 'md' || obj.type == 'css') // not ideal to dispatch on type here
+		comps.forEach(function(comp) {
+			if (comp._type == 'html' || comp._type == 'md' || comp._type == 'css') // not ideal to dispatch on type here
 			{
-				obj.addOutputElements();
-				obj.exec();
+				comp._addOutputElements();
+				comp._exec();
 			}
 		});
 	}});
 };
 
-var LocalCreateComponentDiv = function(parent, obj) {
+var LocalCreateComponentDiv = function(parent, comp) {
 	var div = $('<div></div>').appendTo(parent);
 	var headerDiv = $('<div></div>').appendTo(div);
-	var clientDiv = $('<div id="' + obj.name + 'Component" class="' + (obj.visible ? '' : 'griddl-component-body-hidden') + '"></div>').appendTo(div);
+	var clientDiv = $('<div id="' + comp._name + 'Component" class="' + (comp._visible ? '' : 'griddl-component-body-hidden') + '"></div>').appendTo(div);
 	headerDiv.append($('<img src="" class="reorder-handle"></img>').css('cursor', 'move'));
-	headerDiv.append($('<label>' + obj.type + '</label>'));
-	headerDiv.append($('<input type="text" value="' + obj.name + '"></input>').on('blur', function(e) { RenameObj(obj, this.value); }));
-	headerDiv.append($('<button>+/-</button>').on('click', function() { if (obj.visible) { Hide(obj); } else { Show(obj); } }));
-	headerDiv.append($('<button>Del</button>').on('click', function() { DeleteObj(obj); }));
+	headerDiv.append($('<label>' + comp._type + '</label>'));
+	headerDiv.append($('<input type="text" value="' + comp._name + '"></input>').on('blur', function(e) { RenameComponent(comp, this.value); }));
+	headerDiv.append($('<button>+/-</button>').on('click', function() { if (comp._visible) { Hide(comp); } else { Show(comp); } }));
+	headerDiv.append($('<button>Del</button>').on('click', function() { DeleteComponent(comp); }));
 	return clientDiv;
 };
 
-var CreateComponentDiv = function(parent, obj) {
+var CreateComponentDiv = function(parent, comp) {
 	
 	var div = $(document.createElement('div'));
 	var headerDiv = $(document.createElement('div'));
@@ -212,15 +228,15 @@ var CreateComponentDiv = function(parent, obj) {
 	clientDiv.addClass('griddl-component-body');
 	
 	// we'll put a modified id on the clientDiv, so that we can refer to it from CSS components
-	// we can't tag the component client div with the bare obj.name, because if it is an HTML component, the created div will have id = obj.name
-	clientDiv.attr('id', obj.name + 'Component'); 
-	if (!obj.visible) { clientDiv.addClass('griddl-component-body-hidden'); }
+	// we can't tag the component client div with the bare comp._name, because if it is an HTML component, the created div will have id = comp._name
+	clientDiv.attr('id', comp._name + 'Component'); 
+	if (!comp._visible) { clientDiv.addClass('griddl-component-body-hidden'); }
 	
-	headerDiv.append(AddReorderHandle(obj));
-	headerDiv.append(AddTypeLabel(obj));
-	headerDiv.append(AddNameBox(obj));
-	headerDiv.append(AddMinimizeButton(obj));
-	headerDiv.append(AddDestroyButton(obj));
+	headerDiv.append(AddReorderHandle(comp));
+	headerDiv.append(AddTypeLabel(comp));
+	headerDiv.append(AddNameBox(comp));
+	headerDiv.append(AddMinimizeButton(comp));
+	headerDiv.append(AddDestroyButton(comp));
 	
 	div.append(headerDiv);
 	div.append(clientDiv);
@@ -228,7 +244,7 @@ var CreateComponentDiv = function(parent, obj) {
 	
 	return clientDiv;
 }
-function AddReorderHandle(obj) {
+function AddReorderHandle(comp) {
 	
 	var div = $(document.createElement('a'));
 	div.addClass('reorder-handle btn btn-default btn-sm');
@@ -238,28 +254,29 @@ function AddReorderHandle(obj) {
 	$(div).append($("<i class='fa fa-arrows-v'></i>"));
 	return div;
 }
-function AddTypeLabel(obj) {
+function AddTypeLabel(comp) {
 	
 	var typeLabel = $(document.createElement('label'));
 	typeLabel.addClass('griddl-component-head-type');
-	typeLabel.html(obj.type);
+	typeLabel.html(comp._type);
 	return typeLabel;
 }
-function AddNameBox(obj) {
+function AddNameBox(comp) {
 	
 	var nameBox = $(document.createElement('input'));
 	nameBox.attr('type', 'text');
-	nameBox.attr('value', obj.name);
+	nameBox.attr('value', comp._name);
 	nameBox.addClass('griddl-component-head-name form-control input-sm');
 	
 	nameBox.on('blur', function(e) {
-		RenameObj(obj, this.value);
+		var newname = RenameComponent(comp, this.value);
+		this.value = newname;
 		MarkDirty();
 	});
 	
 	return nameBox;
 }
-function AddMinimizeButton(obj) {
+function AddMinimizeButton(comp) {
 	
 	// to save resources, instead of just setting display:none, perhaps this should remove the clientDiv from the DOM altogether
 	
@@ -272,16 +289,16 @@ function AddMinimizeButton(obj) {
 	var plus = "fa-plus";
 	
 	var $icon = $("<i class='fa'></i>");
-	$icon.addClass(obj.visible ? minus : plus);
+	$icon.addClass(comp._visible ? minus : plus);
 	button.append($icon);
 	
 	button.on('click', function() {
-		if (obj.visible) { Hide(obj); } else { Show(obj); }
+		if (comp._visible) { Hide(comp); } else { Show(comp); }
 	});
 	
 	return button;
 }
-function AddDestroyButton(obj) {
+function AddDestroyButton(comp) {
 	
 	var button = $(document.createElement('button'));
 	button.attr('type', 'button');
@@ -289,7 +306,7 @@ function AddDestroyButton(obj) {
 	button.addClass('griddl-component-head-remove btn btn-default btn-sm');
 	button.append($("<i class='fa fa-lg fa-trash-o'></i>"));
 	
-	button.on('click', null, obj, ConfirmDelete);
+	button.on('click', null, comp, ConfirmDelete);
 	
 	return button;
 }
@@ -308,15 +325,15 @@ var createComponentDivToUse = CreateComponentDiv;
 var Upload = function() {
 	
 	// interface required:
-	//  target.setArrayBuffer
+	//  comp._setArrayBuffer
 	//    OR
-	//  target.setText
+	//  comp._setText
 	
-	// and optionally target.setExt to set the extension (useful for images and fonts, for instance)
+	// and optionally comp._setExt to set the extension (useful for images and fonts, for instance)
 	
 	// we also want drag-n-drop
 	
-	var target = this;
+	var comp = this;
 	
 	var fileChooser = $(document.createElement('input'));
 	fileChooser.attr('type', 'file');
@@ -327,13 +344,13 @@ var Upload = function() {
 		
 		fileReader.onload = function(event)
 		{
-			if (target.setArrayBuffer)
+			if (comp._setArrayBuffer)
 			{
-				target.setArrayBuffer(event.target.result);
+				comp._setArrayBuffer(event.target.result);
 			}
-			else if (target.setText)
+			else if (comp._setText)
 			{
-				target.setText(event.target.result);
+				comp._setText(event.target.result);
 			}
 		};
 		
@@ -341,13 +358,13 @@ var Upload = function() {
 		{
 			var f = fileChooser[0].files[0];
 			
-			if (target.setExt) { target.setExt(f.name.substring(f.name.lastIndexOf('.') + 1)); }
+			if (comp._setExt) { comp._setExt(f.name.substring(f.name.lastIndexOf('.') + 1)); }
 			
-			if (target.setArrayBuffer)
+			if (comp._setArrayBuffer)
 			{
 				fileReader.readAsArrayBuffer(f);
 			}
-			else if (target.setText)
+			else if (comp._setText)
 			{
 				fileReader.readAsText(f);
 			}
@@ -357,9 +374,12 @@ var Upload = function() {
 	fileChooser.click();
 };
 var Download = function() {
+	
+	var comp = this;
+	
 	var a = document.createElement('a');
-	a.href = this.getHref();
-	a.download = this.name + (this.ext ? '.' : '') + this.ext;
+	a.href = comp._getHref();
+	a.download = comp._name + (comp._ext ? '.' : '') + comp._ext;
 	a.click();
 };
 
@@ -432,7 +452,6 @@ var playground = window.playground;
 
 var dirty = false;
 
-// maybe direct uglifyjs to inline this?
 var MarkDirty = function() {
 	if (!dirty) {
 		dirty = true;
@@ -450,15 +469,14 @@ var MarkClean = function() {
 
 var ConfirmDelete = function (event) {
 	
-	var obj = event.data;
+	var comp = event.data;
 	var modal = $("<div class='modal'><div class='modal-dialog modal-sm'><div class='modal-content'><div class='modal-header text-center'><h3></h3><button class='btn btn-success'>Confirm</button><button data-dismiss='modal' class='btn btn-danger'>Cancel</button></div></div></div></div>");
-	$('h3', modal).text("Delete " + obj.name + "?");
+	$('h3', modal).text("Delete " + comp._name + "?");
 	$('body').append(modal);
 	
 	$('.btn-success', modal).on('click', function(event) {
-		DeleteObj(obj);
-		obj.div.parent().remove();
-		MarkDirty(obj);
+		DeleteComponent(comp);
+		MarkDirty(comp);
 		$('.modal').modal('hide');
 	});
 	
@@ -467,40 +485,52 @@ var ConfirmDelete = function (event) {
 
 // there's a case to be made that show/hide should destroy/recreate the component body, rather than just show/hide
 // Show2 and Hide2 implement the destroy/recreate variant
-var Show2 = function(obj) {
-	obj.add();
-	obj.div.parent().find('i.fa-plus').removeClass('fa-plus').addClass('fa-minus');
-	obj.visible = true;
+var Show2 = function(comp) {
+	comp._markDirty();
+	comp._add();
+	comp._div.parent().find('i.fa-plus').removeClass('fa-plus').addClass('fa-minus');
+	comp._visible = true;
 };
-var Hide2 = function(obj) {
-	obj.div.html('');
-	obj.div.parent().find('i.fa-minus').removeClass('fa-minus').addClass('fa-plus');
-	obj.visible = false;
+var Hide2 = function(comp) {
+	comp._markDirty();
+	comp._div.html('');
+	comp._div.parent().find('i.fa-minus').removeClass('fa-minus').addClass('fa-plus');
+	comp._visible = false;
 };
-var Show = function(obj) {
-	
-	obj.div.removeClass('griddl-component-body-hidden');
-	obj.div.parent().find('i.fa-plus').removeClass('fa-plus').addClass('fa-minus');
-	obj.visible = true;
+var Show = function(comp) {
+	comp._markDirty();
+	comp._div.removeClass('griddl-component-body-hidden');
+	comp._div.parent().find('i.fa-plus').removeClass('fa-plus').addClass('fa-minus');
+	comp._visible = true;
 	
 	// this fixes this bug: when a component containing a codemirror was initially hidden, and then we maximized, the text would not appear
-	if (obj.codemirror) { obj.codemirror.refresh(); }
+	if (comp._codemirror) { comp._codemirror.refresh(); }
 };
-var Hide = function(obj) {
-	obj.div.addClass('griddl-component-body-hidden');
-	obj.div.parent().find('i.fa-minus').removeClass('fa-minus').addClass('fa-plus');
-	obj.visible = false;
+var Hide = function(comp) {
+	comp._markDirty();
+	comp._div.addClass('griddl-component-body-hidden');
+	comp._div.parent().find('i.fa-minus').removeClass('fa-minus').addClass('fa-plus');
+	comp._visible = false;
 };
 
-var FetchObj = function(name) {
-	if (!name) { throw new Error('FetchObj error: invalid name'); }
-	if (!objs[name]) { throw new Error("Error: there is no object named '" + name + "'"); }
-	return objs[name];
+var FetchComponent = function(name) {
+	if (!name) { throw new Error('FetchComponent error: invalid name'); }
+	if (!names[name]) { throw new Error("Error: there is no object named '" + name + "'"); }
+	return names[name];
 };
 
 
 
 window.addEventListener('message', receiveMessage, false);
+
+window.addEventListener('beforeunload', function(event) {
+	if (dirty)
+	{
+		var confirmationMessage = 'Warning: workbook is unsaved.  Discard changes?';
+  		event.returnValue = confirmationMessage;     // Gecko, Trident, Chrome 34+
+ 		return confirmationMessage;                  // Gecko, WebKit, Chrome <34	
+	}
+});
 
 var playground = window.location.protocol + "//";
 var chunks = window.location.hostname.split('.');
@@ -519,7 +549,7 @@ $(document).ready(function() {
       $btn.addClass('active').siblings().removeClass("active");
       $("#cells-container").css('display', 'block').removeClass('col-sm-6').addClass('col-sm-12');
       $("#output-container").css('display', 'none');
-
+      comps.forEach(function(comp) { if (comp._codemirror) { comp._codemirror.refresh(); } });
   });
 
   $("#show-all").on('click', function(e) {
@@ -527,6 +557,7 @@ $(document).ready(function() {
       if ($btn.hasClass('active')) {return;}
       $btn.addClass('active').siblings().removeClass("active");
       $("#cells-container, #output-container").css('display', 'block').removeClass("col-sm-12").addClass("col-sm-6");
+      comps.forEach(function(comp) { if (comp._codemirror) { comp._codemirror.refresh(); } });
   });
 
   $("#show-widgets").on('click', function(e) {
@@ -561,7 +592,7 @@ $(document).ready(function() {
     event.preventDefault();
     saveAsSubmit();
   });
-
+  
   $('.set-encryption').on('click', function(event) {
     event.preventDefault();
     Hyperdeck.SetPassword($('#passwordInput').val());
@@ -599,7 +630,6 @@ function receiveMessage(event) {
 				Main(data.text);
 				break;
 			case 'resolve':
-				console.log(data);
 				window[data.deferred].resolve(data.success);
 				break;
 			case 'modal_close':
@@ -626,20 +656,20 @@ function save_as(newname) {
 // API
 var Hyperdeck = {};
 var Components = Hyperdeck.Components = {};
-Hyperdeck.Get = function(name, options) { return FetchObj(name).get(options); };
-Hyperdeck.Set = function(name, data, options) { FetchObj(name).set(data, options); };
-Hyperdeck.Run = function(name) { FetchObj(name).exec(); };
+Hyperdeck.Get = function(name, options) { var comp = FetchComponent(name); return comp._get(options); };
+Hyperdeck.Set = function(name, data, options) { var comp = FetchComponent(name); comp._set(data, options); };
+Hyperdeck.Run = function(name) { var comp = FetchComponent(name); comp._exec(); };
 //Hyperdeck.New = function(json) { NewComponent(new Components[json.type]()); };
-//Hyperdeck.Rem = function(name) { DeleteObj(FetchObj(name)); };
+//Hyperdeck.Rem = function(name) { DeleteComponent(FetchComponent(name)); };
 Hyperdeck.Export = Export;
 Hyperdeck.ShowPasswordInput = function() { $('#passwordModal').modal('show'); };
-Hyperdeck.SetPassword = function(pw) { password = pw; $('#passwordModal').modal('hide'); };
-Hyperdeck.Decrypt = Decrypt;
-Hyperdeck.ShowAll = function() { objs.forEach(function(obj) { Show(obj); }); };
-Hyperdeck.HideAll = function() { objs.forEach(function(obj) { Hide(obj); }); };
+Hyperdeck.SetPassword = function(pw) { if (pw == '') { password = null; } else { password = pw; } $('#passwordModal').modal('hide'); };
+Hyperdeck.ShowAll = function() { comps.forEach(function(comp) { Show(comp); }); };
+Hyperdeck.HideAll = function() { comps.forEach(function(comp) { Hide(comp); }); };
 Hyperdeck.Main = Main;
 Hyperdeck.AddComponent = AddComponent;
-Hyperdeck.RestoreObj = RestoreObj;
+Hyperdeck.RestoreComponent = RestoreComponent;
 return Hyperdeck;
 
 })();
+

@@ -263,12 +263,12 @@ class Change(FastSpringNotificationView):
                 logger.error("error changing subscription: {}".format(
                              json.loads(data)))
                 return
-            planid = next((i[0] for i in Plan.SIZES if i[1] == data['plan']),
+            planid = next((i[0] for i in Plan.NAMES if i[1] == data['plan']),
                           None)  # None if no match found
             try:
                 plan = Plan.objects.get(name=planid)
             except:
-                print "whoopsie-do!"
+                logger.error("Plan '" + data['plan'] + "' not found.")
                 return HttpResponseNotFound()
             if plan is not sub.plan:
                 sub.plan = plan
@@ -299,6 +299,7 @@ class Deactivate(FastSpringNotificationView):
             sub.delete()
             acct = Account.objects.get(subscription=sub)
             if not acct:  # huh? bail.
+                logger.error("Account for subscription '" + data['id'] + "' not found.")
                 return
             acct.plan = Plan.FREE
             acct.save()  # note - auto-triggers workbook locking
@@ -321,6 +322,7 @@ class PayFail(FastSpringNotificationView):
 
         sub = Subscription.objects.get(reference_id=data['id'])
         if not sub:  # weird, bail
+            logger.error("Subscription '" + data['id'] + "' not found.")
             return
 
         acct = Account.objects.get(subscription=sub)

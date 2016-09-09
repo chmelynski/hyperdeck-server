@@ -12,53 +12,62 @@ var Link = function(json, type, name) {
 		json.url = '';
 	}
 	
-	this.type = json.type;
-	this.name = json.name;
-	this.visible = json.visible;
+	this._type = json.type;
+	this._name = json.name;
+	this._visible = json.visible;
 	
-	this.div = null;
+	this._div = null;
 	
-	this.url = json.url;
+	this._url = json.url;
 	
-	this.data = null;
-	this.display = 'text';
+	Object.defineProperty(this, 'url', {
+		get : function() { return this._url; },
+		set : function (value) { this._url = value; }
+	});
+	
+	this._data = null;
+	this._display = 'text';
 };
-Link.prototype.add = function() {
+Link.prototype._add = function() {
 	
 	// some read-only display of the contents?  but the contents have yet to load, will need to be done in a callback
   
 	var comp = this;
   
-	comp.div.html('');
+	comp._div.html('');
   
 	var gui = new dat.GUI({autoPlace:false, width:"100%"});
   
 	var urlControl = gui.add(comp, 'url');
-	urlControl.onFinishChange(function(value) { comp.loadUrl(); comp.markDirty(); });
+	urlControl.onFinishChange(function(value) { comp._loadUrl(); comp._markDirty(); });
 	
 	//var displayOptions = ['text','json','yaml','tsv','csv','img','stats'];
 	//var displayControl = gui.add(comp, 'display', displayOptions);
 	//displayControl.onChange(function(value) { /* change display */ });
   
-	comp.div[0].appendChild(gui.domElement);
+	comp._div[0].appendChild(gui.domElement);
   
-	comp.addOutputElements();
+	comp._addOutputElements();
 };
-Link.prototype.addOutputElements = function() {
-	$('#output').append($('<div id="' + this.name + '"></div>'));
-};
-Link.prototype.afterLoad = function() {
-	this.loadUrl();
-};
-Link.prototype.loadUrl = function() {
+Link.prototype._addOutputElements = function() {
 	
-	// the url could potentially hold the name of a component to reference
-
 	var comp = this;
 	
-	if (comp.url == '') { return; }
+	$('#output').append($('<div id="' + comp._name + '"></div>'));
+};
+Link.prototype._afterLoad = function() {
 	
-	var parts = comp.url.split('#');
+	var comp = this;
+	
+	comp._loadUrl();
+};
+Link.prototype._loadUrl = function() {
+	
+	var comp = this;
+	
+	if (comp._url == '') { return; }
+	
+	var parts = comp._url.split('#');
 	var url = parts[0];
 	var compname = ((parts.length > 1) ? parts[1] : null);
 	
@@ -89,30 +98,26 @@ Link.prototype.loadUrl = function() {
 		
 		if (obj.type == 'js' || obj.type == 'css' || obj.type == 'html' || obj.type == 'md' || obj.type == 'txt')
 		{
-			comp.data = obj.text;
+			comp._data = obj.text;
 		}
 		
 		if (obj.type == 'js')
 		{
-			$('#'+comp.name).html('<script>' + obj.text + '</script>');
+			$('#'+comp._name).html('<script>' + obj.text + '</script>');
 		}
 		else if (obj.type == 'css')
 		{
-			$('#'+comp.name).html('<style>' + obj.text + '</style>');
+			$('#'+comp._name).html('<style>' + obj.text + '</style>');
 		}
 		else if (obj.type == 'html' || obj.type == 'md')
 		{
-			$('#'+comp.name).html((obj.type == 'md') ? markdown.toHTML(obj.text) : obj.text);
-			if (MathJax) { MathJax.Hub.Typeset(comp.name); }
+			$('#'+comp._name).html((obj.type == 'md') ? markdown.toHTML(obj.text) : obj.text);
+			if (MathJax) { MathJax.Hub.Typeset(comp._name); }
 		}
 		else if (obj.type == 'data')
 		{
 			if (obj.params.format == 'headerList')
 			{
-				// this.headers: ["foo","bar"]
-				// this._data: [[1,2],[3,4]]
-				// => [{"foo":1,"bar":2},{"foo":3,"bar":4}]
-				
 				var data = [];
 				
 				for (var i = 0; i < obj.data.length; i++)
@@ -127,38 +132,31 @@ Link.prototype.loadUrl = function() {
 					data.push(dataobj);
 				}
 				
-				comp.data = data;
+				comp._data = data;
 			}
 			else
 			{
-				comp.data = obj.data;	
+				comp._data = obj.data;
 			}
 		}
 	});
 };
-Link.prototype.write = function() {
+Link.prototype._write = function() {
+	
+	var comp = this;
 	
 	var json = {};
-	json.type = this.type;
-	json.name = this.name;
-	json.visible = this.visible;
-	json.url = this.url;
+	json.type = comp._type;
+	json.name = comp._name;
+	json.visible = comp._visible;
+	json.url = comp._url;
 	return json;
 };
 
-Link.prototype.get = function(options) { return this.data; };
-Link.prototype.set = function(data, options) { throw new Error('"' + this.type + '" component does not support Set().'); };
+Link.prototype._get = function(options) { var comp = this; return comp._data; };
+Link.prototype._set = function(data, options) { throw new Error('The "link" component does not support Set().'); };
 
 Hyperdeck.Components.link = Link;
-//Hyperdeck.Components.jslink = Link;
-//Hyperdeck.Components.csslink = Link;
-//Hyperdeck.Components.htmllink = Link;
-//Hyperdeck.Components.txtlink = Link;
-//Hyperdeck.Components.mdlink = Link;
-//Hyperdeck.Components.datalink = Link;
-//Hyperdeck.Components.binaryfilelink = Link;
-//Hyperdeck.Components.imgfilelink = Link;
-//Hyperdeck.Components.zipfilelink = Link;
 
 })();
 

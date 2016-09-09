@@ -3,6 +3,7 @@
 
 {% block meta-tags %}
   {{ block.super }}
+  <meta name="google-site-verification" content="5rFpHVPuH7mu2NdT8ZGo9n353_1cyuQg-oHhvkXrTFk" />
 {% endblock %}
 
 {% block styles %}
@@ -19,8 +20,8 @@
       </div>
     </div>
 
+    {% comment %}
     <div class="container">
-      
       <div class="row">
         <div class="col-md-4">
           <h2>{{ subheading1title }}</h2>
@@ -35,9 +36,8 @@
           <p>{{ subheading3blurb }}</p>
         </div>
       </div>
-
       <hr>
-
     </div>
-
+    {% endcomment %}
+    
 {% endblock %}

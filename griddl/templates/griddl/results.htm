@@ -20,12 +20,11 @@
   <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/dat.gui.js' %}"></script>
   
-  {# these are packaged into codemirrorAddons #}
-  {% comment %}
   <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-javascript.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-css.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-xml.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-markdown.js' %}"></script>
+  <script type='text/javascript' src="{% static 'griddl/js/lib/codemirror-5.0-yaml.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/fold/foldcode.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/fold/foldgutter.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/fold/brace-fold.js' %}"></script>
@@ -33,7 +32,6 @@
   <script type='text/javascript' src="{% static 'griddl/js/lib/fold/xml-fold.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/fold/markdown-fold.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/fold/comment-fold.js' %}"></script>
-  {% endcomment %}
   
   <script type='text/javascript' src="{% static 'griddl/js/lib/markdown.min.js' %}"></script>
   <script type='text/javascript' src="{% static 'griddl/js/lib/js-yaml.min.js' %}"></script>
@@ -42,21 +40,21 @@
   
   <script type='text/javascript' src="{% static 'griddl/js/utils.js' %}"></script>
   
-  {% javascript 'codemirrorAddons' %}
   {% javascript 'hyperdeck' %}
   
   {% if user.is_superuser or user.account.plan.pk == 4 %}
   	<script type='text/javascript' src="{% static 'griddl/js/import.js' %}"></script>
   {% endif %}
   
-  {# these are packaged into hyperdeck.js #}
-  {% comment %}
-  <script type='text/javascript' src="{% static 'griddl/js/components.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/code.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/data.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/file.js' %}"></script>
-  <script type='text/javascript' src="{% static 'griddl/js/components/repl.js' %}"></script>
-  {% endcomment %}
+  {% if user.username == 'adam' %}
+    <script type='text/javascript' src="{% static 'griddl/js/widgets/box.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/widgets/controls.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/widgets/geometry.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/widgets/grid.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/widgets/twig.js' %}"></script>
+    <script type='text/javascript' src="{% static 'griddl/js/widgets/tablegui.js' %}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r80/three.min.js"></script>
+  {% endif %}
   
   {# these are for PDF documents  #}
   {% comment %}
@@ -186,6 +184,21 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
               <li>
                 <a onclick="Hyperdeck.AddComponent('link');">
                   Link
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('canvas');">
+                  Canvas
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('script');">
+                  Script
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('jshtml');">
+                  JsHtml
                 </a>
               </li>
             </ul>
