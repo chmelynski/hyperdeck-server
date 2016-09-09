@@ -122,7 +122,11 @@ def subscriptions(request):
             details = plan.details()
             details['link'] = "/%s/%d/%d" % (endpoint, plan.id,
                                              request.user.account.pk)
-            if plan.pk < request.user.account.plan.pk:
+            if (request.user.account.subscription.status == 2
+                  and plan.pk == int(request.user.account.subscription.status_detail)):   # noqa
+                    details['direction'] = "Downgrade Pending"
+                    details['btn_class'] = "default disabled"
+            elif plan.pk < request.user.account.plan.pk:
                 details['direction'] = "Downgrade"
                 details['btn_class'] = "warning"
             elif plan.pk > request.user.account.plan.pk:
@@ -131,10 +135,6 @@ def subscriptions(request):
             elif plan == request.user.account.plan:
                 details['current_plan'] = True
                 details['btn_class'] = "default disabled"
-            elif (request.user.account.subscription.status == 2
-                  and plan.pk == int(request.user.account.subscription.status_detail)):   # noqa
-                    details['direction'] = "Downgrade Pending"
-                    details['btn_class'] = "default disabled"
             upgrades.append(details)
     else:
         for plan in plans:
