@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import json
 import logging
 
@@ -210,6 +212,7 @@ class Account(models.Model):
     def __unicode__(self):
         return self.user.username
 
+
 class Preferences(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL)
     editorKeymap = models.CharField(max_length=255, null=True, blank=True, choices=(("vim","vim"),("emacs","emacs"),("sublime","sublime")))
@@ -221,7 +224,7 @@ class Preferences(models.Model):
 
     def __unicode__(self):
         return self.user.username
-        
+
 
 class DefaultWorkbook(models.Model):
     '''
@@ -239,6 +242,7 @@ class DefaultWorkbook(models.Model):
 
     def __unicode__(self):
         return self.name
+
 
 class Copy(models.Model):
     key = models.CharField(max_length=255)

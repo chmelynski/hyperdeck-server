@@ -583,23 +583,24 @@ def raw(request, userid, path, slug):
 @login_required  # is it though?
 def export(request):
     import StringIO
-    import zipfile
+    import tarfile
     import datetime
 
     workbooks = Workbook.objects.filter(owner=request.user.account)
     mem = StringIO.StringIO()
-    with zipfile.ZipFile(mem, 'w') as archive:
+    with tarfile.open('export.tar.gz', 'w:gz', mem) as archive:
         for wb in workbooks:
-            archive.writestr(unicode(wb.name), unicode(wb.text))
-
-        for f in archive.filelist:  # this bit via internet o_O
-            f.create_system = 0
+            text = StringIO.StringIO(wb.text)
+            info = tarfile.TarInfo(wb.name)
+            info.size = len(wb.text)
+            archive.addfile(info, text)
 
     response = HttpResponse(mem.getvalue(),
                             content_type="application/zip")
     datestr = datetime.datetime.now().isoformat()
-    header = 'attachment; filename=archive{}.zip'.format(datestr)
+    header = 'attachment; filename=archive{}.tar.gz'.format(datestr)
     response['Content-Disposition'] = header
+    response['Content-Encoding'] = 'gzip'
 
     return response
 
