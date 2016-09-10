@@ -417,6 +417,15 @@ var Export = function() {
 	downloadLink.download = filename + '.json';
 	downloadLink.click();
 };
+var ExportHtml = function() {
+	var filename = $('#workbookName').text();
+	var text = $('#output').html();
+	
+	var downloadLink = document.createElement('a');
+	downloadLink.href = window.URL.createObjectURL(new Blob([text], {type : 'text/plain'}));
+	downloadLink.download = filename + '.htm';
+	downloadLink.click();
+};
 
 var Base64StringToUint8Array = function(str) {
 	
@@ -693,6 +702,7 @@ Hyperdeck.Run = function(name) { var comp = FetchComponent(name); comp._exec(); 
 //Hyperdeck.New = function(json) { NewComponent(new Components[json.type]()); };
 //Hyperdeck.Rem = function(name) { DeleteComponent(FetchComponent(name)); };
 Hyperdeck.Export = Export;
+Hyperdeck.ExportHtml = ExportHtml;
 Hyperdeck.ShowPasswordInput = function() { $('#passwordModal').modal('show'); };
 Hyperdeck.SetPassword = function(pw) { if (pw == '') { password = null; } else { password = pw; } $('#passwordModal').modal('hide'); };
 Hyperdeck.ShowAll = function() { comps.forEach(function(comp) { Show(comp); }); };

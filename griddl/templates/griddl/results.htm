@@ -213,10 +213,16 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
             <ul class="dropdown-menu">
               <li>
                 <a onclick="Hyperdeck.Export()">
-                  Export
+                  Export Workbook
                 </a>
               </li>
-              {% if user.is_superuser or user.account.plan.pk == 4 %}
+              <li>
+                <a onclick="Hyperdeck.ExportHtml()">
+                  Export Document as Html
+                </a>
+              </li>
+              {% comment %}or user.account.plan.pk == 4 - but then we need to limit the licence to 1 user per account{% endcomment %}
+              {% if user.is_superuser %}
               <li>
                 <a onclick="Hyperdeck.Import()">
                   Import
@@ -283,17 +289,14 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
 
     <div class="row tab-content">
       <div class="col-sm-6" id='cells-container'>
-
         <div id="frce"></div>
-
         <div role="tabpanel" class="active" id='cells'></div>
       </div>
       <div class="col-sm-6" id='output-container'>
-        <div role="tabpanel" class="active" id='output'>
-          <!-- <label class="griddl-component-head-type">Output</label> -->
-        </div>
+        <div role="tabpanel" class="active" id='output'></div>
       </div>
     </div>
+    
   </div>
 
 
