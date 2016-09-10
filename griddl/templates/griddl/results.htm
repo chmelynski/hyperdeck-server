@@ -42,7 +42,7 @@
   
   {% javascript 'hyperdeck' %}
   
-  {% if user.is_superuser or user.account.plan.pk == 4 %}
+  {% if user.is_superuser %}
   	<script type='text/javascript' src="{% static 'griddl/js/import.js' %}"></script>
   {% endif %}
   
@@ -86,12 +86,14 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
 {% if user.preferences.editorKeymap == 'emacs' %}<script src="{% static 'griddl/js/lib/keymap/emacs.js' %}"></script>{% endif %}
 {% if user.preferences.editorKeymap == 'sublime' %}<script src="{% static 'griddl/js/lib/keymap/sublime.js' %}"></script>{% endif %}
 
-<script>{{ user.preferences.script }}</script>
 <script>
-  Hyperdeck.preferences = {};
-  Hyperdeck.preferences.showTooltips = {{ user.preferences.showTooltips|yesno:"true,false,true" }};
-  Hyperdeck.preferences.editorTheme = "{{ user.preferences.editorTheme }}";
-  Hyperdeck.preferences.editorKeymap = "{{ user.preferences.editorKeymap }}";
+  Hyperdeck.Preferences = {};
+  Hyperdeck.Preferences.General = {};
+  Hyperdeck.Preferences.CodeMirror = {};
+  {% if user.preferences.editorKeymap != None %}
+  Hyperdeck.Preferences.CodeMirror.keyMap = '{{ user.preferences.editorKeymap }}';
+  {% endif %}
+  {{ user.preferences.script }}
 </script>
 
 </head>
