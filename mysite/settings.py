@@ -262,6 +262,8 @@ if noahDev or herokuDev:  # don't waste our free emails on dev
 else:
     POSTMARK_API_KEY = os.getenv("POSTMARK_API_KEY", False)
 
+REMOVE_WWW_FROM_DOMAIN = False
+
 # subdomain settings
 SUBDOMAINS = {
     'main': 'workbook',

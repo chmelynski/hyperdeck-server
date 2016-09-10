@@ -84,6 +84,8 @@ def ajaxlogin(request):
 
 
 @exclude_subdomain(SUBDOMAINS['sandbox'])
+@exclude_subdomain('dev')
+@exclude_subdomain('staging')
 def register(request):
     username = request.POST.get('username')
     password = request.POST.get('password')
@@ -115,6 +117,8 @@ def register(request):
 
 
 @exclude_subdomain(SUBDOMAINS['sandbox'])
+@exclude_subdomain('dev')
+@exclude_subdomain('staging')
 def ajaxregister(request):
     username = request.POST['username']
     password = request.POST['password']
