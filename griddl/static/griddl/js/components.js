@@ -4,6 +4,10 @@ var Hyperdeck = (function() {
 var comps = [];
 var names = {}; // key is component name 'foo', value is the component
 
+var metadata = {};
+metadata.version = 1;
+metadata.view = 'all'; // 'components','all','widgets'
+
 var lastDeletedObj = null;
 var password = null;
 var ciphertext = null; // Main sets this if it receives ciphertext.  then Decrypt() will re-run Main
@@ -15,9 +19,9 @@ var Main = function(text) {
 		text = $('#frce').text(); // document.getElementById('frce').innerText
 	}
 	
-	var jsons = JSON.parse(text);
+	var workbook = JSON.parse(text);
 	
-	if (jsons.cipher)
+	if (workbook.cipher)
 	{
 		ciphertext = text;
 		
@@ -54,6 +58,22 @@ var Main = function(text) {
 		
 		return;
 	}
+	
+	var jsons = null;
+	
+	if (workbook.metadata === undefined) // what we'll retroactively call "version 0"
+	{
+		// v0: [Components]
+		jsons = workbook;
+	}
+	else
+	{
+		// v1: {metadata:{version:1,view:'components'|'all'|'widgets'},components:[]}
+		metadata = workbook.metadata;
+		jsons = workbook.components;
+	}
+	
+	$("#show-"+metadata.view).click();
 	
 	$('#cells').html('');
 	
@@ -178,7 +198,11 @@ var Decrypt = function(password) {
 
 var SaveToText = function() {
 	// possible vector for dataloss: clicking save before you decrypt.  maybe add a 'decrypted' flag to prevent this
-	var text = JSON.stringify(comps.map(function(comp) {return comp._write();}));
+	
+	metadata.version = 1;
+	var components = comps.map(function(comp) {return comp._write();});
+	var workbook = {metadata:metadata,components:components};
+	var text = JSON.stringify(workbook);
 	if (password != null) { text = sjcl.encrypt(password, text); }
 	return text;
 };
@@ -546,8 +570,10 @@ playground += chunks.join('.');
 $(document).ready(function() {
   // button-group toggle for display modes
   $("#show-components").on('click', function(e) {
+      metadata.view = 'components';
       $btn = $(e.target).closest('button');
       if ($btn.hasClass('active')) {return;}
+      MarkDirty();
       $btn.addClass('active').siblings().removeClass("active");
       $("#cells-container").css('display', 'block').removeClass('col-sm-6').addClass('col-sm-12');
       $("#output-container").css('display', 'none');
@@ -555,18 +581,21 @@ $(document).ready(function() {
   });
 
   $("#show-all").on('click', function(e) {
+      metadata.view = 'all';
       $btn = $(e.target).closest('button');
       if ($btn.hasClass('active')) {return;}
+      MarkDirty();
       $btn.addClass('active').siblings().removeClass("active");
       $("#cells-container, #output-container").css('display', 'block').removeClass("col-sm-12").addClass("col-sm-6");
       comps.forEach(function(comp) { if (comp._codemirror) { comp._codemirror.refresh(); } });
   });
 
   $("#show-widgets").on('click', function(e) {
+      metadata.view = 'widgets';
       $btn = $(e.target).closest('button');
       if ($btn.hasClass('active')) {return;}
+      MarkDirty();
       $btn.addClass('active').siblings().removeClass("active");
-      
       $("#output-container").css('display', 'block').removeClass('col-sm-6').addClass('col-sm-12');
       $("#cells-container").css('display', 'none');
   });
