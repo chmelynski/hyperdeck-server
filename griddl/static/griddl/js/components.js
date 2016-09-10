@@ -457,6 +457,7 @@ var MarkDirty = function() {
 		dirty = true;
 		//parent.postMessage({'action': 'markDirty'}, playground);
 		$('#saveMenuButton').addClass("bg-danger");
+		$('#saveasMenuButton').addClass("bg-danger");
 	}
 };
 var MarkClean = function() {
@@ -464,6 +465,7 @@ var MarkClean = function() {
 		dirty = false;
 		//parent.postMessage({'action': 'markClean'}, playground);
 		$('#saveMenuButton').removeClass("bg-danger");
+		$('#saveasMenuButton').removeClass("bg-danger");
 	}
 };
 
