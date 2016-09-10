@@ -2,15 +2,15 @@
 <head>
 <title>Hyperdeck Local</title>
 <link rel='stylesheet' type='text/css' href='css/codemirror-5.0.css' />
-<!-- <link rel='stylesheet' type='text/css' href='css/griddl.css' /> -->
-<!-- <link rel='stylesheet' type='text/css' href='css/bootstrap.min.css' > -->
-<!-- <link rel='stylesheet' type='text/css' href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" > -->
-<!-- <link rel='stylesheet' type='text/css' href='css/custom.css' /> -->
 <link rel='stylesheet' type='text/css' href='js/lib/fold/foldgutter.css' />
 <style>
 
 .main { margin : 1em ; margin-bottom : 3em }
 .CodeMirror { cursor : text }
+
+#cells { width : 40em }
+#output { position:absolute ; top : 3em ; left : 45em }
+canvas { border : 1px solid gray }
 
 .griddl-component-body-hidden { display : none }
 .fa-minus { } /* need to get the right background-image from fontawesome */
@@ -21,7 +21,6 @@
 <body>
 <script src='js/lib/jquery-1.10.2.min.js'></script>
 <script src='js/lib/jquery-ui.sortable.min.js'></script>
-<!-- <script src='js/lib/bootstrap.min.js'></script> -->
 <script src='js/lib/codemirror-5.0.js'></script>
 <script src='js/lib/codemirror-5.0-javascript.js'></script>
 <script src='js/lib/codemirror-5.0-css.js'></script>
@@ -123,6 +122,9 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
 <option>zipfile</option>
 <option>repl</option>
 <option>snips</option>
+<option>canvas</option>
+<option>jshtml</option>
+<option>script</option>
 </select>
 
 <div id='cells'></div>
