@@ -266,10 +266,10 @@ REMOVE_WWW_FROM_DOMAIN = False
 
 # subdomain settings
 SUBDOMAINS = {
-    'main': 'workbook',
+    'main': 'www',
     'sandbox': 'sandbox',
-    'notWorkbook': '', # at some point delete main and rename notWorkbook->main
-    'workbook': 'workbook'
+    'notWorkbook': 'www', # at some point delete main and rename notWorkbook->main
+    'workbook': 'www'
 }
 
 if noahDev or herokuDev:

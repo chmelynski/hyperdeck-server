@@ -1,6 +1,6 @@
 var sandbox = window.location.protocol + "//";
 chunks = window.location.hostname.split('.');
-if (chunks[0] == "workbook") {
+if (chunks[0] == "www") {
   chunks[0] = "sandbox";
 } else {
   chunks[0] = "griddl-" + chunks[0];

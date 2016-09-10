@@ -570,7 +570,7 @@ window.addEventListener('beforeunload', function(event) {
 var playground = window.location.protocol + "//";
 var chunks = window.location.hostname.split('.');
 if (chunks[0] == "sandbox") {
-  chunks[0] = "workbook";
+  chunks[0] = "www";
 } else {
   chunks[0] = chunks[0].slice(7);
 }
