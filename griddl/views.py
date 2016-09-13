@@ -609,17 +609,22 @@ def export(request):
     return response
 
 
+#def index(request):
+#    copy = Copy.objects.get(key='index')
+#    context = {}
+#    keyvals = copy.val.splitlines()
+#    for keyval in keyvals:
+#        key = keyval.split(':')[0]
+#        val = keyval.split(':')[1]
+#        context[key] = val
+#    return render(request, 'griddl/index.htm', context)
+
 def index(request):
     copy = Copy.objects.get(key='index')
-    context = {}
-    keyvals = copy.val.splitlines()
-    for keyval in keyvals:
-        key = keyval.split(':')[0]
-        val = keyval.split(':')[1]
-        context[key] = val
+    context = {'content':copy.val}
     return render(request, 'griddl/index.htm', context)
-
-
+    
+    
 def jslog(request):
     msg = "JSLOG - {} - {}"
     msg.format(request.get_post('file', '(no file)'), request.get_post('msg'))
