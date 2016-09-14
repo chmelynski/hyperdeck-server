@@ -90,7 +90,7 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
   Hyperdeck.Preferences = {};
   Hyperdeck.Preferences.General = {};
   Hyperdeck.Preferences.CodeMirror = {};
-  {% if user.preferences.editorKeymap != None %}
+  {% if user.preferences.editorKeymap != None and user.preferences.editorKeymap != '' %}
   Hyperdeck.Preferences.CodeMirror.keyMap = '{{ user.preferences.editorKeymap }}';
   {% endif %}
   {{ user.preferences.script }}
