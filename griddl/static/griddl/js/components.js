@@ -9,7 +9,7 @@ metadata.version = 1;
 metadata.view = 'all'; // 'components','all','widgets'
 
 var lastDeletedObj = null;
-var password = null;
+var password = null; // SaveToText encrypts if password is not null (and if a flag is true)
 var ciphertext = null; // Main sets this if it receives ciphertext.  then Decrypt() will re-run Main
 
 var Main = function(text) {
@@ -34,6 +34,7 @@ var Main = function(text) {
 		ls.push('<input class="form-control" name="decrypt-password" id="decrypt-password" type="password"></input>');
 		ls.push('</div></div>');
 		ls.push('</form></div></div><div class="modal-footer">');
+		ls.push('<label id="decrypt-error" style="color:red"></label>')
 		ls.push('<button class="btn btn-success" id="decrypt-submit">Decrypt</button>');
 		ls.push('</div></div></div></div></div>');
 		
@@ -43,9 +44,20 @@ var Main = function(text) {
 		
 		var process_decrypt = function (event) {
 			event.preventDefault();
-			Hyperdeck.Decrypt($('#decrypt-password').val());
-			$('#decryption-modal').modal('hide');
-		}
+			password = $('#decrypt-password').val();
+			
+			try
+			{
+				var plaintext = sjcl.decrypt(password, ciphertext);
+				$('#decryption-modal').modal('hide');
+				Main(plaintext);
+				ciphertext = null; // save will only work if ciphertext=null, to avoid double-encrypting
+			}
+			catch (e)
+			{
+				$('#decrypt-error').text('Incorrect password');
+			}
+		};
 		
 		$("#decrypt-form").on('submit', function(e) {
 			e.stopPropagation();
@@ -191,19 +203,12 @@ var UniqueName = function(type, n) {
 	return name;
 };
 
-var Decrypt = function(password) {
-	var plaintext = sjcl.decrypt(password, ciphertext);
-	Main(plaintext);
-};
-
-var SaveToText = function() {
-	// possible vector for dataloss: clicking save before you decrypt.  maybe add a 'decrypted' flag to prevent this
-	
+var SaveToText = function(bEncrypt) {
 	metadata.version = 1;
 	var components = comps.map(function(comp) {return comp._write();});
 	var workbook = {metadata:metadata,components:components};
 	var text = JSON.stringify(workbook);
-	if (password != null) { text = sjcl.encrypt(password, text); }
+	if (bEncrypt && password != null) { text = sjcl.encrypt(password, text); }
 	return text;
 };
 var MakeSortable = function() {
@@ -410,7 +415,7 @@ var Download = function() {
 var Export = function() {
 
 	var filename = $('#workbookName').text();
-	var text = SaveToText();
+	var text = SaveToText(false);
 	
 	var downloadLink = document.createElement('a');
 	downloadLink.href = window.URL.createObjectURL(new Blob([text], {type : 'text/plain'}));
@@ -615,6 +620,7 @@ $(document).ready(function() {
   });
 
   $('#saveMenuButton').on('click', function(event) {
+	if (ciphertext !== null) { $.alert('Must decrypt before saving.', 'danger'); return; }
     save().done(function(success) {
       if (success) {
         $.alert('Your workbook has been saved.', 'success');
@@ -624,11 +630,13 @@ $(document).ready(function() {
   }); 
 
   $('#saveAsForm').on('submit', function(event) {
+	if (ciphertext !== null) { $.alert('Must decrypt before saving.', 'danger'); return; }
     event.preventDefault();
     saveAsSubmit();
   });
 
   $('#saveAsSubmit').on('click', function(event) {
+	if (ciphertext !== null) { $.alert('Must decrypt before saving.', 'danger'); return; }
     event.preventDefault();
     saveAsSubmit();
   });
@@ -681,13 +689,13 @@ function receiveMessage(event) {
 	}
 }
 function save() {
-	var text = SaveToText();
+	var text = SaveToText(true);
 	var saveResult = window.saveResult = $.Deferred();
 	parent.postMessage({'action': 'save', 'text': text, 'deferred': 'saveResult'}, playground);
 	return saveResult.promise();
 }
 function save_as(newname) {
-	var text = SaveToText();
+	var text = SaveToText(true);
 	var saveAsResult = window.saveAsResult = $.Deferred();
 	parent.postMessage({'action': 'save_as', 'text': text, 'newname': newname, 'deferred': 'saveAsResult'}, playground);
 	return saveAsResult.promise();
@@ -704,7 +712,11 @@ Hyperdeck.Run = function(name) { var comp = FetchComponent(name); comp._exec(); 
 Hyperdeck.Export = Export;
 Hyperdeck.ExportHtml = ExportHtml;
 Hyperdeck.ShowPasswordInput = function() { $('#passwordModal').modal('show'); };
-Hyperdeck.SetPassword = function(pw) { if (pw == '') { password = null; } else { password = pw; } $('#passwordModal').modal('hide'); };
+Hyperdeck.SetPassword = function(pw) {
+	if (pw == '') { password = null; } else { password = pw; }
+	$('#passwordModal').modal('hide');
+	MarkDirty();
+};
 Hyperdeck.ShowAll = function() { comps.forEach(function(comp) { Show(comp); }); };
 Hyperdeck.HideAll = function() { comps.forEach(function(comp) { Hide(comp); }); };
 Hyperdeck.Main = Main;
