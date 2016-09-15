@@ -73,7 +73,7 @@ Link.prototype._loadUrl = function() {
 	
 	$.ajax({ url : url }).done(function(json) {
 		
-		var list = JSON.parse(json);
+		var list = JSON.parse(json).components;
 		if (list.length == 0) { throw new Error('Workbook at url "' + url + '" is empty.'); }
 		
 		var obj = null;
