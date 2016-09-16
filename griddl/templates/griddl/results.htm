@@ -140,12 +140,12 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
               </li>
               <li>
                 <a onclick="Hyperdeck.AddComponent('html');">
-                  Html
+                  HTML
                 </a>
               </li>
               <li>
                 <a onclick="Hyperdeck.AddComponent('css');">
-                  Css
+                  CSS
                 </a>
               </li>
               <li>
@@ -173,6 +173,7 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
                   Image File
                 </a>
               </li>
+              {% if user.username == 'adam' %}
               <li>
                 <a onclick="Hyperdeck.AddComponent('repl');">
                   Javascript REPL
@@ -203,6 +204,7 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
                   JsHtml
                 </a>
               </li>
+              {% endif %}
             </ul>
         </div>
         
