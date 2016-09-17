@@ -24,12 +24,9 @@ var Data = function(json, type, name) {
 	
 	this._div = null;
 	this._errorSpan = null;
-	this._tableDiv = null; // for unknown reasons we pass a sub div to Handsontable / add the <table> or <pre> to the sub div
-	this._handsontable = null;
+	this._datguiDiv = null;
+	this._contentDiv = null;
 	this._codemirror = null;
-	
-	this._data = json.data;
-	this._htData = null; // in many cases, we have to convert the data to a different form to get HT to display it the way we want - this holds the converted data
 	
 	// the top of the undo stack is the current state - new states get pushed on add and on setting this._data
 	this._undo = {};
@@ -56,36 +53,7 @@ var Data = function(json, type, name) {
 		set : function (value) { this._afterChange = value; }
 	});
 	
-	if (this._format == 'headerList')
-	{
-		// this._headers: ["foo","bar"]
-		// this._data: [[1,2],[3,4]]
-		// => [{"foo":1,"bar":2},{"foo":3,"bar":4}]
-		
-		var data = [];
-		
-		for (var i = 0; i < this._data.length; i++)
-		{
-			var obj = {};
-			
-			for (var k = 0; k < this._headers.length; k++)
-			{
-				obj[this._headers[k]] = this._data[i][k];
-			}
-			
-			data.push(obj);
-		}
-		
-		this._data = data;
-	}
-	else if (this._format == 'json')
-	{
-		
-	}
-	else
-	{
-		throw new Error();
-	}
+	this._data = ParseFormat.apply(this, [json.data]);
 	
 	// determining form can be an expensive operation, so we cache the result and remember it as long as we can
 	// for example, if the data is modified by the user interacting with a grid, we can be assured the data stays in a certain form
@@ -98,107 +66,26 @@ Data.prototype._add = function() {
 	var comp = this;
 	
 	comp._div.html('');
+	comp._datguiDiv = $('<div></div>').appendTo(comp._div);
+	comp._errorSpan = $('<span style="color:red"></span>').appendTo(comp._div);
+	comp._contentDiv = $('<div></div>').appendTo(comp._div);
 	
-	var displayOptions = ['json','yaml']; // 'grid' temporarily removed
-	
-	if (comp._form == 'listOfObjects')
-	{
-		displayOptions.push('csv');
-		displayOptions.push('tsv');
-	}
-	
-	if (comp._form == 'listOfLists')
-	{
-		// add csv,tsv options with 0,1,2,3 headers?  or dummy $ header?  or no headers and just interpret as listOfLists
-		// (which means that the user is unable to convert from listOfLists to listOfObjects with a paste-in)
-		
-		// so basically if you display as csv/tsv without headers, you're stuck with listOfLists
-		// if you display with headers, and then change those headers from 0,1,2 to foo,bar,baz, the data changes to a listOfObjects on blur
-		
-		// the change to listOfObjects happen if there are any non-numeric headers.  as long as all headers are numeric, it stays as a listOfLists
-		
-		// however, you can do manipulations with numeric headers
-		// if you rearrange the headers, you rearrange the data (this happens on blur)
-		// if you have headers 0,1,2 and add a new 5 at the end, you've just created three blank columns
-		// [[0,1],[a,b]] -> [[0,1,3],[a,b]] -> [[0,1,2,3],[a,b,null,null]]
-		
-		// open question: should we allow deletion of columns by deletion of headers?  my thoughts are yes
-		// if you have [[0,1,2],[a,b,c]] and delete the 1 to make [[0,2],[a,b,c]] then the result should be [[0,1],[a,c]], NOT [[0,2],[a,b]] or [[0,1],[a,b]]
-		
-		// adding columns can be thought of first as the result of a two-step process
-		// [[0,1],[a,b]] -> [[0,1,2],[a,b]] -> [[0,1,2],[a,b,null]]
-		// and then
-		// [[0,1,2],[a,b,null]] -> [[0,2,1],[a,b,null]] -> [[0,1,2],[a,null,b]]
-		
-		// so a shorthand for the 2-step process is this:
-		// [[0,1],[a,b]] -> [[0,2,1],[a,b]] -> [[0,1,2],[a,null,b]]
-		// basically insertion of an excess header creates an implied null at the end of each data row, which is then rearranged as normal
-		
-		displayOptions.push('csv');
-		displayOptions.push('tsv');
-	}
-	
-	if (comp._form == 'list')
-	{
-		// these display the same thing - a simple list of values - no header
-		displayOptions.push('csv');
-		displayOptions.push('tsv');
-	}
-	
-	if (comp._form == 'listOfObjects' || comp._form == 'listOfLists' || comp._form == 'object' || comp._form == 'list')
-	{
-		//displayOptions.push('grid');
-		displayOptions.push('pre');
-	}
-	
-	if (displayOptions.indexOf(comp._display) == -1) { comp._display = 'json'; }
-	
-	var gui = new dat.GUI({autoPlace:false, width:"100%"});
-	var displayControl = gui.add(comp, 'display', displayOptions);
-	
-	displayControl.onChange(function(value) { comp._undo.pushOnAdd = false; comp._add(); comp._undo.pushOnAdd = true; });
-	
-	// upload and download folders?  also, restrict based on form
-	var uploadFolder = gui.addFolder('upload');
-	uploadFolder.add(comp, 'uploadJSON');
-	uploadFolder.add(comp, 'uploadYAML');
-	uploadFolder.add(comp, 'uploadTSV');
-	uploadFolder.add(comp, 'uploadCSV');
-	//uploadFolder.add(comp, 'uploadXLSX');
-	var downloadFolder = gui.addFolder('download');
-	downloadFolder.add(comp, 'downloadJSON');
-	downloadFolder.add(comp, 'downloadYAML');
-	if (displayOptions.indexOf('tsv') >= 0) { downloadFolder.add(comp, 'downloadTSV'); }
-	if (displayOptions.indexOf('csv') >= 0) { downloadFolder.add(comp, 'downloadCSV'); }
-	var hooksFolder = gui.addFolder('hooks');
-	hooksFolder.add(comp, 'afterChange');
-	var tools = gui.addFolder('tools');
-	tools.add(comp, 'Undo');
-	tools.add(comp, 'Redo');
-	//tools.add(comp, 'AddHeaders');
-	//downloadFolder.add(comp, 'downloadXLSX');
-	
-	comp._div[0].appendChild(gui.domElement);
-	
-	comp._errorSpan = $('<span></span>');
-	comp._errorSpan.css('color', 'red');
-	comp._div.append(comp._errorSpan);
-	
-	comp._tableDiv = $(document.createElement('div'));
-	comp._div.append(comp._tableDiv);
+	comp._refreshDatgui();
 	
 	var initText = null;
 	
 	if (comp._display == 'json' || comp._display == 'yaml' || comp._display == 'csv' || comp._display == 'tsv')
 	{
-		var mode = {json:{name:'javascript',json:true},yaml:'yaml',csv:'text',tsv:'text'}[comp._display];
+		var textbox = $('<textarea></textarea>').appendTo(comp._contentDiv);
 		
-		var textbox = $(document.createElement('textarea'));
-		comp._tableDiv.append(textbox);
-		comp._codemirror = CodeMirror.fromTextArea(textbox[0], { mode : mode , smartIndent : false , lineNumbers : true , lineWrapping : true });
+		var options = {};
+		options.mode = {json:{name:'javascript',json:true},yaml:'yaml',csv:'plain',tsv:'plain'}[comp._display];
+		options.smartIndent = false;
+		options.lineNumbers = true;
+		options.lineWrapping = true;
+		comp._codemirror = CodeMirror.fromTextArea(textbox[0], options);
 		
 		initText = Write.apply(comp, [comp._display]);
-		
 		comp._codemirror.getDoc().setValue(initText);
 		
 		comp._codemirror.on('change', function() { comp._markDirty(); });
@@ -209,78 +96,35 @@ Data.prototype._add = function() {
 			
 			if (success)
 			{
+				comp._refreshDatgui();
 				var formattedText = Write.apply(comp, [comp._display]);
 				comp._codemirror.getDoc().setValue(formattedText);
 				comp._runAfterChange();
 			}
 		});
 	}
-	else if (comp._display == 'grid')
-	{
-		//Grid.Add.apply(comp); // enable this when Grid is ready
-	}
+	//else if (comp._display == 'grid') // enable this when Grid is ready
+	//{
+	//	Grid.Add.apply(comp);
+	//}
 	else if (comp._display == 'pre')
 	{
-		// comp._tableDiv[0].innerHTML = '<pre>' + comp._matrix.map(row => row.join('\t')).join('\n') + '</pre>';
+		initText = DisplayAsPre(comp);
+		comp._contentDiv.html(initText);
+	}
+	else if (comp._display == 'gui')
+	{
+		comp._contentDiv.append($('<hr />'));
 		
-		var l = [];
+		var datagui = new dat.GUI({autoPlace:false, width:"100%"});
 		
-		if (comp._form == 'listOfObjects')
+		for (var key in comp._data)
 		{
-			l.push('\t' + comp._headers.join('\t'));
-			
-			for (var i = 0; i < comp._data.length; i++)
-			{
-				var row = [];
-				row.push(i.toString());
-				
-				for (var k = 0; k < comp._headers.length; k++)
-				{
-					row.push(comp._data[i][comp._headers[k]]);
-				}
-				
-				l.push(row.join('\t'));
-			}
-		}
-		else if (comp._form == 'listOfLists')
-		{
-			l.push('\t' + comp._headers.join('\t'));
-			
-			for (var i = 0; i < comp._data.length; i++)
-			{
-				var row = [];
-				row.push(i.toString());
-				
-				for (var j = 0; j < comp._data[i].length; j++)
-				{
-					row.push(comp._data[i][j]);
-				}
-				
-				l.push(row.join('\t'));
-			}
-		}
-		else if (comp._form == 'object')
-		{
-			for (var k = 0; k < comp._headers.length; k++)
-			{
-				var key = comp._headers[k];
-				l.push(key + '\t' + comp._data[key]);
-			}
-		}
-		else if (comp._form == 'list')
-		{
-			for (var i = 0; i < comp._data.length; i++)
-			{
-				l.push(i.toString() + '\t' + comp._data[i]);
-			}
-		}
-		else
-		{
-			throw new Error();
+			var control = datagui.add(comp._data, key);
+			control.onChange(function(value) { comp._runAfterChange(); });
 		}
 		
-		initText = '<pre>' + l.join('\n') + '</pre>';
-		comp._tableDiv[0].innerHTML = initText;
+		comp._contentDiv.append($(datagui.domElement));
 	}
 	else
 	{
@@ -297,6 +141,105 @@ Data.prototype._write = function() {
 	json.type = comp._type;
 	json.name = comp._name;
 	json.visible = comp._visible;
+	json.data = WriteFormat.apply(comp);
+	json.params = {};
+	json.params.format = comp._format;
+	json.params.display = comp._display;
+	json.params.form = comp._form;
+	json.params.headers = comp._headers;
+	json.params.afterChange = comp._afterChange;
+	return json;
+};
+
+Data.prototype._refreshDatgui = function() {
+	
+	var comp = this;
+	comp._datguiDiv.html('');
+	
+	var displayOptionDict = {};
+	displayOptionDict.other = ['json','yaml'];
+	displayOptionDict.listOfObjects = ['json','yaml','csv','tsv','pre'];
+	displayOptionDict.listOfLists = ['json','yaml','csv','tsv','pre'];
+	displayOptionDict.list = ['json','yaml','csv','tsv','pre'];
+	displayOptionDict.object = ['json','yaml','gui'];
+	
+	var displayOptions = displayOptionDict[comp._form];
+	if (displayOptions.indexOf(comp._display) == -1) { comp._display = 'json'; }
+	
+	var gui = new dat.GUI({autoPlace:false, width:"100%"});
+	var displayControl = gui.add(comp, 'display', displayOptions);
+	displayControl.onChange(function(value) { comp._undo.pushOnAdd = false; comp._add(); comp._undo.pushOnAdd = true; });
+	var uploadFolder = gui.addFolder('upload');
+	uploadFolder.add(comp, 'uploadJSON');
+	uploadFolder.add(comp, 'uploadYAML');
+	uploadFolder.add(comp, 'uploadCSV');
+	uploadFolder.add(comp, 'uploadTSV');
+	//uploadFolder.add(comp, 'uploadXLSX');
+	var downloadFolder = gui.addFolder('download');
+	downloadFolder.add(comp, 'downloadJSON');
+	downloadFolder.add(comp, 'downloadYAML');
+	if (displayOptions.indexOf('csv') >= 0) { downloadFolder.add(comp, 'downloadCSV'); }
+	if (displayOptions.indexOf('tsv') >= 0) { downloadFolder.add(comp, 'downloadTSV'); }
+	//downloadFolder.add(comp, 'downloadXLSX');
+	var hooksFolder = gui.addFolder('hooks');
+	hooksFolder.add(comp, 'afterChange');
+	var tools = gui.addFolder('tools');
+	tools.add(comp, 'Undo');
+	tools.add(comp, 'Redo');
+	
+	comp._datguiDiv.append($(gui.domElement));
+};
+
+Data.prototype._showError = function(e) {
+	
+	var comp = this;
+	comp._errorSpan.text(e);
+};
+
+function ParseFormat(data) {
+	
+	var comp = this;
+	
+	var result = null;
+	
+	if (comp._format == 'headerList')
+	{
+		// comp._headers: ["foo","bar"]
+		// data: [[1,2],[3,4]]
+		// => [{"foo":1,"bar":2},{"foo":3,"bar":4}]
+		
+		var objs = [];
+		
+		for (var i = 0; i < data.length; i++)
+		{
+			var obj = {};
+			
+			for (var k = 0; k < comp._headers.length; k++)
+			{
+				obj[comp._headers[k]] = data[i][k];
+			}
+			
+			objs.push(obj);
+		}
+		
+		result = objs;
+	}
+	else if (comp._format == 'json')
+	{
+		result = data;
+	}
+	else
+	{
+		throw new Error();
+	}
+	
+	return result;
+}
+function WriteFormat() {
+	
+	var comp = this;
+	
+	var result = null;
 	
 	if (comp._form == 'listOfObjects')
 	{
@@ -316,22 +259,16 @@ Data.prototype._write = function() {
 			matrix.push(row);
 		}
 		
-		json.data = matrix;
+		result = matrix;
 	}
 	else
 	{
 		comp._format = 'json';
-		json.data = comp._data;
+		result = comp._data;
 	}
 	
-	json.params = {};
-	json.params.format = comp._format;
-	json.params.display = comp._display;
-	json.params.form = comp._form;
-	json.params.headers = comp._headers;
-	json.params.afterChange = comp._afterChange;
-	return json;
-};
+	return result;
+}
 Data.prototype._introspectHeaders = function() {
 	
 	var comp = this;
@@ -400,13 +337,6 @@ Data.prototype._enforceHeaderOrder = function() {
 	}
 	
 	comp._data = newdata;
-};
-Data.prototype._showError = function(e) {
-	
-	var comp = this;
-	
-	comp._errorSpan.text(e);
-	//comp._errorSpan.text(e.message);
 };
 Data.prototype._determineDataForm = function() {
 	
@@ -589,6 +519,128 @@ function DetermineDataForm(data) {
 	return form;
 }
 
+function DisplayAsPre(comp) {
+	
+	var l = [];
+	
+	if (comp._form == 'listOfObjects')
+	{
+		l.push('\t' + comp._headers.join('\t'));
+		
+		for (var i = 0; i < comp._data.length; i++)
+		{
+			var row = [];
+			row.push(i.toString());
+			
+			for (var k = 0; k < comp._headers.length; k++)
+			{
+				row.push(comp._data[i][comp._headers[k]]);
+			}
+			
+			l.push(row.join('\t'));
+		}
+	}
+	else if (comp._form == 'listOfLists')
+	{
+		l.push('\t' + comp._headers.join('\t'));
+		
+		for (var i = 0; i < comp._data.length; i++)
+		{
+			var row = [];
+			row.push(i.toString());
+			
+			for (var j = 0; j < comp._data[i].length; j++)
+			{
+				row.push(comp._data[i][j]);
+			}
+			
+			l.push(row.join('\t'));
+		}
+	}
+	else if (comp._form == 'object')
+	{
+		for (var k = 0; k < comp._headers.length; k++)
+		{
+			var key = comp._headers[k];
+			l.push(key + '\t' + comp._data[key]);
+		}
+	}
+	else if (comp._form == 'list')
+	{
+		for (var i = 0; i < comp._data.length; i++)
+		{
+			l.push(i.toString() + '\t' + comp._data[i]);
+		}
+	}
+	else
+	{
+		throw new Error();
+	}
+	
+	return '<pre>' + l.join('\n') + '</pre>';
+}
+
+Data.prototype._pushUndo = function(size) {
+	
+	var comp = this;
+	
+	//console.log('----------');
+	
+	if (size > comp._undo.capacity) { return; }
+	
+	// ok, so what if index is not at the top of the stack?  that means that we're editing data that is the result of an undo
+	// basically comp is a fork in the tree
+	// so the correct thing to do is to discard the potential redos in the now-defunct trunk
+	for (var i = comp._undo.stack.length - 1; i > comp._undo.index; i--)
+	{
+		comp._undo.stack.pop();
+		comp._undo.size -= comp._undo.sizes.pop();
+		//console.log('pop');
+	}
+	
+	comp._undo.stack.push({ data : comp._data , headers : comp._headers });
+	comp._undo.index = comp._undo.stack.length - 1;
+	comp._undo.sizes.push(size);
+	comp._undo.size += size;
+	//console.log('push');
+	
+	while (comp._undo.size > comp._undo.capacity)
+	{
+		comp._undo.stack.shift();
+		comp._undo.size -= comp._undo.sizes.shift();
+		comp._undo.index--;
+		//console.log('shift');
+	}
+	
+	//console.log('----------');
+};
+Data.prototype.Undo = function() {
+	
+	var comp = this;
+	
+	if (comp._undo.index == 0) { return; }
+	comp._undo.index--;
+	comp._data = comp._undo.stack[comp._undo.index].data;
+	comp._headers = comp._undo.stack[comp._undo.index].headers;
+	comp._markDirty();
+	comp._undo.pushOnAdd = false;
+	comp._add();
+	comp._undo.pushOnAdd = true;
+};
+Data.prototype.Redo = function() {
+	
+	var comp = this;
+	
+	if (comp._undo.index == comp._undo.stack.length - 1) { return; }
+	comp._undo.index++;
+	comp._data = comp._undo.stack[comp._undo.index].data;
+	comp._headers = comp._undo.stack[comp._undo.index].headers;
+	comp._markDirty();
+	comp._undo.pushOnAdd = false;
+	comp._add();
+	comp._undo.pushOnAdd = true;
+};
+
 Data.prototype._runAfterChange = function() {
 	var comp = this;
 	(new Function('args', comp._afterChange))();
@@ -659,7 +711,6 @@ Data.prototype._setData = function(data) {
 		
 		return success;
 };
-
 Data.prototype._get = function(options) {
 	
 	var comp = this;
@@ -754,66 +805,20 @@ function Download(text, ext) {
 	};
 }
 
-Data.prototype._pushUndo = function(size) {
-	
-	var comp = this;
-	
-	//console.log('----------');
-	
-	if (size > comp._undo.capacity) { return; }
-	
-	// ok, so what if index is not at the top of the stack?  that means that we're editing data that is the result of an undo
-	// basically comp is a fork in the tree
-	// so the correct thing to do is to discard the potential redos in the now-defunct trunk
-	for (var i = comp._undo.stack.length - 1; i > comp._undo.index; i--)
-	{
-		comp._undo.stack.pop();
-		comp._undo.size -= comp._undo.sizes.pop();
-		//console.log('pop');
-	}
-	
-	comp._undo.stack.push({ data : comp._data , headers : comp._headers });
-	comp._undo.index = comp._undo.stack.length - 1;
-	comp._undo.sizes.push(size);
-	comp._undo.size += size;
-	//console.log('push');
-	
-	while (comp._undo.size > comp._undo.capacity)
-	{
-		comp._undo.stack.shift();
-		comp._undo.size -= comp._undo.sizes.shift();
-		comp._undo.index--;
-		//console.log('shift');
-	}
-	
-	//console.log('----------');
-};
-Data.prototype.Undo = function() {
-	
-	var comp = this;
-	
-	if (comp._undo.index == 0) { return; }
-	comp._undo.index--;
-	comp._data = comp._undo.stack[comp._undo.index].data;
-	comp._headers = comp._undo.stack[comp._undo.index].headers;
-	comp._markDirty();
-	comp._undo.pushOnAdd = false;
-	comp._add();
-	comp._undo.pushOnAdd = true;
-};
-Data.prototype.Redo = function() {
-	
-	var comp = this;
-	
-	if (comp._undo.index == comp._undo.stack.length - 1) { return; }
-	comp._undo.index++;
-	comp._data = comp._undo.stack[comp._undo.index].data;
-	comp._headers = comp._undo.stack[comp._undo.index].headers;
-	comp._markDirty();
-	comp._undo.pushOnAdd = false;
-	comp._add();
-	comp._undo.pushOnAdd = true;
-};
+
+var singleQuotedStringRegexString = "'([^']|\\')*'";
+var doubleQuotedStringRegexString = '"([^"]|\\")*"';
+var stringRegexString = '(' + singleQuotedStringRegexString + '|' + doubleQuotedStringRegexString + ')';
+var newlineRegexString = '(\\r\\n|\\r|\\n)'; // newlines act as object delimiters
+
+var numberRegex = new RegExp('^\\s*[+-]?([0-9]{1,3}((,[0-9]{3})*|([0-9]{3})*))?(\\.[0-9]+)?%?\\s*$');
+var digitRegex = new RegExp('[0-9]');
+var trueRegex = new RegExp('^true$', 'i');
+var falseRegex = new RegExp('^false$', 'i');
+
+// require ISO 8601 dates - this regex reads yyyy-mm-ddThh:mm:ss.fffZ, with each component after yyyy-mm being optional
+// note this means that yyyy alone will be interpreted as an int, not a date
+var dateRegex = new RegExp('[0-9]{4}-[0-9]{2}(-[0-9]{2}(T[0-9]{2}(:[0-9]{2}(:[0-9]{2}(.[0-9]+)?)?)?(Z|([+-][0-9]{1-2}:[0-9]{2})))?)?');
 
 function Write(format) {
 	
@@ -821,25 +826,25 @@ function Write(format) {
 	
 	var text = null;
 	
-	if (comp._display == 'json')
+	if (format == 'json')
 	{
 		text = WriteJson.apply(comp);
 	}
-	else if (comp._display == 'yaml')
+	else if (format == 'yaml')
 	{
 		text = WriteYaml.apply(comp);
 	}
-	else if (comp._display == 'csv')
+	else if (format == 'csv')
 	{
 		text = WriteCsv.apply(comp);
 	}
-	else if (comp._display == 'tsv')
+	else if (format == 'tsv')
 	{
 		text = WriteTsv.apply(comp);
 	}
 	else
 	{
-		throw new Error('Unsupported format: "' + options.format + '"');
+		throw new Error('Unsupported format: "' + format + '"');
 	}
 	
 	return text;
@@ -852,7 +857,6 @@ function ReadJson(text) {
 	
 	comp._form = DetermineDataForm(comp._data);
 	comp._introspectHeaders();
-	comp._parseDatatypes();
 }
 function ReadYaml(text) {
 	
@@ -862,7 +866,6 @@ function ReadYaml(text) {
 	
 	comp._form = DetermineDataForm(comp._data);
 	comp._introspectHeaders();
-	comp._parseDatatypes();
 }
 function WriteJson() {
 	
@@ -936,6 +939,11 @@ Data.prototype._parseDatatypes = function() {
 };
 function ParseDatatypeRec(obj) {
 	
+	// this is scaffolding for autoparsing of certain strings (such as dates)
+	// however, ParseStringToObj also parses strings into numbers and bools, and is not currently parsing dates
+	// therefore this should not be called on parsed json, because numbers and bools are built into json syntax
+	// if we want to use this function for parsed json, we need ParseStringToObj to *only* parse dates and the like
+	
 	var type = Object.prototype.toString.call(obj);
 	
 	var keys = [];
@@ -965,11 +973,11 @@ function ParseDatatypeRec(obj) {
 		var sub = obj[key];
 		var subtype = Object.prototype.toString.call(sub);
 		
-		if (type == '[object Object]' || type == '[object Array]')
+		if (subtype == '[object Object]' || subtype == '[object Array]')
 		{
 			ParseDatatypeRec(sub);
 		}
-		else if (type == '[object String]')
+		else if (subtype == '[object String]')
 		{
 			obj[key] = ParseStringToObj(sub);
 		}
@@ -981,11 +989,6 @@ function ReadCsv(text) { ReadSeparatedValues.apply(this, [text, ',']); }
 function WriteTsv() { return WriteSeparatedValues.apply(this, ['\t']); }
 function WriteCsv() { return WriteSeparatedValues.apply(this, [',']); }
 
-var singleQuotedStringRegexString = "'([^']|\\\\')*'";
-var doubleQuotedStringRegexString = '"([^"]|\\\\")*"';
-var stringRegexString = '(' + singleQuotedStringRegexString + '|' + doubleQuotedStringRegexString + ')';
-var newlineRegexString = '(\\r\\n|\\r|\\n)'; // newlines act as object delimiters
-
 function SeparatedValuesToMatrix(text, delimiter) {
 	
 	// there's lots of room here to do structure validation and generate hopefully useful error messages
@@ -993,7 +996,7 @@ function SeparatedValuesToMatrix(text, delimiter) {
 	var delimiterRegexStr = delimiter;
 	var delimiterLessRegexStr = '[^' + delimiter + '\\r\\n]+';
 	
-	var regex = new RegExp('(' + stringRegexString + '|' + newlineRegexString + '|' + delimiterRegexStr + '|' + delimiterLessRegexStr + ')', 'g');
+	var regex = new RegExp('(' + doubleQuotedStringRegexString + '|' + newlineRegexString + '|' + delimiterRegexStr + '|' + delimiterLessRegexStr + ')', 'g');
 	
 	var matrix = [];
 	var row = [];
@@ -1020,11 +1023,6 @@ function SeparatedValuesToMatrix(text, delimiter) {
 			matrix.push(row);
 			row = [];
 			afterEntry = false;
-		}
-		else if (token[0] == '"' || token[0] == "'")
-		{
-			row.push(token.substr(1, token.length-2));
-			afterEntry = true;
 		}
 		else
 		{
@@ -1053,7 +1051,7 @@ function ReadSeparatedValues(text, delimiter) {
 	if (areAllRowLengthsUnity)
 	{
 		comp._form = 'list';
-		data = matrix.map(function(row) { return ParseStringToObj(row[0]); }); // interpret text as a list
+		data = matrix.map(function(row) { return ParseStringToObjCsvTsv(row[0]); }); // interpret text as a list
 	}
 	else
 	{
@@ -1067,19 +1065,6 @@ function ReadSeparatedValues(text, delimiter) {
 			if (isNaN(index)) { isListOfLists = false; break; }
 			headerIndexes.push(index);
 		}
-		
-		// this procedure disallows adding new columns by adding a large headerIndex
-		// e.g., this does not work:
-		// [[0,1],[a,b]] -> [[0,1,3],[a,b]] -> [[0,1,2,3],[a,b,null,null]]
-		
-		// this is because it conflicts with a common way to delete columns:
-		// [[0,1,2],[a,b,c]] -> [[1,2],[a,b,c]] -> [[0,1],[b,c]]
-		
-		// so then, we have to figure out what should happen in this case then:
-		// [[0,1],[a,b]] -> [[0,1,3],[a,b]] -> ??
-		
-		// note that the implementation below allows easy duplication of columns, fwiw:
-		// [[0],[a]] -> [[0,0],[a]] -> [[0,0],[a,a]]
 		
 		// now pad the matrix rows so that each row is at least the length of the header row
 		for (var i = 1; i < matrix.length; i++)
@@ -1109,7 +1094,7 @@ function ReadSeparatedValues(text, delimiter) {
 					// will expand to
 					// row[0] = matrix[i][0]
 					// row[1] = matrix[i][2]
-					row[j] = ParseStringToObj(matrix[i][headerIndexes[j]]);
+					row[j] = ParseStringToObjCsvTsv(matrix[i][headerIndexes[j]]);
 				}
 				
 				data.push(row);
@@ -1127,7 +1112,7 @@ function ReadSeparatedValues(text, delimiter) {
 				
 				for (var j = 0; j < headers.length; j++) // stopping at headers.length means that excess entries will simply get dropped
 				{
-					obj[headers[j]] = ParseStringToObj(matrix[i][j]);
+					obj[headers[j]] = ParseStringToObjCsvTsv(matrix[i][j]);
 				}
 				
 				data.push(obj);
@@ -1146,12 +1131,7 @@ function WriteSeparatedValues(delimiter) {
 	
 	if (comp._form == 'list')
 	{
-		for (var i = 0; i < comp._data.length; i++)
-		{
-			var val = comp._data[i];
-			var str = ((val === null) ? '' : val.toString());
-			ls.push(str);
-		}
+		ls = comp._data.map(function(val) { return WriteObjToStringCsvTsv(val, delimiter); });
 	}
 	else
 	{
@@ -1164,13 +1144,7 @@ function WriteSeparatedValues(delimiter) {
 			for (var k = 0; k < comp._headers.length; k++)
 			{
 				var val = comp._data[i][comp._headers[k]];
-				var str = ((val === null) ? '' : val.toString());
-				
-				if (str.indexOf(delimiter) >= 0 || str.indexOf('"') >= 0 || str.indexOf('\n') >= 0 || str.indexOf('\r') >= 0)
-				{
-					str = '"' + str.replace('"', '\\"').replace('\r', '\\r').replace('\n', '\\n') + '"';
-				}
-				
+				var str = WriteObjToStringCsvTsv(val, delimiter)
 				entries.push(str);
 			}
 			
@@ -1181,19 +1155,101 @@ function WriteSeparatedValues(delimiter) {
 	return ls.join('\n') + '\n';
 }
 
-var numberRegex = new RegExp('^\\s*[+-]?([0-9]{1,3}((,[0-9]{3})*|([0-9]{3})*))?(\\.[0-9]+)?%?\\s*$');
-var digitRegex = new RegExp('[0-9]');
-var trueRegex = new RegExp('^true$', 'i');
-var falseRegex = new RegExp('^false$', 'i');
+var WriteObjToStringCsvTsv = function(obj, delimiter) {
+	
+	if (obj === null || obj === undefined) { return ''; }
+	
+	var type = Object.prototype.toString.call(obj);
+	
+	// the nice thing about csv/tsv is that you don't have to quote strings
+	// however, that means that we need a way to distinguish 0 from "0" and true from "true"
+	// the parser and the writer have to be in sync
+	
+	// how do you encode nulls?  with 'null' or with ''?
+	// how do you parse the empty string?  does it parse as null or the empty string?
+	// if you parse the empty string as null, how do you encode an empty string?  as '""', i guess
+	
+	var str = null;
+	
+	if (type == '[object String]')
+	{
+		if (obj.length == 0 || obj.indexOf(delimiter) >= 0 || obj.indexOf('"') >= 0 || obj.indexOf('\n') >= 0 || obj.indexOf('\r') >= 0 || (numberRegex.test(obj) && digitRegex.test(obj)) || trueRegex.test(obj) || falseRegex.test(obj))
+		{
+			str = '"' + obj.replace('\\', '\\\\').replace('"', '\\"').replace('\t', '\\t').replace('\r', '\\r').replace('\n', '\\n') + '"';
+		}
+		else
+		{
+			str = obj;
+		}
+	}
+	else if (type == '[object Number]' || type == '[object Boolean]')
+	{
+		str = obj.toString();
+	}
+	else
+	{
+		// we only get here if we're setting with an object
+		// if we're writing an object that we ourselves parsed, we're fine
+		throw new Error('Unsupported type: "' + type + '".  Please convert to string.');
+	}
+	
+	return str;
+};
+var ParseStringToObjCsvTsv = function(str) {
+	
+	if (str === null || str === undefined) { return null; }
+	
+	// the numberRegex accepts the empty string because all the parts are optional
+	// parse the empty string as null
+	if (str.length == 0) { return null; }
+	
+	var val = null;
+	
+	if (str[0] == '"')
+	{
+		// if we start with a quote, strip quotes and unescape
+		val = str.substr(1, str.length - 2).replace('\\"', '"').replace('\\r', '\r').replace('\\n', '\n').replace('\\t', '\t').replace('\\\\', '\\');
+	}
+	else if (numberRegex.test(str) && digitRegex.test(str)) // since all parts of numberRegex are optional, "+.%" is a valid number.  so we test digitRegex too
+	{
+		var divisor = 1;
+		str = str.trim();
+		if (str.indexOf('%') >= 0) { divisor = 100; str = str.replace('%', ''); }
+		str = str.replace(',', '');
+		
+		if (str.indexOf('.') >= 0)
+		{
+			val = parseFloat(str);
+		}
+		else
+		{
+			val = parseInt(str);
+		}
+		
+		val /= divisor;
+	}
+	else if (trueRegex.test(str))
+	{
+		val = true;
+	}
+	else if (falseRegex.test(str))
+	{
+		val = false;
+	}
+	else
+	{
+		val = str;
+	}
+	
+	return val;
+};
 
-// require ISO 8601 dates - this regex reads yyyy-mm-ddThh:mm:ss.fffZ, with each component after yyyy-mm being optional
-// note this means that yyyy alone will be interpreted as an int, not a date
-var dateRegex = new RegExp('[0-9]{4}-[0-9]{2}(-[0-9]{2}(T[0-9]{2}(:[0-9]{2}(:[0-9]{2}(.[0-9]+)?)?)?(Z|([+-][0-9]{1-2}:[0-9]{2})))?)?');
-
+// json/yaml - numbers and bools are taken care of by the spec, this is for additional syntax embedded in strings
+// nb that embedding syntax in strings creates severe complications
+// auto-parsing of dates might be convenient in certain situations, but what if people don't want their strings parsed into dates?
+// they're boned, that's what.  and it's a major complaint about excel
 var WriteObjToString = function(obj) {
 	
-	// this is currently called only when writing to json/yaml, which requires that we return 'null'
-	// but if we start calling this function from the csv/tsv writer, we'll need to return ''
 	if (obj === null || obj === undefined) { return 'null'; }
 	
 	var type = Object.prototype.toString.call(obj);
@@ -1202,10 +1258,6 @@ var WriteObjToString = function(obj) {
 	{
 		return '"' + obj.toString() + '"';
 	}
-	//else if (type == '[object Function]')
-	//{
-	//	return WriteFunction(obj);
-	//}
 	else
 	{
 		return obj.toString();
@@ -1236,11 +1288,6 @@ var ParseStringToObj = function(str) {
 		
 		val /= divisor;
 	}
-	//else if (dateRegex.test(str))
-	//{
-	//	val = new Date(str);
-	//	if (val.toJSON() == null) { val = str; } // revert if the date is invalid
-	//}
 	else if (trueRegex.test(str))
 	{
 		val = true;
@@ -1249,10 +1296,6 @@ var ParseStringToObj = function(str) {
 	{
 		val = false;
 	}
-	//else if (str.startsWith('function'))
-	//{
-	//	val = ParseFunction(str);
-	//}
 	else
 	{
 		val = str;
@@ -1260,169 +1303,6 @@ var ParseStringToObj = function(str) {
 	
 	return val;
 };
-
-function WriteFunction(fn) {
-	return 'function(' + fn.args.join(',') + ') {' + fn.body + '}';
-}
-function ParseFunction(str) {
-	
-	// this all could surely be done better with regex.  at least the argument parsing
-	
-	var brace0 = 0;
-	var brace1 = 0;
-	
-	for (var i = 0; i < str.length; i++)
-	{
-		if (str[i] == "{")
-		{
-			brace0 = i;
-			break;
-		}
-	}
-	
-	for (var i = str.length - 1; i >= 0; i--)
-	{
-		if (str[i] == "}")
-		{
-			brace1 = i;
-			break;
-		}
-	}
-	
-	var signature = str.substring(0, brace0);
-	var body = str.substring(brace0 + 1, brace1);
-	
-	var paren0 = 0;
-	var paren1 = 0;
-	
-	for (var i = 0; i < signature.length; i++)
-	{
-		if (signature[i] == "(")
-		{
-			paren0 = i;
-			break;
-		}
-	}
-	
-	for (var i = signature.length - 1; i >= 0; i--)
-	{
-		if (signature[i] == ")")
-		{
-			paren1 = i;
-			break;
-		}
-	}
-	
-	var name = "";
-	
-	for (var i = paren0 - 1; i >= 0; i--)
-	{
-		var c = signature[i];
-		var n = signature.charCodeAt(i);
-		
-		if (65 <= n && n <= 90 || 97 <= n && n <= 122 || n == 36 || n == 95) // $ = 36, _ = 95
-		{
-			name = c + name;
-		}
-		else
-		{
-			if (name.length > 0)
-			{
-				break;
-			}
-		}
-	}
-	
-	var arglist = signature.substring(paren0 + 1, paren1);
-
-	var argnames = [];
-	var arg = "";
-	
-	for (var i = 0; i < arglist.length; i++)
-	{
-		var c = arglist[i];
-		var n = arglist.charCodeAt(i);
-		
-		if (65 <= n && n <= 90 || 97 <= n && n <= 122 || n == 36 || n == 95) // $ = 36, _ = 95
-		{
-			arg += c;
-		}
-		else
-		{
-			if (arg.length > 0)
-			{
-				argnames.push(arg);
-				arg = "";
-			}
-		}
-	}
-	
-	if (arg.length > 0)
-	{
-		argnames.push(arg);
-	}
-	
-	var fn = new Function(argnames.join(','), body);
-	
-	return fn;
-}
-
-// the yaml and json parsers convert numbers and bools automatically, but of course don't automatically convert dates/functions/etc
-// but the csv and tsv parsers read all entries as a string and so conversion must be done explicitly for all
-
-// things are easier on the writer side because all writers call some variant of .toString() for Date
-
-// JSON.stringify ignores Function objects (which is good, because it means we can write classes to JSON and it will do basically the correct thing)
-// JSON.stringify({d:new Date(),f:function(a) { }) => '{"d":"2016-06-18T15:43:34.068Z"}' - f simply disappears
-// however this poses a problem if we want to have Function objects in the data
-
-// none of the system/library-supplied functions are aware that we use ordered headers
-// so sometimes we need to recreate the objects before writing so that the fields are added in the correct order
-// it appears that "for (key in obj)" iterates over the keys in the order they were added
-// this implementation is obvious enough to probably be consistent across JS engines, but of course the language provides no guarantees
-
-// if you want an entry to begin with a double quote, you're going to have to quote it
-// meaning, 	"abc"	 will be interpreted as 'abc' while 	"\"abc\"" will be interpreted as '"abc"'
-
-
-// ([0-9]{1,3}(,?[0-9]{3})*)?(\.[0-9]+)?
-// '[+-]?([0-9]{1,3}((,[0-9]{3})*|([0-9]{3})*))?(\\.[0-9]+)?'
-// this matches a number of things besides numbers, such as "", "+", "%", "-%", and so forth
-// it supports +/-, %, commas in the number, etc.
-// (note that it requires "." as the decimal and "," as the digit separator, and not the reverse as europeans are wont to use)
-// spaces before or after are allowed, but otherwise it must match the whole line
-// one thing this number regex misses is "0." - if there is a decimal, there must be digits after the decimal
-
-
-// http://stackoverflow.com/questions/15491894/regex-to-validate-date-format-dd-mm-yyyy
-// seems like they were concerned primarily with validating leap years
-// this is actually a concern, even though we're just testing to see if it's worth passing the string to Date, because the Date parser does this:
-// new Date('2/29/2015') => Sun Mar 01 2015 00:00:00 GMT-0500 (Eastern Standard Time)
-// not great.
-// however, our main concern is allowing lots of different date formats, which this does not necessarily do
-//var dateRegex = new RegExp('^(?:(?:31(\/|-|\.)(?:0?[13578]|1[02]|(?:Jan|Mar|May|Jul|Aug|Oct|Dec)))\1|(?:(?:29|30)(\/|-|\.)(?:0?[1,3-9]|1[0-2]|(?:Jan|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec))\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/|-|\.)(?:0?2|(?:Feb))\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/|-|\.)(?:(?:0?[1-9]|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep))|(?:1[0-2]|(?:Oct|Nov|Dec)))\4(?:(?:1[6-9]|[2-9]\d)?\d{2})$');
-
-
-// if we're going to parse dates and functions and such to objects, we need to make sure that the json/yaml/csv/tsv writers stringify them correctly
-// JSON.stringify(new Date()) => '"2016-06-18T15:08:45.000Z"'
-// $.csv.fromObjects([{foo:new Date()}]) => "foo\nSat Jun 18 2016 11:13:34 GMT-0400 (Eastern Daylight Time)"
-// jsyaml.dump(new Date()) => "2016-06-18T15:14:28.246Z\n"
-// and our own tsv functions call .toString() on every object
-
-
-
-// to detect object vs list: (see http://blog.niftysnippets.org/2010/09/say-what.html)
-// Object.prototype.toString.call([])                => "[object Array]"
-// Object.prototype.toString.call({})                => "[object Object]"
-// Object.prototype.toString.call(0)                 => "[object Number]"
-// Object.prototype.toString.call("")                => "[object String]"
-// Object.prototype.toString.call(false)             => "[object Boolean]"
-// Object.prototype.toString.call(null)              => "[object Null]"
-// Object.prototype.toString.call(undefined)         => "[object Undefined]"
-// Object.prototype.toString.call(new Date())        => "[object Date]"
-// Object.prototype.toString.call(function(){})      => "[object Function]"
-// Object.prototype.toString.call(/a/)               => "[object RegExp]"
-// Object.prototype.toString.call(new Uint8Array(1)) => "[object Uint8Array]"
 
 Hyperdeck.Components.data = Data;
 
