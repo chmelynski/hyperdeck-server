@@ -14,13 +14,14 @@ canvas:focus { outline : none }
 <script src="js/lib/jszip.js"></script> --> <!-- older version, still supports sync -->
 <!-- <script src="js/lib/jszip.min.js"></script> --> <!-- version 3.0, mandates async -->
 
-<!-- 
+<!--
 <button onclick='Download()'>Download</button>
 <button onclick='Upload()'>Upload</button>
- -->
- 
-<script src='box.js'></script>
-<script src='grid.js'></script>
+-->
+
+<script>Hyperdeck = {};</script>
+<script src='js/widgets/box.js'></script>
+<script src='js/widgets/grid.js'></script>
 
 <span id="debug"></span>
 <div style="position:absolute ; top:2em ; left:2em">
@@ -63,32 +64,17 @@ function Download() {
 	fileReader.readAsDataURL(blob);
 }
 
-var data = {
-	"data": [
-		[1,2,3,4],
-		[5,6,7,8],
-		[9,10,11,12]
-	],
-	"params": {
-		"headers": ["A", "B", "C", "D"],
-		"display": "values",
-		"rowSizes": null,
-		"colSizes": null,
-		"xOffset": 0,
-		"yOffset": 0,
-		"box": {
-			"hAlign": "left",
-			"vAlign": "top",
-			"xAnchor": "left",
-			"yAnchor": "top",
-			"x": 1,
-			"y": 1
-		}
-	}
+var dataComponent = {
+	_headers:["A","B","C","D"],
+	_data:[
+		{A:1,B:2,C:3,D:4},
+		{A:5,B:6,C:7,D:8},
+		{A:9,B:10,C:11,D:12}
+	]
 };
 
-var grid = new Grid(data);
-grid.ctx = document.getElementsByTagName('canvas')[0].getContext('2d');
+var ctx = document.getElementsByTagName('canvas')[0].getContext('2d');
+var grid = new Hyperdeck.Grid(ctx, dataComponent);
 
 // some things call grid.section.draw(), so this clears the canvas and loops that back to grid.draw()
 grid.section = {

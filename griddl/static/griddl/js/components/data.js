@@ -103,10 +103,23 @@ Data.prototype._add = function() {
 			}
 		});
 	}
-	//else if (comp._display == 'grid') // enable this when Grid is ready
-	//{
-	//	Grid.Add.apply(comp);
-	//}
+	else if (comp._display == 'grid')
+	{
+		var ctx = $('<canvas width="500" height="500" tabIndex="0" style="margin:1em;border:0px"></canvas>').appendTo(comp._contentDiv)[0].getContext('2d');
+		comp._grid = new Hyperdeck.Grid(ctx, comp);
+		
+		comp._grid.section = {
+			draw : function() { comp._grid.ctx.clearRect(0, 0, comp._grid.ctx.canvas.width, comp._grid.ctx.canvas.height); comp._grid.draw(); }
+		};
+		
+		comp._grid.ctx.canvas.onmousemove = function(e) { comp._grid.onmousemove(e); };
+		comp._grid.ctx.canvas.onmousedown = function(e) { comp._grid.clearSelection(); };
+		
+		comp._grid.ctx.canvas.parentElement.appendChild(comp._grid.input);
+		
+		comp._grid.draw();
+		ctx.canvas.focus();
+	}
 	else if (comp._display == 'pre')
 	{
 		initText = DisplayAsPre(comp);
@@ -164,6 +177,7 @@ Data.prototype._refreshDatgui = function() {
 	displayOptionDict.object = ['json','yaml','gui'];
 	
 	var displayOptions = displayOptionDict[comp._form];
+	if (Hyperdeck.Preferences.Experimental.enableGrid) { displayOptions.push('grid'); }
 	if (displayOptions.indexOf(comp._display) == -1) { comp._display = 'json'; }
 	
 	var gui = new dat.GUI({autoPlace:false, width:"100%"});

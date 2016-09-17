@@ -1,6 +1,9 @@
 
-var Grid = (function() {
+var Hyperdeck;
 
+(function(module) {
+
+var Box = (Hyperdeck ? Hyperdeck.Box : window.Box);
 
 // sort and filter are implemented with functions, defined in column headers (for sort) and the grid header (for filter)
 // =filter('this.foo == 23 && this.bar == "baz"') -> we just pass in a predicate to be called on each row
@@ -76,7 +79,32 @@ var CellColumn = function() {
 
 // sortFormula, filterFormula - might make more sense for these to be done in a more traditional interface - order is important
 
-var Grid = function(json) {
+var Grid = function(ctx, dataComponent) {
+	
+	var params = null;
+	
+	if (dataComponent._gridParams === undefined)
+	{
+		params = {
+			"display": "values",
+			"rowSizes": null,
+			"colSizes": null,
+			"xOffset": 0,
+			"yOffset": 0,
+			"box": {
+				"hAlign": "left",
+				"vAlign": "top",
+				"xAnchor": "left",
+				"yAnchor": "top",
+				"x": 1,
+				"y": 1
+			}
+		};
+	}
+	else
+	{
+		params = dataComponent._gridParams;
+	}
 	
 	this.defaultCellStroke = 'rgb(208,215,229)'; // rgb(158,182,206)
 	this.defaultHeaderStroke = 'rgb(158,182,206)';
@@ -87,10 +115,10 @@ var Grid = function(json) {
 	this.selectedCellFill = 'rgb(210,210,240)';
 	this.selectedHeaderFill = 'rgb(255,213,141)';
 	
-	this.display = json.params.display; // values, formulas, formatStrings, style, font, fill, hAlign, vAlign, backgroundColor, border
+	this.display = params.display; // values, formulas, formatStrings, style, font, fill, hAlign, vAlign, backgroundColor, border
 	
-	this.headers = json.params.headers;
-	this._data = ParseHeaderList(json.data, this.headers); // proxy both the list and the individual objects
+	this.headers = dataComponent._headers;
+	this._data = dataComponent._data;
 	
 	Object.defineProperty(this, 'data', { 
 		get : function() {
@@ -108,12 +136,12 @@ var Grid = function(json) {
 	//this.nCols = this.data.map(x => x.length).reduce(function(a, b) { return Math.max(a, b); });
 	this.rowsWithSelection = InitArray(this.nRows, false); // this is just for displaying a different color in the headers
 	this.colsWithSelection = InitArray(this.nCols, false);
-	this.rowSizes = json.params.rowSizes ? json.params.rowSizes : InitArray(this.nRows, 20); // int[], includes headers
-	this.colSizes = json.params.colSizes ? json.params.colSizes : InitArray(this.nCols, 64); // int[], includes headers
+	this.rowSizes = params.rowSizes ? params.rowSizes : InitArray(this.nRows, 20); // int[], includes headers
+	this.colSizes = params.colSizes ? params.colSizes : InitArray(this.nCols, 64); // int[], includes headers
 	this.xs = null; // int[], fencepost with colSizes
 	this.ys = null; // int[], fencepost with rowSizes
-	this.xOffset = json.params.xOffset; // controlled by scrollbars
-	this.yOffset = json.params.yOffset;
+	this.xOffset = params.xOffset; // controlled by scrollbars
+	this.yOffset = params.yOffset;
 	
 	this.cells = InitCells(this.nRows, this.nCols);
 	this.cellArray = new CellArray(this);
@@ -147,15 +175,15 @@ var Grid = function(json) {
 		}
 	}
 	
-	this.ctx = null;
+	this.ctx = ctx;
 	this.section = null;
 	
 	// the mechanics of row and col resizing work best if the grid's anchor is mandated to be tp/lf, but users might want centering
 	this.box = new Box(this, false);
-	this.box.x = json.params.box.x;
-	this.box.y = json.params.box.y;
-	this.box.hAlign = json.params.box.hAlign;
-	this.box.vAlign = json.params.box.vAlign;
+	this.box.x = params.box.x;
+	this.box.y = params.box.y;
+	this.box.hAlign = params.box.hAlign;
+	this.box.vAlign = params.box.vAlign;
 	this.box.hg = this.rowSizes.reduce(function(a, b) { return a + b; });
 	this.box.wd = this.colSizes.reduce(function(a, b) { return a + b; });
 	
@@ -948,9 +976,12 @@ Grid.prototype.acceptEdit = function() {
 	}
 	else
 	{
+		var value = null;
+		
 		if (str.length > 0 && str[0] == '=')
 		{
 			cell.formula = str;
+			this._data[i-1][this.headers[j-1]] = str; // set the underlying to be the formula - but Hyperdeck.Get will expect the value.  problem.
 			
 			var formula = str.substr(1);
 			var fn = new Function('i', 'return ' + formula);
@@ -959,6 +990,7 @@ Grid.prototype.acceptEdit = function() {
 		}
 		else
 		{
+			this._data[i-1][this.headers[j-1]] = value; // set the underlying
 			cell.value = ParseStringToObj(str);
 		}
 		
@@ -1698,7 +1730,9 @@ CanvasRenderingContext2D.prototype.drawLine = function(x1, y1, x2, y2) {
 	this.stroke();
 };
 
-return Grid;
+module.Grid = Grid;
 
-})();
+})(Hyperdeck || window);
+
+
 
