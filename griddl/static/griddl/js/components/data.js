@@ -177,7 +177,7 @@ Data.prototype._refreshDatgui = function() {
 	displayOptionDict.object = ['json','yaml','gui'];
 	
 	var displayOptions = displayOptionDict[comp._form];
-	if (Hyperdeck.Preferences.Experimental.enableGrid) { displayOptions.push('grid'); }
+	if (Hyperdeck.Preferences.Experimental && Hyperdeck.Preferences.Experimental.enableGrid) { displayOptions.push('grid'); }
 	if (displayOptions.indexOf(comp._display) == -1) { comp._display = 'json'; }
 	
 	var gui = new dat.GUI({autoPlace:false, width:"100%"});

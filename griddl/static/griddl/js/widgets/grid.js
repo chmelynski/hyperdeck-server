@@ -981,17 +981,18 @@ Grid.prototype.acceptEdit = function() {
 		if (str.length > 0 && str[0] == '=')
 		{
 			cell.formula = str;
-			this._data[i-1][this.headers[j-1]] = str; // set the underlying to be the formula - but Hyperdeck.Get will expect the value.  problem.
+			//this._data[i-1][this.headers[j-1]] = str; // set the underlying to be the formula - but Hyperdeck.Get will expect the value.  problem.
 			
 			var formula = str.substr(1);
 			var fn = new Function('i', 'return ' + formula);
 			var result = fn.apply(this.cellArray, [i-1]);
 			cell.value = result;
+			this._data[i-1][this.headers[j-1]] = cell.value; // for now, formulas are volatile
 		}
 		else
 		{
-			this._data[i-1][this.headers[j-1]] = value; // set the underlying
 			cell.value = ParseStringToObj(str);
+			this._data[i-1][this.headers[j-1]] = cell.value; // set the underlying
 		}
 		
 		cell.string = Format(cell.value, cell.formatObject);
