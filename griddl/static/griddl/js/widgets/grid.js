@@ -18,6 +18,15 @@ var Box = (Hyperdeck ? Hyperdeck.Box : window.Box);
 // F5 = display selection as json
 // F6 = display selection as yaml
 
+// Alt+Up => Insert Rows Above
+// Alt+Down => Insert Rows Below
+// Alt+Left => Insert Cols Left
+// Alt+Right => Insert Cols Right
+// Alt+Shift+Up => Delete Rows
+// Alt+Shift+Down => Delete Rows
+// Alt+Shift+Left => Delete Cols
+// Alt+Shift+Right => Delete Cols
+
 // wait, we create a separate CellArray object to serve as this in the function application
 
 // foo should resolve within the row - this is possible because CellRow is part of the prototype chain
@@ -31,9 +40,7 @@ var Box = (Hyperdeck ? Hyperdeck.Box : window.Box);
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Working_with_Objects
 
-// Alt + Right Arrow => Insert Cols Right
-// Alt + Up Arrow => Insert Rows Up
-// Alt + Shift + Up Arrow => Delete Rows
+
 
 var Environment = function() {
 	
@@ -833,58 +840,94 @@ Grid.prototype.setKeyHandles = function() {
 		}
 		else if (key == 37 || key == 38 || key == 39 || key == 40) // arrow
 		{
-			if (key == 37) // left
+			if (e.altKey) // insert/delete rows/cols
 			{
-				if (e.ctrlKey)
+				if (e.shiftKey) // delete rows/cols
 				{
-					grid.cursor.col = min;
+					if (key == 37 || key == 39) // left and right are identical for deletion
+					{
+						grid.deleteCols();
+					}
+					else if (key == 38 || key == 40) // up and down are identical for deletion
+					{
+						grid.deleteRows();
+					}
 				}
 				else
 				{
-					if (grid.cursor.col > min) { grid.cursor.col--; }
+					if (key == 37) // left
+					{
+						grid.insertColsLeft();
+					}
+					else if (key == 38) // up
+					{
+						grid.insertRowsAbove();
+					}
+					else if (key == 39) // right
+					{
+						grid.insertColsRight();
+					}
+					else if (key == 40) // down
+					{
+						grid.insertRowsBelow();
+					}
 				}
-			}
-			else if (key == 38) // up
-			{
-				if (e.ctrlKey)
-				{
-					grid.cursor.row = min;
-				}
-				else
-				{
-					if (grid.cursor.row > min) { grid.cursor.row--; }
-				}
-			}
-			else if (key == 39) // right
-			{
-				if (e.ctrlKey)
-				{
-					grid.cursor.col = grid.nCols - 1;
-				}
-				else
-				{
-					if (grid.cursor.col < grid.nCols - 1) { grid.cursor.col++; }
-				}
-			}
-			else if (key == 40) // down
-			{
-				if (e.ctrlKey)
-				{
-					grid.cursor.row = grid.nRows - 1;
-				}
-				else
-				{
-					if (grid.cursor.row < grid.nRows - 1) { grid.cursor.row++; }
-				}
-			}
-			
-			if (e.shiftKey)
-			{
-				grid.selectRange();
 			}
 			else
 			{
-				grid.selectCell();
+				if (key == 37) // left
+				{
+					if (e.ctrlKey)
+					{
+						grid.cursor.col = min;
+					}
+					else
+					{
+						if (grid.cursor.col > min) { grid.cursor.col--; }
+					}
+				}
+				else if (key == 38) // up
+				{
+					if (e.ctrlKey)
+					{
+						grid.cursor.row = min;
+					}
+					else
+					{
+						if (grid.cursor.row > min) { grid.cursor.row--; }
+					}
+				}
+				else if (key == 39) // right
+				{
+					if (e.ctrlKey)
+					{
+						grid.cursor.col = grid.nCols - 1;
+					}
+					else
+					{
+						if (grid.cursor.col < grid.nCols - 1) { grid.cursor.col++; }
+					}
+				}
+				else if (key == 40) // down
+				{
+					if (e.ctrlKey)
+					{
+						grid.cursor.row = grid.nRows - 1;
+					}
+					else
+					{
+						if (grid.cursor.row < grid.nRows - 1) { grid.cursor.row++; }
+					}
+				}
+				
+				if (e.shiftKey)
+				{
+					grid.selectRange();
+				}
+				else
+				{
+					grid.selectCell();
+				}
 			}
 		}
 		else if (key == 113) // F2 = edit
@@ -967,8 +1010,25 @@ Grid.prototype.acceptEdit = function() {
 	}
 	else if (i == 0)
 	{
+		// under different modes, set filter, sort, etc.
+		
+		if (this.headers[j-1] == str) { return; }
+		if (this.headers.indexOf(str) > -1) { return; } // collision, bail
+		
 		cell.string = str;
-		// change field, change formula references
+		
+		// change field
+		var oldfield = this.headers[j-1];
+		this.headers[j-1] = str;
+		
+		for (var k = 0; k < this._data.length; k++)
+		{
+			var obj = this._data[k];
+			obj[str] = obj[oldfield];
+			delete obj[oldfield];
+		}
+		
+		// change formulas that reference the old field name?
 	}
 	else if (j == 0)
 	{
@@ -976,12 +1036,9 @@ Grid.prototype.acceptEdit = function() {
 	}
 	else
 	{
-		var value = null;
-		
 		if (str.length > 0 && str[0] == '=')
 		{
 			cell.formula = str;
-			//this._data[i-1][this.headers[j-1]] = str; // set the underlying to be the formula - but Hyperdeck.Get will expect the value.  problem.
 			
 			var formula = str.substr(1);
 			var fn = new Function('i', 'return ' + formula);
@@ -1171,23 +1228,166 @@ Grid.prototype.getSelectedCells = function() {
 	return cells;
 };
 
-Grid.prototype.insertRowsAbove = function() {
+Grid.prototype.insertRowsAbove = function() { this.insertRows(true); };
+Grid.prototype.insertRowsBelow = function() { this.insertRows(false); };
+Grid.prototype.insertRows = function(bAbove) {
 	
+	var k = bAbove ? this.focusSelected.minRow : (this.focusSelected.maxRow+1);
+	var n = this.focusSelected.maxRow - this.focusSelected.minRow + 1;
+	
+	this.nRows += n;
+	
+	for (var i = 0; i < n; i++)
+	{
+		var newrow = [];
+		var newdata = {};
+		
+		for (var j = 0; j < this.nCols; j++)
+		{
+			var cell = new Cell();
+			cell.string = '';
+			newrow.push(cell);
+			
+			if (j >= 1)
+			{
+				newdata[this.headers[j-1]] = null;
+			}
+		}
+		
+		this.rowsWithSelection.splice(k+i, 0, false);
+		this.rowSizes.splice(k+i, 0, 20);
+		this.cells.splice(k+i, 0, newrow);
+		this._data.splice(k+i-1, 0, newdata);
+	}
+	
+	for (var i = 1; i < this.cells.length; i++)
+	{
+		this.cells[i][0].string = (i-1).toString();
+	}
+	
+	if (bAbove)
+	{
+		this.anchor.row += n;
+		this.cursor.row += n;
+		this.selectRange();
+	}
+	
+	this.position();
+	this.section.draw();
 };
-Grid.prototype.insertRowsBelow = function() {
+Grid.prototype.insertColsLeft = function() { this.insertCols(true); };
+Grid.prototype.insertColsRight = function() { this.insertCols(false); };
+Grid.prototype.insertCols = function(bLeft) {
 	
-};
-Grid.prototype.insertColsLeft = function() {
+	var k = bLeft ? this.focusSelected.minCol : (this.focusSelected.maxCol+1);
+	var n = this.focusSelected.maxCol - this.focusSelected.minCol + 1;
 	
-};
-Grid.prototype.insertColsRight = function() {
+	this.nCols += n;
 	
+	for (var i = 0; i < n; i++)
+	{
+		// if we're in classic-excel mode, we want to remap the A,B,C headers and change formulas
+		var suffix = 0;
+		var header = 'field' + suffix.toString();
+		
+		while (this.headers.indexOf(header) > -1)
+		{
+			suffix++;
+			header = 'field' + suffix.toString();
+		}
+		
+		this.headers.splice(k+i-1, 0, header);
+		
+		this.colsWithSelection.splice(k+i, 0, false);
+		this.colSizes.splice(k+i, 0, 64);
+		
+		for (var j = 0; j < this.nRows; j++)
+		{
+			var cell = new Cell();
+			
+			if (j == 0)
+			{
+				cell.string = header;
+			}
+			else
+			{
+				cell.string = '';
+				this._data[j-1][header] = null;
+			}
+			
+			this.cells[j].splice(k+i, 0, cell);
+		}
+	}
+	
+	if (bLeft)
+	{
+		this.anchor.col += n;
+		this.cursor.col += n;
+		this.selectRange();
+	}
+	
+	this.position();
+	this.section.draw();
 };
 Grid.prototype.deleteRows = function() {
 	
+	// what happens if we delete all the rows?
+	
+	var k = this.focusSelected.minRow;
+	var n = this.focusSelected.maxRow - this.focusSelected.minRow + 1;
+	
+	this.nRows -= n;
+	
+	this.rowsWithSelection.splice(k, n);
+	this.rowSizes.splice(k, n);
+	this.cells.splice(k, n);
+	var deleted = this._data.splice(k-1, n);
+	
+	for (var i = 1; i < this.cells.length; i++)
+	{
+		this.cells[i][0].string = (i-1).toString();
+	}
+	
+	// this is where Shift+Alt+Up vs Shift+Alt+Down could have varying effect - on where the cursor ends up
+	this.anchor.row = k - 1;
+	this.cursor.row = k - 1;
+	this.selectRange();
+	
+	this.position();
+	this.section.draw();
 };
 Grid.prototype.deleteCols = function() {
 	
+	var k = this.focusSelected.minCol;
+	var n = this.focusSelected.maxCol - this.focusSelected.minCol + 1;
+	
+	this.nCols -= n;
+	
+	this.colsWithSelection.splice(k, n);
+	this.colSizes.splice(k, n);
+	
+	for (var i = 0; i < this.nRows; i++)
+	{
+		if (i > 0)
+		{
+			for (var j = 0; j < n; j++)
+			{
+				delete this._data[i-1][this.headers[k-1+j]];
+			}
+		}
+		
+		this.cells[i].splice(k, n);
+	}
+	
+	this.headers.splice(k, n);
+	
+	// this is where Shift+Alt+Left vs Shift+Alt+Right could have varying effect - on where the cursor ends up
+	this.anchor.col = k - 1;
+	this.cursor.col = k - 1;
+	this.selectRange();
+	
+	this.position();
+	this.section.draw();
 };
 
 Grid.prototype.getCoords = function(e) {
