@@ -178,14 +178,17 @@ def directory(request, userid, path=None):
     wbs = Workbook.objects.filter(owner=request.user.account.pk, parent=this) \
         .order_by('filetype', 'name')
 
-    dirs = Workbook.objects.filter(owner=request.user.account.pk, filetype='D') \
-        .order_by('parent', 'name')
+    dirs = Workbook.objects.filter(owner=request.user.account.pk, filetype='D')
 
-    acctdirs = [{'val': 'root', 'display': 'Account Root'}]
-    # todo: replace with smarter tree-building func i guess
+    acctdirs = []
+    
     for d in dirs:
-        display = '-- ' * len(d.path_to_file.split('/')) + d.name
+        path = d.path_to_file
+        display = '/' + path + ('' if (path == '') else '/') + d.name
         acctdirs.append({'val': d.pk, 'display': display})
+        
+    acctdirs = sorted(acctdirs, key=lambda d: d['display'])
+    acctdirs.insert(0, {'val': 'root', 'display': 'Account Root'})
 
     context = {
         "workbooks": wbs,
