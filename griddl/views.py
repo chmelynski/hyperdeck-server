@@ -487,7 +487,10 @@ def move(request):
         if parent == 'root':  # special case, sorry
             wb.parent = None
         else:
-            wb.parent = Workbook.objects.get(pk=parent)
+            dst = Workbook.objects.get(pk=parent)
+            if wb == dst:
+                raise Exception()
+            wb.parent = dst
             dstFolder = wb.parent.path
 
         wb.save()
