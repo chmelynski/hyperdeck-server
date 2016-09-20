@@ -90,7 +90,7 @@ var Grid = function(ctx, dataComponent) {
 	
 	var params = null;
 	
-	if (dataComponent._gridParams === undefined)
+	if (dataComponent.gridParams == null)
 	{
 		params = {
 			"display": "values",
@@ -110,7 +110,7 @@ var Grid = function(ctx, dataComponent) {
 	}
 	else
 	{
-		params = dataComponent._gridParams;
+		params = dataComponent.gridParams;
 	}
 	
 	this.defaultCellStroke = 'rgb(208,215,229)'; // rgb(158,182,206)
@@ -124,8 +124,8 @@ var Grid = function(ctx, dataComponent) {
 	
 	this.display = params.display; // values, formulas, formatStrings, style, font, fill, hAlign, vAlign, backgroundColor, border
 	
-	this.headers = dataComponent._headers;
-	this._data = dataComponent._data;
+	this.headers = dataComponent.headers;
+	this._data = dataComponent.data;
 	
 	Object.defineProperty(this, 'data', { 
 		get : function() {

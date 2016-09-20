@@ -43,6 +43,25 @@ var Data = function(json, type, name) {
 	this._headers = json.params.headers; // this is needed to specify which columns to display and in what order - handsontable gives the user the ability to reorder columns, and we want to save that configuration
 	this._afterChange = json.params.afterChange ? json.params.afterChange : '';
 	
+	this._gridParams = null;
+	
+	this._data = ParseFormat.apply(this, [json.data]);
+	
+	Object.defineProperty(this, 'data', {
+		get : function() { return this._data; },
+		//set : function (value) { this._data = value; }
+	});
+	
+	Object.defineProperty(this, 'headers', {
+		get : function() { return this._headers; },
+		//set : function (value) { this._headers = value; }
+	});
+	
+	Object.defineProperty(this, 'gridParams', {
+		get : function() { return this._gridParams; },
+		set : function (value) { this._gridParams = value; }
+	});
+	
 	Object.defineProperty(this, 'display', {
 		get : function() { return this._display; },
 		set : function (value) { this._display = value; }
@@ -52,8 +71,6 @@ var Data = function(json, type, name) {
 		get : function() { return this._afterChange; },
 		set : function (value) { this._afterChange = value; }
 	});
-	
-	this._data = ParseFormat.apply(this, [json.data]);
 	
 	// determining form can be an expensive operation, so we cache the result and remember it as long as we can
 	// for example, if the data is modified by the user interacting with a grid, we can be assured the data stays in a certain form
