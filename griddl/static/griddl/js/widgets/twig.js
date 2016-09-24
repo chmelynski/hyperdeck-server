@@ -9,6 +9,40 @@ the Tree controls the handles only - the Twig controls handlers on its display
 
 the easiest thing is to just display one big input to edit twig content - syntax for JSON and HTML may be different
 
+need to add Math and Scene backing objects
+
+editing a key:[] entry to change the name results in key2:"[]" - it parses the [] as a string
+
+
+the top-left cell of a grid contains the scope - (global) or a namespace
+ for grids with a {} or [] underlying, the scope cell can be a 1x2 at the top
+
+Space = edit
+Ctrl+Space = edit subtree (display a textarea with underlying text representation)
+
+Up = move cursor up (in display order)
+Down = move cursor down (in display order)
+Shift+Up = move cursor to prev sibling
+Shift+Down = move cursor to next sibling
+Ctrl+Up = move cursor to parent
+Ctrl+Down = (would be move cursor to first child, but the first child is next in display order so this is redundant)
+Ctrl+Shift+Up = move cursor to root
+Ctrl+Shift+Down = move cursor to bookmark?
+
+Right = open
+Left = close
+Shift+Right = open siblings
+Shift+Left = close siblings
+Ctrl+Right = open descendants
+Ctrl+Left = close descendants
+Ctrl+Shift+Right = open siblings and descendants
+Ctrl+Shift+Left = close siblings and descendants
+
+Alt+Up = add prev sibling
+Alt+Down = add next sibling
+Alt+Left = add parent
+Alt+Right = add first child
+
 */
 
 

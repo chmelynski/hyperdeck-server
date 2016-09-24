@@ -807,6 +807,7 @@ Grid.prototype.setKeyHandles = function() {
 			grid.cursor.col = null;
 			grid.anchor.row = null;
 			grid.anchor.col = null;
+			grid.cacheSelectedCells();
 			grid.section.draw();
 			grid.ctx.canvas.onkeydown = null;
 		}
@@ -996,11 +997,10 @@ Grid.prototype.rejectEdit = function() {
 };
 Grid.prototype.acceptEdit = function() {
 	
+	var str = this.input.value;
+	
 	var i = this.cursor.row;
 	var j = this.cursor.col;
-	var cell = this.cells[i][j];
-	
-	var str = this.input.value;
 	
 	// under different modes, we could set this.formats, styles, etc
 	
@@ -1008,9 +1008,15 @@ Grid.prototype.acceptEdit = function() {
 	{
 		// do nothing
 	}
+	else if (j == 0)
+	{
+		// do nothing
+	}
 	else if (i == 0)
 	{
 		// under different modes, set filter, sort, etc.
+		
+		var cell = this.cells[i][j];
 		
 		if (this.headers[j-1] == str) { return; }
 		if (this.headers.indexOf(str) > -1) { return; } // collision, bail
@@ -1030,29 +1036,43 @@ Grid.prototype.acceptEdit = function() {
 		
 		// change formulas that reference the old field name?
 	}
-	else if (j == 0)
-	{
-		// do nothing
-	}
 	else
 	{
+		var fn = null;
+		var value = null;
+		
 		if (str.length > 0 && str[0] == '=')
 		{
-			cell.formula = str;
-			
 			var formula = str.substr(1);
-			var fn = new Function('i', 'return ' + formula);
-			var result = fn.apply(this.cellArray, [i-1]);
-			cell.value = result;
-			this._data[i-1][this.headers[j-1]] = cell.value; // for now, formulas are volatile
+			fn = new Function('i', 'return ' + formula);
 		}
 		else
 		{
-			cell.value = ParseStringToObj(str);
-			this._data[i-1][this.headers[j-1]] = cell.value; // set the underlying
+			value = ParseStringToObj(str);
 		}
 		
-		cell.string = Format(cell.value, cell.formatObject);
+		for (var i = this.focusSelected.minRow; i <= this.focusSelected.maxRow; i++)
+		{
+			for (var j = this.focusSelected.minCol; j <= this.focusSelected.maxCol; j++)
+			{
+				var cell = this.cells[i][j];
+				
+				if (fn !== null)
+				{
+					cell.formula = str;
+					var result = fn.apply(this.cellArray, [i-1]);
+					cell.value = result;
+					this._data[i-1][this.headers[j-1]] = cell.value; // for now, formulas are volatile
+				}
+				else
+				{
+					cell.value = value;
+					this._data[i-1][this.headers[j-1]] = cell.value; // set the underlying
+				}
+				
+				cell.string = Format(cell.value, cell.formatObject);
+			}
+		}
 	}
 	
 	this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
