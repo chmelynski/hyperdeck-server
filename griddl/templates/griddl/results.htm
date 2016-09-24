@@ -154,23 +154,13 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
                 </a>
               </li>
               <li>
-                <a onclick="Hyperdeck.AddComponent('textfile');">
-                  Text File
+                <a onclick="Hyperdeck.AddComponent('image');">
+                  Image
                 </a>
               </li>
               <li>
-                <a onclick="Hyperdeck.AddComponent('binaryfile');">
+                <a onclick="Hyperdeck.AddComponent('binary');">
                   Binary File
-                </a>
-              </li>
-              <li>
-                <a onclick="Hyperdeck.AddComponent('jsfile');">
-                  Javascript File
-                </a>
-              </li>
-              <li>
-                <a onclick="Hyperdeck.AddComponent('imgfile');">
-                  Image File
                 </a>
               </li>
               {% if user.username == 'adam' %}
@@ -187,21 +177,6 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
               <li>
                 <a onclick="Hyperdeck.AddComponent('link');">
                   Link
-                </a>
-              </li>
-              <li>
-                <a onclick="Hyperdeck.AddComponent('canvas');">
-                  Canvas
-                </a>
-              </li>
-              <li>
-                <a onclick="Hyperdeck.AddComponent('script');">
-                  Script
-                </a>
-              </li>
-              <li>
-                <a onclick="Hyperdeck.AddComponent('jshtml');">
-                  JsHtml
                 </a>
               </li>
               {% endif %}

@@ -3,19 +3,6 @@
 
 // the <style> or <div> tag is added in addOutputElements() via add(), so that subsequent calls to exec() just sets the inner html
 
-// we compile() on blur, but we don't actually compile the js in compile() anymore, we compile it in exec()
-// for html, css, and md, compile() just calls exec()
-
-var typeDict = {};
-typeDict.txt = {mode:'plain',tag:null,execOnLoad:false,execOnBlur:false,execOnClick:false};
-typeDict.html = {mode:'xml',tag:'div',execOnLoad:true,execOnBlur:true,execOnClick:false};
-typeDict.md = {mode:'markdown',tag:'div',execOnLoad:true,execOnBlur:true,execOnClick:false};
-typeDict.css = {mode:'css',tag:'style',execOnLoad:true,execOnBlur:true,execOnClick:false};
-typeDict.js = {mode:'javascript',tag:null,execOnLoad:false,execOnBlur:false,execOnClick:true};
-typeDict.script = {mode:'javascript',tag:'div',execOnLoad:true,execOnBlur:true,execOnClick:false};
-typeDict.jshtml = {mode:'javascript',tag:'div',execOnLoad:true,execOnBlur:false,execOnClick:true};
-typeDict.canvas = {mode:'javascript',tag:'div',execOnLoad:true,execOnBlur:false,execOnClick:true};
-
 var Code = function(json, type, name) {
 	
 	if (!json)
@@ -32,66 +19,137 @@ var Code = function(json, type, name) {
 	this._visible = json.visible;
 	
 	this._div = null;
+	this._datguiDiv = null;
+	this._codemirrorDiv = null;
 	this._codemirror = null;
-	this._errorSpan = null;
+	
+	this._display = (json.display === undefined) ? 'codemirror' : json.display; // 'codemirror','pre','stats'
+	
+	// javascript options
+	this._mode = (json.mode === undefined) ? 'default' : json.mode; // 'default','canvas','htmlgen'
+	this._runOnBlur = (json.runOnBlur === undefined) ? false : json.runOnBlur;
+	this._runOnLoad = (json.runOnLoad === undefined) ? false : json.runOnLoad;
+	
+	if (this._type == 'html' || this._type == 'md' || this._type == 'css')
+	{
+		this._runOnBlur = true;
+		this._runOnLoad = true;
+	}
+	
+	Object.defineProperty(this, 'display', {
+		get : function() { return this._display; },
+		set : function (value) { this._display = value; }
+	});
+	
+	Object.defineProperty(this, 'mode', {
+		get : function() { return this._mode; },
+		set : function (value) { this._mode = value; }
+	});
+	
+	Object.defineProperty(this, 'runOnBlur', {
+		get : function() { return this._runOnBlur; },
+		set : function (value) { this._runOnBlur = value; }
+	});
+	
+	Object.defineProperty(this, 'runOnLoad', {
+		get : function() { return this._runOnLoad; },
+		set : function (value) { this._runOnLoad = value; }
+	});
 	
 	this._text = json.text;
+	
+	// deprecated
+	this._errorSpan = null;
 	this._fn = null; // this is the function object for js, and plain text otherwise.  we compile in add() rather than here because the errorSpan needs to be in place to display any compilation errors
 };
 Code.prototype._add = function() {
 	
 	var comp = this;
 	
-	if (typeDict[comp._type].execOnClick)
+	comp._div.html('');
+	comp._datguiDiv = $('<div></div>').appendTo(comp._div);
+	comp._codemirrorDiv = $('<div></div>').appendTo(comp._div);
+	
+	comp._refreshDatgui();
+	
+	if (comp._display == 'codemirror')
 	{
-		comp._div.append($('<button>Run Code</button>').on('click', function() { comp._exec(); }));
+		var textarea = $('<textarea></textarea>').appendTo(comp._codemirrorDiv);
+		
+		var options = {};
+		options.smartIndent = true;
+		options.lineNumbers = true;
+		options.lineWrapping = true;
+		options.foldGutter = true;
+		options.tabSize = 2;
+		options.indentUnit = 2;
+		options.indentWithTabs = true;
+		options.gutters = ["CodeMirror-linenumbers","CodeMirror-foldgutter"];
+		options.extraKeys = {"Ctrl-Q": function(cm) { cm.foldCode(cm.getCursor()); }};
+		
+		if (Hyperdeck.Preferences && Hyperdeck.Preferences.CodeMirror)
+		{
+			for (var key in Hyperdeck.Preferences.CodeMirror) { options[key] = Hyperdeck.Preferences.CodeMirror[key]; }
+		}
+		
+		options.mode = {html:'xml',css:'css',md:'markdown',js:'javascript'}[comp._type];
+		
+		comp._codemirror = CodeMirror.fromTextArea(textarea[0], options);
+		
+		comp._codemirror.on('change', function() {
+			comp._markDirty();
+		});
+		
+		comp._codemirror.on('blur', function() {
+			comp._text = comp._codemirror.getValue();
+			comp._onblur();
+		});
+		
+		comp._codemirror.getDoc().setValue(comp._text);
+		
+		//comp._errorSpan = $('<span style="color:red"></span>').appendTo(comp._codemirrorDiv);
 	}
-	
-	var textarea = $(document.createElement('textarea'));
-	comp._div.append(textarea);
-	
-	var options = {};
-	options.smartIndent = true;
-	options.lineNumbers = true;
-	options.lineWrapping = true;
-	options.foldGutter = true;
-	options.tabSize = 2;
-	options.indentUnit = 2;
-	options.indentWithTabs = true;
-	options.gutters = ["CodeMirror-linenumbers","CodeMirror-foldgutter"];
-	options.extraKeys = {"Ctrl-Q": function(cm) { cm.foldCode(cm.getCursor()); }};
-	
-	if (Hyperdeck.Preferences && Hyperdeck.Preferences.CodeMirror)
+	else if (comp._display == 'pre')
 	{
-		for (var key in Hyperdeck.Preferences.CodeMirror) { options[key] = Hyperdeck.Preferences.CodeMirror[key]; }
+		$('<pre></pre>').text(comp._text).appendTo(comp._codemirrorDiv);
 	}
-	
-	options.mode = typeDict[comp._type].mode;
-	
-	comp._codemirror = CodeMirror.fromTextArea(textarea[0], options);
-	
-	comp._codemirror.on('change', function() {
-		comp._markDirty();
-	});
-	
-	comp._codemirror.on('blur', function() {
-		comp._text = comp._codemirror.getValue();
-		comp._onblur();
-	});
-	
-	comp._codemirror.getDoc().setValue(comp._text);
-	
-	//comp._errorSpan = $('<span></span>');
-	//comp._errorSpan.css('color', 'red');
-	//comp._div.append(comp._errorSpan);
+	else if (comp._display == 'stats')
+	{
+		$('<pre></pre>').text(comp._text.length + ' chars').appendTo(comp._codemirrorDiv);
+	}
+	else
+	{
+		throw new Error();
+	}
 	
 	comp._addOutputElements();
 };
-Code.prototype._addOutputElements = function() {
+Code.prototype._refreshDatgui = function() {
 	
 	var comp = this;
 	
-	var tagname = typeDict[comp._type].tag;
+	var gui = new dat.GUI({autoPlace:false, width:"100%"});
+	if (comp._type == 'js')
+	{
+		gui.add(comp, 'Run');
+		gui.add(comp, 'mode', ['default','canvas','htmlgen']).onChange(function(value) { comp._markDirty(); });
+		var displayControl = gui.add(comp, 'display', ['codemirror','pre','stats']);
+		displayControl.onChange(function(value) { comp._markDirty(); comp._add(); });
+		gui.add(comp, 'runOnBlur').onChange(function(value) { comp._markDirty(); });
+		gui.add(comp, 'runOnLoad').onChange(function(value) { comp._markDirty(); });
+	}
+	gui.add(comp, 'Upload');
+	gui.add(comp, 'Download');
+	
+	comp._datguiDiv.html('').append($(gui.domElement));
+};
+Code.prototype._addOutputElements = function() {
+	
+	// i think this is called from add() - should it be called from afterLoad() instead?
+	
+	var comp = this;
+	
+	var tagname = {html:'div',css:'style',md:'div',js:'div'}[comp._type];
 	
 	if (tagname)
 	{
@@ -102,13 +160,12 @@ Code.prototype._addOutputElements = function() {
 Code.prototype._onblur = function() {
 	
 	var comp = this;
-	if (typeDict[comp._type].execOnBlur) { comp._exec(); }
+	if (comp._runOnBlur) { comp._exec(); }
 };
 Code.prototype._afterLoad = function() {
 	
 	var comp = this;
-	// we do this here rather than in add because we don't want to exec inline <script>s until all components have loaded
-	if (typeDict[comp._type].execOnLoad) { comp._exec(); }
+	if (comp._runOnLoad) { comp._exec(); }
 };
 Code.prototype._exec = function() {
 	
@@ -118,10 +175,6 @@ Code.prototype._exec = function() {
 	{
 		$('#' + comp._name).html(comp._text);
 	}
-	else if (comp._type == 'script')
-	{
-		$('#' + comp._name).html('<script>' + comp._text + '</script>');
-	}
 	else if (comp._type == 'html' || comp._type == 'md')
 	{
 		var html = (comp._type == 'md') ? markdown.toHTML(comp._text) : comp._text;
@@ -130,18 +183,25 @@ Code.prototype._exec = function() {
 	}
 	else if (comp._type == 'js')
 	{
-		(new Function('args', comp._text))();
-	}
-	else if (comp._type == 'canvas')
-	{
-		var canvas = document.createElement('canvas');
-		var ctx = canvas.getContext('2d');
-		$('#' + comp._name).html('')[0].appendChild(canvas);
-		(new Function('ctx', comp._text))(ctx);
-	}
-	else if (comp._type == 'jshtml')
-	{
-		$('#' + comp._name).html((new Function('args', comp._text))());
+		if (comp._mode == 'default')
+		{
+			(new Function('args', comp._text))();
+		}
+		else if (comp._mode == 'canvas')
+		{
+			var canvas = document.createElement('canvas');
+			var ctx = canvas.getContext('2d');
+			$('#' + comp._name).html('')[0].appendChild(canvas);
+			(new Function('ctx', comp._text))(ctx);
+		}
+		else if (comp._mode == 'htmlgen')
+		{
+			$('#' + comp._name).html((new Function('args', comp._text))());
+		}
+		else
+		{
+			throw new Error();
+		}
 	}
 	else
 	{
@@ -185,7 +245,50 @@ Code.prototype._write = function() {
 	json.name = comp._name;
 	json.visible = comp._visible;
 	json.text = comp._text;
+	json.display = comp._display;
+	json.mode = comp._mode;
+	json.runOnBlur = comp._runOnBlur;
+	json.runOnLoad = comp._runOnLoad;
 	return json;
+};
+
+Code.prototype.Run = function() { this._exec(); };
+Code.prototype.Upload = function() {
+	
+	var comp = this;
+	
+	$('<input type="file"><input>').on('change', function() {
+		
+		var fileReader = new FileReader();
+		
+		fileReader.onload = function(event)
+		{
+			comp._text = event.target.result;
+			comp._add();
+		};
+		
+		if (this.files.length > 0)
+		{
+			var f = this.files[0];
+			fileReader.readAsText(f); // assume utf-8 i guess
+		}
+	}).click();
+};
+Code.prototype.Download = function() {
+	
+	var comp = this;
+	
+	var filename = comp._name + '.' + comp._type;
+	var text = comp._text;
+	
+	var reader = new FileReader();
+	reader.readAsDataURL(new Blob([text], {type:'text/plain'})); 
+	reader.onloadend = function() {
+		var a = document.createElement('a');
+		a.href = reader.result;
+		a.download = filename;
+		a.click();
+	};
 };
 
 Code.prototype._get = function(options) {
@@ -209,9 +312,6 @@ Hyperdeck.Components.js = Code;
 Hyperdeck.Components.html = Code;
 Hyperdeck.Components.css = Code;
 Hyperdeck.Components.md = Code;
-Hyperdeck.Components.canvas = Code;
-Hyperdeck.Components.jshtml = Code;
-Hyperdeck.Components.script = Code;
 
 })();
 

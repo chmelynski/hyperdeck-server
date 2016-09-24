@@ -199,7 +199,7 @@ Data.prototype._refreshDatgui = function() {
 	
 	var gui = new dat.GUI({autoPlace:false, width:"100%"});
 	var displayControl = gui.add(comp, 'display', displayOptions);
-	displayControl.onChange(function(value) { comp._undo.pushOnAdd = false; comp._add(); comp._undo.pushOnAdd = true; });
+	displayControl.onChange(function(value) { comp._markDirty(); comp._undo.pushOnAdd = false; comp._add(); comp._undo.pushOnAdd = true; });
 	var uploadFolder = gui.addFolder('upload');
 	uploadFolder.add(comp, 'uploadJSON');
 	uploadFolder.add(comp, 'uploadYAML');
