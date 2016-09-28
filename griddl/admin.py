@@ -25,9 +25,12 @@ class PreferencesInline(admin.StackedInline):
 
 class UserAdmin(UserAdmin):
     inlines = (AccountInline,PreferencesInline)
-    list_display = ('username', 'email', 'Plan',
+    list_display = ('username', 'email', 'subscription_id', 'Plan',
                     'Size', 'last_login', 'date_joined')
-
+    
+    def subscription_id(self, obj):
+        return obj.account.reference_id
+        
     def Plan(self, obj):
         return obj.account.plan
 
