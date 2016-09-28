@@ -4,29 +4,13 @@
 {% block title %} Your Account | {{ block.super }} {% endblock title %}
 
 {% block body %}
-  <div class="row">
-    <div class="col-xs-12 text-center">
-      <a class="btn btn-info" style="margin: 1em;" href="{% url 'django.contrib.auth.views.password_change' %}" title="Change your password">Change your password</a>
-    </div>
-  </div>
 
-  <div class="row">
-    <div class="col-xs-12 text-center">
-      <a class="btn btn-default" title="Export" href="/export">Export data</a>
-    </div>
-  </div>
+<script>
+var passwordChangeUrl = "{% url 'django.contrib.auth.views.password_change' %}";
+var plan = '{{ plan }}';
+var action = '{{ action }}';
+</script>
 
-  <div class="row">
-    <div class="col-xs-12 text-center">
-      <p>
-        <label>Plan:</label> {{ acct.plan }}
-      </p> 
-      <p>
-        <label>{% if acct.subscription_set.0.status == 1 %}Renews{% else %}Ends{% endif %}:</label> {{ sub_end }}
-      </p>
-      <p>
-        {% if action %} <a class='btn btn-inline btn-success' href='/subscriptions'>{% if action == 'billing' %}Upgrade{% else %}Modify Subscription{% endif %}</a>{% endif %}</p>
-      </p>
-    </div>
-  </div>
+{{ copy|safe }}
+
 {% endblock body %}

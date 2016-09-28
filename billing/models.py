@@ -44,7 +44,7 @@ class Subscription(models.Model):
                                     default=''
                                     )
     status = models.IntegerField(choices=SUBSCRIPTION_STATUSES, default=1)
-    status_detail = models.CharField(max_length=255, null=True)
+    #status_detail = models.CharField(max_length=255, null=True)
     details_url = models.CharField(max_length=255,
                                    help_text="FastSpring details link",
                                    default=''
@@ -56,70 +56,70 @@ class Subscription(models.Model):
     created = models.DateField(default=timezone.now)
 
     # hidden column managed by @property `period_end`
-    _period_end = models.DateField(default=None,
-                                   null=True,
-                                   db_column="period_end")
+    #_period_end = models.DateField(default=None,
+    #                               null=True,
+    #                               db_column="period_end")
 
     plan = models.ForeignKey('griddl.Plan', to_field='name',
                              related_name="plan")
 
-    @property
-    def period_end(self):
-        '''
-        getter for period_end -- actually manages subscription state tho
-        it's highly possible that there's a better way to manage this :(
-
-        note that free plans don't (or shouldn't!) have Subscriptions
-        for others, we check FS for updates when needed.
-        '''
-        if not self._period_end:
-            self.next_period()
-        elif self._period_end < datetime.date.today():
-            if self.status == 2 and int(self.status_detail) > 1:
-                # not 100% sure this is safe tbh?
-                acct = self.account_set.get()
-                acct.plan = Plan.objects.get(name=int(self.status_detail))
-                acct.save()
-                self.next_period()
-            elif self.status == 2 and int(self.status_detail) == 1:
-                acct = self.account_set.get()
-                acct.plan = Plan.objects.get(name=1)
-                acct.save()
-                self.delete()
-                return "Never"
-            else:
-                self.next_period()
-
-        return self._period_end
-
-    @period_end.setter
-    def next_period(self):
-        ''' get next period end from FastSpring API '''
-        url = API_URL + "subscription/{}".format(self.reference_id)
-
-        fs_user = settings.API_CREDENTIALS['fastspring']['login']
-        fs_pass = settings.API_CREDENTIALS['fastspring']['password']
-        headers = {'content-type': 'application/xml'}
-        auth = requests.auth.HTTPBasicAuth(fs_user, fs_pass)
-        raw = requests.get(url, headers=headers, auth=auth)
-        print raw.body  # just to verify contents while testing
-
-        if raw.status_code == 200:
-            from xml.dom.minidom import parseString
-            dom = parseString(raw.body)
-            # in case they only have end date? idk
-            try:
-                node = dom.getElementsByTagName('nextPeriodDate')[0][:-1]
-            except:
-                node = dom.getElementsByTagName('end')[0][:-1]
-            date_str = node.data[:-1]
-            self._period_end = datetime.strptime(date_str, "%b %d, %Y").date()
-            self.save()
-        else:
-            msg = "FS sub details API error: {} - {}".format(raw.status_code,
-                                                             raw.text)
-            logger.error(msg)
-            self._period_end = None
+    #@property
+    #def period_end(self):
+    #    '''
+    #    getter for period_end -- actually manages subscription state tho
+    #    it's highly possible that there's a better way to manage this :(
+#
+    #    note that free plans don't (or shouldn't!) have Subscriptions
+    #    for others, we check FS for updates when needed.
+    #    '''
+    #    if not self._period_end:
+    #        self.next_period()
+    #    elif self._period_end < datetime.date.today():
+    #        if self.status == 2 and int(self.status_detail) > 1:
+    #            # not 100% sure this is safe tbh?
+    #            acct = self.account_set.get()
+    #            acct.plan = Plan.objects.get(name=int(self.status_detail))
+    #            acct.save()
+    #            self.next_period()
+    #        elif self.status == 2 and int(self.status_detail) == 1:
+    #            acct = self.account_set.get()
+    #            acct.plan = Plan.objects.get(name=1)
+    #            acct.save()
+    #            self.delete()
+    #            return "Never"
+    #        else:
+    #            self.next_period()
+#
+    #    return self._period_end
+#
+    #@period_end.setter
+    #def next_period(self):
+    #    ''' get next period end from FastSpring API '''
+    #    url = API_URL + "subscription/{}".format(self.reference_id)
+#
+    #    fs_user = settings.API_CREDENTIALS['fastspring']['login']
+    #    fs_pass = settings.API_CREDENTIALS['fastspring']['password']
+    #    headers = {'content-type': 'application/xml'}
+    #    auth = requests.auth.HTTPBasicAuth(fs_user, fs_pass)
+    #    raw = requests.get(url, headers=headers, auth=auth)
+    #    print raw.body  # just to verify contents while testing
+#
+    #    if raw.status_code == 200:
+    #        from xml.dom.minidom import parseString
+    #        dom = parseString(raw.body)
+    #        # in case they only have end date? idk
+    #        try:
+    #            node = dom.getElementsByTagName('nextPeriodDate')[0][:-1]
+    #        except:
+    #            node = dom.getElementsByTagName('end')[0][:-1]
+    #        date_str = node.data[:-1]
+    #        self._period_end = datetime.strptime(date_str, "%b %d, %Y").date()
+    #        self.save()
+    #    else:
+    #        msg = "FS sub details API error: {} - {}".format(raw.status_code,
+    #                                                         raw.text)
+    #        logger.error(msg)
+    #        self._period_end = None
 
     def __unicode__(self):
         return "Ref#: %s (%s)" % (self.reference_id,

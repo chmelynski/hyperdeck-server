@@ -38,8 +38,8 @@ def check_size(sender, instance, **kwargs):
         new_size = (instance.owner.size - orig.size) + instance.size
     except:
         new_size = instance.size + instance.owner.size
-    if new_size > instance.owner.plan_size:
-        logger.debug("plan size: {}, account owner size: {}".format(instance.owner.plan_size, new_size))
+    if new_size > instance.owner.plan_size * 1024 * 1024:
+        logger.debug("plan size: {} MB, account owner size: {}".format(instance.owner.plan_size, new_size))
         logger.debug("instance size: {}".format(instance.size))
         raise AccountSizeError("Saving this workbook would cause your account\
                                 to exceed its storage limit.")

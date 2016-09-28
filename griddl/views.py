@@ -211,24 +211,16 @@ def directory(request, userid, path=None):
 @login_required
 @exclude_subdomain(SUBDOMAINS['sandbox'])
 def account(request, userid):
+
     acct = Account.objects.select_related('plan')\
-        .select_related('subscription').get(user=request.user.account.pk)
+        .get(user=request.user.account.pk)
+        
     plan_pk = acct.plan.pk
-    if plan_pk in Plan.SIZES[:2]:
-        action = 'billing'
-    elif plan_pk == Plan.SIZES[:-1]:
-        action = False
-    else:
-        action = 'sub_change'
-    if acct.subscription:
-        sub_end = acct.subscription.period_end
-    else:  # no subscription -- free plan.
-        sub_end = 'Never'
-    context = {
-        'acct': acct,
-        'action': action,
-        'sub_end': sub_end
-        }
+    
+    context = {};
+    context['copy'] = Copy.objects.get(key='account').val
+    context['plan'] = acct.plan.get_name_display()
+    context['action'] = ('billing' if (plan_pk == 1) else 'sub_change')
 
     return render(request, 'griddl/account.htm', context)
 
@@ -614,16 +606,6 @@ def export(request):
 
     return response
 
-
-#def index(request):
-#    copy = Copy.objects.get(key='index')
-#    context = {}
-#    keyvals = copy.val.splitlines()
-#    for keyval in keyvals:
-#        key = keyval.split(':')[0]
-#        val = keyval.split(':')[1]
-#        context[key] = val
-#    return render(request, 'griddl/index.htm', context)
 
 def index(request):
     copy = Copy.objects.get(key='index')

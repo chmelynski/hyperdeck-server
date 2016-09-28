@@ -15,13 +15,7 @@ FILE_TYPES = (
     ('L', 'Link')
 )
 
-BASE_WORKBOOK = [{
-    'type': 'md',
-    'visible': 'true',
-    'name': 'md1',
-    'text': '# Welcome to your first workbook!\n\n \
-             Edit this component or add more to get started.'
-}]
+BASE_WORKBOOK = {'metadata':{'version':1,'view':'all'},'components':[]}
 
 MY_FIRST_WORKBOOK = json.dumps(BASE_WORKBOOK)
 
@@ -48,7 +42,7 @@ class Workbook(models.Model):
                                on_delete=models.CASCADE,
                                limit_choices_to={'filetype': 'D'})
     contentType = models.CharField(blank=True, max_length=200)
-    version = models.IntegerField(default=0)
+    version = models.IntegerField(default=1)
     name = models.CharField(max_length=200)
     slug = models.SlugField()
     text = models.TextField(blank=True, default=MY_FIRST_WORKBOOK)
@@ -191,18 +185,27 @@ class Account(models.Model):
     '''
     user = models.OneToOneField(settings.AUTH_USER_MODEL)
     plan = models.ForeignKey(Plan, default=Plan.FREE)
-    subscription = models.ForeignKey('billing.Subscription', null=True,
-                                     on_delete=models.SET_NULL, blank=True)
-
+    #subscription = models.ForeignKey('billing.Subscription', null=True,
+    #                                 on_delete=models.SET_NULL, blank=True)
+                 
+    reference_id = models.CharField(max_length=255,
+                                    blank=True,
+                                    help_text="FastSpring reference ID",
+                                    default=''
+                                    )
+    details_url = models.CharField(max_length=255,
+                                   blank=True,
+                                   help_text="FastSpring details link",
+                                   default=''
+                                   )
+    
     def _get_size(self):
         return sum([wb.size for wb in Workbook.objects.filter(owner=self)])
 
     size = property(_get_size)
 
-    def _get_plan_size(self):
-        return self.plan.size * 1024 * 1024  # maybe not the best way for this to work
-
-    plan_size = property(_get_plan_size)
+    plan_size = models.IntegerField(default=2) # in MB
+    locked = models.BooleanField(default=False)
 
     def _get_upgrade_link(self):
         return "/billing/%d/%d" % (self.plan + 1, self.pk)
@@ -225,26 +228,10 @@ class Preferences(models.Model):
     def __unicode__(self):
         return self.user.username
 
-
-class DefaultWorkbook(models.Model):
-    '''
-    Define base/standard workbooks; data in fixtures/initial_data.
-    '''
-    # this is not the same as Workbook.name
-    # - it is a handle that corresponds to options in a select box
-    name = models.CharField(max_length=255)
-
-    # different 'name' handles can have the same template type
-    # but different text (like bar-chart and line-chart both use svg)
-    type = models.CharField(max_length=255)
-
-    text = models.TextField(blank=True)
-
-    def __unicode__(self):
-        return self.name
-
-
 class Copy(models.Model):
     key = models.CharField(max_length=255)
     val = models.TextField(blank=True)
+
+class DefaultWorkbook:
+    pass
 

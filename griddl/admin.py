@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from models import Account, DefaultWorkbook, Workbook, Plan, Copy, Preferences
+from models import Account, Workbook, Plan, Copy, Preferences
 
 from mysite.settings import DEBUG
 
@@ -49,7 +49,6 @@ admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
 
 admin.site.register(Workbook, WorkbookAdmin)
-admin.site.register(DefaultWorkbook)
 admin.site.register(Plan)
 admin.site.register(Copy, CopyAdmin)
 

@@ -46,7 +46,7 @@ def subscription_change(request, planid, userid):
     acct = Account.objects.get(user=User.objects.get(pk=userid))
     planid = int(planid)
 
-    url = API_URL + "subscription/%s" % acct.subscription.reference_id
+    url = API_URL + "subscription/%s" % acct.reference_id
     logger.debug("sub_change url is %s" % url)
 
     req = {}
@@ -68,13 +68,19 @@ def subscription_change(request, planid, userid):
 
     if (res.status_code == 200):
         if planid < acct.plan.pk:
-            msg = "Your plan will be downgraded at the end of the current \
-                   billing period"
-            acct.subscription.status = 2
-            acct.subscription.status_detail = planid
-            acct.subscription.save()
+            acct.plan = Plan.objects.get(pk=planid)
+            acct.plan_size = acct.plan.size
+            acct.save()
+            msg = "Your account has been downgraded to a %s, and your \
+                   bill will be adjusted accordingly" % acct.plan
+            #msg = "Your plan will be downgraded at the end of the current \
+            #       billing period"
+            #acct.subscription.status = 2
+            #acct.subscription.status_detail = planid
+            #acct.subscription.save()
         else:
             acct.plan = Plan.objects.get(pk=planid)
+            acct.plan_size = acct.plan.size
             acct.save()
             msg = "Your account has been upgraded to a %s, and your \
                    bill will be adjusted accordingly" % acct.plan
@@ -108,48 +114,18 @@ def prepare_xml(d):
 
 
 def subscriptions(request):
-    '''
-    either show subscription options, or explain that sub (or upgrade)
-        is necessary due to size limits, w/ link to the upgrade.
-    '''
-    plans = Plan.objects.all()
-    upgrades = []
 
+    context = {}
+    context['copy'] = Copy.objects.get(key='subscriptions').val
+    
     if request.user.is_authenticated():
-        if request.user.account.plan.pk <= 1:
-            endpoint = 'billing'
-        else:
-            endpoint = 'sub_change'
-        for plan in plans:
-            details = plan.details()
-            details['link'] = "/%s/%d/%d" % (endpoint, plan.id,
-                                             request.user.account.pk)
-            if (request.user.account.subscription.status == 2
-                  and plan.pk == int(request.user.account.subscription.status_detail)):   # noqa
-                    details['direction'] = "Downgrade Pending"
-                    details['btn_class'] = "default disabled"
-            elif plan.pk < request.user.account.plan.pk:
-                details['direction'] = "Downgrade"
-                details['btn_class'] = "warning"
-            elif plan.pk > request.user.account.plan.pk:
-                details['direction'] = "Upgrade"
-                details['btn_class'] = "success"
-            elif plan == request.user.account.plan:
-                details['current_plan'] = True
-                details['btn_class'] = "default disabled"
-            upgrades.append(details)
+        context['loggedin'] = True
+        context['endpoint'] = ('billing' if request.user.account.plan.pk <= 1 else 'sub_change')
+        context['planpk'] = request.user.account.plan.pk
+        context['accountpk'] = request.user.account.pk
     else:
-        for plan in plans:
-            details = plan.details()
-            upgrades.append(details)
-
-    context = {'upgrades': upgrades}
-    copy = Copy.objects.get(key='subscriptions')
-    keyvals = copy.val.splitlines()
-    for keyval in keyvals:
-        key = keyval.split(':')[0]
-        val = keyval.split(':')[1]
-        context[key] = val
+        context['loggedin'] = False
+    
     return render(request, 'billing/subscribe.htm', context)
 
 
@@ -217,19 +193,25 @@ class Create(FastSpringNotificationView):
             referrer = BillingRedirect.objects.get(referrer=data['referrer'])
             referrer.status = 1
             referrer.save()
-            referrer.account.plan = referrer.plan
-
-            subscription = Subscription()
-            subscription.status = 1
-            subscription.plan = referrer.plan
-            subscription.reference_id = data['id']
-            subscription.details_url = data['fs_url']
-            pd_end = datetime.strptime(data['next_period'], "%b %d, %Y")
-            subscription._period_end = pd_end.date()
-            logger.debug(subscription)
-            subscription.save()
-            referrer.account.subscription = subscription
-            referrer.account.save()
+            
+            account = referrer.account
+            account.plan = referrer.plan
+            account.plan_size = account.plan.size
+            
+            #subscription = Subscription()
+            #subscription.status = 1
+            #subscription.plan = referrer.plan
+            #subscription.reference_id = data['id']
+            #subscription.details_url = data['fs_url']
+            ##pd_end = datetime.strptime(data['next_period'], "%b %d, %Y")
+            ##subscription._period_end = pd_end.date()
+            #logger.debug(subscription)
+            #subscription.save()
+            #account.subscription = subscription
+            
+            account.reference_id = data['id']
+            account.details_url = data['fs_url']
+            account.save()
 
         return HttpResponse()
 
@@ -260,8 +242,9 @@ class Change(FastSpringNotificationView):
     def process(self, data):
         logger.debug("Status change notification! " + json.dumps(data))
         with transaction.atomic():
-            sub = Subscription.objects.get(reference_id=data['id'])
-            if not sub:  # weird, bail
+            #sub = Subscription.objects.get(reference_id=data['id'])
+            acct = Account.objects.get(reference_id=data['id'])
+            if not acct:  # weird, bail
                 logger.error("error changing subscription: {}".format(
                              json.loads(data)))
                 return
@@ -272,14 +255,10 @@ class Change(FastSpringNotificationView):
             except:
                 logger.error("Plan '" + data['plan'] + "' not found.")
                 return HttpResponseNotFound()
-            if plan is not sub.plan:
-                sub.plan = plan
-                if data['end_date']:  # set "downgrade pending" if end date set
-                    sub.status = 2
-                    sub.status_detail = plan
-                sub.save()
-                acct = Account.objects.get(subscription=sub)
+            
+            if plan is not acct.plan:
                 acct.plan = plan
+                acct.plan_size = plan.size
                 acct.save()
 
         return HttpResponse()
@@ -293,17 +272,21 @@ class Deactivate(FastSpringNotificationView):
     def process(self, data):
         logger.debug("Deactivation! " + json.dumps(data))
         with transaction.atomic():
-            sub = Subscription.objects.get(reference_id=data['id'])
-            if not sub:  # weird, bail
+            #sub = Subscription.objects.get(reference_id=data['id'])
+            acct = Account.objects.get(reference_id=data['id'])
+            if not acct:  # weird, bail
                 logger.error("error deactivating subscription: {}".format(
                              json.loads(data)))
                 return
-            sub.delete()
-            acct = Account.objects.get(subscription=sub)
-            if not acct:  # huh? bail.
-                logger.error("Account for subscription '" + data['id'] + "' not found.")
-                return
-            acct.plan = Plan.FREE
+            #sub.delete()
+            #acct = Account.objects.get(subscription=sub)
+            #if not acct:  # huh? bail.
+            #    logger.error("Account for subscription '" + data['id'] + "' not found.")
+            #    return
+            acct.reference_id = ''
+            acct.details_url = ''
+            acct.plan = Plan.objects.get(name=Plan.FREE)
+            acct.plan_size = acct.plan.size
             acct.save()  # note - auto-triggers workbook locking
 
         return HttpResponse()
@@ -322,15 +305,15 @@ class PayFail(FastSpringNotificationView):
     def process(self, data):
         logger.debug("Payment failure! " + json.dumps(data))
 
-        sub = Subscription.objects.get(reference_id=data['id'])
-        if not sub:  # weird, bail
-            logger.error("Subscription '" + data['id'] + "' not found.")
-            return
+        #sub = Subscription.objects.get(reference_id=data['id'])
+        #if not sub:  # weird, bail
+        #    logger.error("Subscription '" + data['id'] + "' not found.")
+        #    return
 
-        acct = Account.objects.get(subscription=sub)
+        acct = Account.objects.get(reference_id=data['id'])
         msg = "Notice: It appears that your last subscription payment failed. \
-               Please <a target='_blank' href='%s'>check your payment settings\
-               </a> to avoid disruptions to your account." % sub.details_url
+               Please check your payment settings at \
+               %s to avoid disruptions to your account." % acct.details_url
         stored_messages.api.add_message_for([acct.user], messages.WARNING, msg)
 
         return HttpResponse()
