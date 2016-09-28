@@ -592,10 +592,11 @@ def export(request):
     mem = StringIO.StringIO()
     with tarfile.open('export.tar.gz', 'w:gz', mem) as archive:
         for wb in workbooks:
-            text = StringIO.StringIO(wb.text)
-            info = tarfile.TarInfo(wb.name)
-            info.size = len(wb.text)
-            archive.addfile(info, text)
+            if wb.size > 0:
+                text = StringIO.StringIO(wb.text)
+                info = tarfile.TarInfo(wb.path)
+                info.size = len(wb.text)
+                archive.addfile(info, text)
 
     response = HttpResponse(mem.getvalue(),
                             content_type="application/zip")
