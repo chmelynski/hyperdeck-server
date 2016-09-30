@@ -584,19 +584,22 @@ def raw(request, userid, path, slug):
 
 @login_required  # is it though?
 def export(request):
+    import datetime
+    import json
     import StringIO
     import tarfile
-    import datetime
 
     workbooks = Workbook.objects.filter(owner=request.user.account)
     mem = StringIO.StringIO()
     with tarfile.open('export.tar.gz', 'w:gz', mem) as archive:
         for wb in workbooks:
             if wb.size > 0:
-                text = StringIO.StringIO(wb.text)
+                text = json.dumps(json.loads(wb.text), indent=4,
+                                  separators=(',', ': '), sort_keys=True)
+                buff = StringIO.StringIO(text)
                 info = tarfile.TarInfo(wb.path)
-                info.size = len(wb.text)
-                archive.addfile(info, text)
+                info.size = len(text)
+                archive.addfile(info, buff)
 
     response = HttpResponse(mem.getvalue(),
                             content_type="application/zip")
@@ -610,10 +613,10 @@ def export(request):
 
 def index(request):
     copy = Copy.objects.get(key='index')
-    context = {'content':copy.val}
+    context = {'content': copy.val}
     return render(request, 'griddl/index.htm', context)
-    
-    
+
+
 def jslog(request):
     msg = "JSLOG - {} - {}"
     msg.format(request.get_post('file', '(no file)'), request.get_post('msg'))
