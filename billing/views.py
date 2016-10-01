@@ -147,10 +147,8 @@ class FastSpringNotificationView(View):
         todo: apparently mixins are the trick for class-based views
         also todo: prob should raise an exception here on failure
         '''
-
         if not request.META['HTTP_USER_AGENT'] == "FS":
             return False
-
         msg_data = request.META['HTTP_X_SECURITY_DATA']
         msg_hash = request.META['HTTP_X_SECURITY_HASH']
         challenge = hashlib.md5(msg_data + private_key).hexdigest()
@@ -165,11 +163,10 @@ class FastSpringNotificationView(View):
         return self.process(request.GET)
 
     def post(self, request):
-        if not settings.DEBUG:
-            if not self.verify(self.private_key, request):
-                logger.warn('bad POST to FS notification endpoint' + request)
-                print("bad POST - sanity check")
-                return HttpResponse(403)
+        if not self.verify(self.private_key, request):
+            logger.warn('bad POST to FS notification endpoint' + request)
+            print("bad POST - sanity check")
+            return HttpResponse(403)
 
 #        logger.debug("{}: {}".format(request.path, request.body))
         return self.process(json.loads(request.body))
