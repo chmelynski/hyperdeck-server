@@ -195,16 +195,8 @@ class Create(FastSpringNotificationView):
             account.plan = referrer.plan
             account.plan_size = account.plan.size
             
-            #subscription = Subscription()
-            #subscription.status = 1
-            #subscription.plan = referrer.plan
-            #subscription.reference_id = data['id']
-            #subscription.details_url = data['fs_url']
-            ##pd_end = datetime.strptime(data['next_period'], "%b %d, %Y")
-            ##subscription._period_end = pd_end.date()
-            #logger.debug(subscription)
-            #subscription.save()
-            #account.subscription = subscription
+            #pd_end = datetime.strptime(data['next_period'], "%b %d, %Y")
+            #subscription._period_end = pd_end.date()
             
             account.reference_id = data['id']
             account.details_url = data['fs_url']
@@ -239,7 +231,6 @@ class Change(FastSpringNotificationView):
     def process(self, data):
         logger.debug("Status change notification! " + json.dumps(data))
         with transaction.atomic():
-            #sub = Subscription.objects.get(reference_id=data['id'])
             acct = Account.objects.get(reference_id=data['id'])
             if not acct:  # weird, bail
                 logger.error("error changing subscription: {}".format(
@@ -269,17 +260,11 @@ class Deactivate(FastSpringNotificationView):
     def process(self, data):
         logger.debug("Deactivation! " + json.dumps(data))
         with transaction.atomic():
-            #sub = Subscription.objects.get(reference_id=data['id'])
             acct = Account.objects.get(reference_id=data['id'])
             if not acct:  # weird, bail
                 logger.error("error deactivating subscription: {}".format(
                              json.loads(data)))
                 return
-            #sub.delete()
-            #acct = Account.objects.get(subscription=sub)
-            #if not acct:  # huh? bail.
-            #    logger.error("Account for subscription '" + data['id'] + "' not found.")
-            #    return
             acct.reference_id = ''
             acct.details_url = ''
             acct.plan = Plan.objects.get(name=Plan.FREE)
@@ -301,12 +286,6 @@ class PayFail(FastSpringNotificationView):
 
     def process(self, data):
         logger.debug("Payment failure! " + json.dumps(data))
-
-        #sub = Subscription.objects.get(reference_id=data['id'])
-        #if not sub:  # weird, bail
-        #    logger.error("Subscription '" + data['id'] + "' not found.")
-        #    return
-
         acct = Account.objects.get(reference_id=data['id'])
         msg = "Notice: It appears that your last subscription payment failed. \
                Please check your payment settings at \
