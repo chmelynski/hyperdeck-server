@@ -218,7 +218,6 @@ def account(request, userid):
     plan_pk = acct.plan.pk
     
     context = {};
-    context['copy'] = Copy.objects.get(key='account').val
     context['plan'] = acct.plan.get_name_display()
     context['action'] = ('billing' if (plan_pk == 1) else 'sub_change')
 
@@ -612,8 +611,7 @@ def export(request):
 
 
 def index(request):
-    copy = Copy.objects.get(key='index')
-    context = {'content': copy.val}
+    context = {}
     return render(request, 'griddl/index.htm', context)
 
 

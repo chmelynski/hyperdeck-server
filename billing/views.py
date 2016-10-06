@@ -116,7 +116,6 @@ def prepare_xml(d):
 def subscriptions(request):
 
     context = {}
-    context['copy'] = Copy.objects.get(key='subscriptions').val
     
     if request.user.is_authenticated():
         context['loggedin'] = True

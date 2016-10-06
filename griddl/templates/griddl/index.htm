@@ -12,5 +12,33 @@
 {% endblock %}
 
 {% block body %}
-  {{ content|safe }}
+
+<div class="container">
+  <div class="center-block" style="width:300px;margin-top:1em"><a class="btn btn-lg btn-success" href="/signup" role="button">Sign up for Hyperdeck</a></div>
+  <h1>What is Hyperdeck?</h1>
+  <p class="lead">Hyperdeck is a notebook programming environment for analysis and communication.  It's intended to be a medium-weight and easy-to-use platform for tasks usually done with standard office software - analyzing data, running code, and writing documents.</p>
+  <p>Hyperdeck has been designed from the ground up to live on the web - the interface is a lot like writing a webpage in a webpage.  The modern browser environment is powerful, fast, extensible, ubiquitous - and <i>entirely different</i> than the world of the 80's that your office suite was designed for.  It's time to move forward.</p>
+</div>
+
+<hr />
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-4">
+      <h4 style="text-align:center">Example</h4>
+      <a href="/f/2/example"><img width="100%" src="https://s3.amazonaws.com/hyperdeck-storage/static/img/example.png"></img></a>
+    </div>
+    <div class="col-md-4">
+      <h4 style="text-align:center">Tutorial</h4>
+      <a href="/f/2/tutorial"><img width="100%" src="https://s3.amazonaws.com/hyperdeck-storage/static/img/tutorial.png"></img></a>
+    </div>
+    <div class="col-md-4">
+      <h4 style="text-align:center">Links</h4>
+      <a href="/f/2/links"><img width="100%" src="https://s3.amazonaws.com/hyperdeck-storage/static/img/links.png"></img></a>
+    </div>
+  </div>
+</div>
+
+
+
 {% endblock %}

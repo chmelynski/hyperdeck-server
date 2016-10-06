@@ -13,6 +13,71 @@ var accountpk = {{ accountpk }};
 </script>
 {% endif %}
 
-{{ copy|safe }}
+
+<div class="row">
+	<div class="col-sm-12">
+		<h1>Subscription Plans</h1>
+		<p>Subscription plans for Hyperdeck are based on the amount of storage you require. When your needs change, so can your plan! All billing is managed by FastSpring.</p>
+	</div>
+</div>
+<div class="row">
+	<div class="col-sm-3 subscription text-center">
+		<div class="row"><h3>Free</h3></div>
+		<div class="row"><p class="plan-price">Free</p></div>
+		<div class="row"><p class="plan-size">2 MB</p></div>
+		<div class="row" id="button1"></div>
+	</div>
+	<div class="col-sm-3 subscription text-center">
+		<div class="row"><h3>Small</h3></div>
+		<div class="row"><p class="plan-price">$9.99/month</p></div>
+		<div class="row"><p class="plan-size">50 MB</p></div>
+		<div class="row" id="button2"></div>
+	</div>
+	<div class="col-sm-3 subscription text-center">
+		<div class="row"><h3>Medium</h3></div>
+		<div class="row"><p class="plan-price">$19.99/month</p></div>
+		<div class="row"><p class="plan-size">200 MB</p></div>
+		<div class="row" id="button3"></div>
+	</div>
+	<div class="col-sm-3 subscription text-center">
+		<div class="row"><h3>Large</h3></div>
+		<div class="row"><p class="plan-price">$49.99/month</p></div>
+		<div class="row"><p class="plan-size">500 MB</p></div>
+		<div class="row" id="button4"></div>
+	</div>
+</div>
+
+<script>
+
+if (planpk)
+{
+	var names = [null,'Free','Small','Medium','Large'];
+	for (var i = 1; i <= 4; i++)
+	{
+		var div = $('#button' + i);
+		
+		if (i == planpk)
+		{
+			var button = $('<button class="btn btn-disabled"></button>');
+			var text = 'This is your current plan';
+			button.text(text);
+			button.attr('title', text);
+			div.append(button);
+		}
+		else
+		{
+			var a = $('<a target="_blank"></a>');
+			a.addClass('btn');
+			a.addClass((i < planpk) ? 'btn-warning' : 'btn-success');
+			a.attr('href', '/' + endpoint + '/' + i + '/' + accountpk);
+			var text = ((i < planpk) ? 'Downgrade' : 'Upgrade') + ' to ' + names[i] + ' plan';
+			a.text(text);
+			a.attr('title', text);
+			div.append(a);
+		}
+	}
+}
+
+</script>
 
 {% endblock body %}

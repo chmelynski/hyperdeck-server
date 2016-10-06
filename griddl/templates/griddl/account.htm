@@ -5,12 +5,64 @@
 
 {% block body %}
 
-<script>
-var passwordChangeUrl = "{% url 'django.contrib.auth.views.password_change' %}";
-var plan = '{{ plan }}';
-var action = '{{ action }}';
-</script>
+<style>.fixed-width { width:15em }</style>
 
-{{ copy|safe }}
+<hr />
+<div class="row">
+  <div class="col-xs-3">
+		<a id="subscriptions" class="btn btn-success fixed-width" title="Subscription" href="/subscriptions">{% if action == "billing" %}Upgrade{% else %}Modify Subscription{% endif %}</a>
+	</div>
+  <div class="col-xs-9">
+    <label>Plan:</label><span id="plan">{{ plan }}</span>
+  </div>
+</div>
+<hr />
+{% if user.is_superuser %}
+<div class="row">
+	<div class="col-xs-3">
+		<a class="btn btn-default fixed-width" title="Versions" href="/versions">Workbook versions</a>
+	</div>
+	<div class="col-xs-9">
+		View all saved versions of your workbooks, with options to restore
+	</div>
+</div>
+<hr />
+<div class="row">
+	<div class="col-xs-3">
+		<a class="btn btn-default fixed-width" title="Preferences" href="/preferences">Preferences</a>
+	</div>
+	<div class="col-xs-9">
+		Manage user styles, Codemirror themes, keybindings, etc.
+	</div>
+</div>
+<hr />
+{% endif %}
+<div class="row">
+	<div class="col-xs-3">
+		<a class="btn btn-default fixed-width" title="Export" href="/export">Export data</a>
+	</div>
+	<div class="col-xs-9">
+		Export all workbook data as a .tar.gz of json files
+	</div>
+</div>
+<hr />
+<div class="row">
+	<div class="col-xs-3">
+		<a class="btn btn-default fixed-width" id="password" title="Change your password" href="{% url 'django.contrib.auth.views.password_change' %}">Change your password</a>
+	</div>
+	<div class="col-xs-9">
+	</div>
+</div>
+<hr />
+{% if user.is_superuser %}
+<div class="row">
+	<div class="col-xs-3">
+		<a class="btn btn-danger fixed-width" title="Delete" href="/deleteAccount">Delete account</a>
+	</div>
+	<div class="col-xs-9">
+	</div>
+</div>
+<hr />
+{% endif %}
 
 {% endblock body %}
