@@ -15,3 +15,4 @@ django-subdomains
 mock
 django-pipeline
 jsmin
+boto3

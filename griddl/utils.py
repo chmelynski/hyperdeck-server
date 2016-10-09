@@ -23,10 +23,11 @@ def resolve_ancestry(userid, path):
         else:
             parts = [path]
 
-        for obj in parts:
+        for part in parts:
             this = Workbook.objects.get(owner=userid,
-                                        slug=obj,
-                                        parent=last
+                                        slug=part,
+                                        parent=last,
+                                        deleted=False
                                         )
             last = this
             ancestors.append(this)

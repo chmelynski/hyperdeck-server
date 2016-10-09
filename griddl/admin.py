@@ -39,10 +39,8 @@ class UserAdmin(UserAdmin):
 
 
 class WorkbookAdmin(admin.ModelAdmin):
-    readonly_fields = ('size',)
-    #exclude = (() if DEBUG else ('text',))
-    list_display = ('owner', 'uri', 'modified', 'size')
-    list_display_links = ('uri',)
+    list_display = ('id', 'owner', 'uri', 'modified', 'size')
+    list_display_links = ('id',)
 
 class CopyAdmin(admin.ModelAdmin):
     list_display = ('key',)

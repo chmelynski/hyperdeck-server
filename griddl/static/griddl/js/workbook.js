@@ -102,3 +102,76 @@ function save_passthru(payload) {
          'json'
          );
 }
+
+
+function getSignedRequest(text, filename) {
+	
+  // filename needs to have a 'workbooks/' prefix
+  
+	var xhr = new XMLHttpRequest();
+	xhr.open('GET', '/sign_s3?file_name=' + filename + '&file_type=text/plain');
+	
+	xhr.onreadystatechange = function() {
+		
+		if (xhr.readyState === 4)
+		{
+			if (xhr.status === 200)
+			{
+				console.log(xhr.responseText);
+				var response = JSON.parse(xhr.responseText);
+        			var blob = new Blob([text], {type:'text/plain'});
+				uploadFile(blob, response);
+			}
+			else
+			{
+				console.log(xhr.responseText);
+			}
+		}
+	};
+	
+	xhr.send();
+}
+function uploadFile(blob, s3Data) {
+	
+	// presigned_post = s3.generate_presigned_post(
+	//   Bucket = S3_BUCKET,
+	//   Key = file_name,
+	//   Fields = {"acl": "public-read", "Content-Type": file_type},
+	//   Conditions = [
+	//     {"acl": "public-read"},
+	//     {"Content-Type": file_type}
+	//   ],
+	//   ExpiresIn = 3600
+	// )
+	// 
+	// s3Data = json.dumps({
+	//   'data': presigned_post,
+	//   'url': 'https://%s.s3.amazonaws.com/%s' % (S3_BUCKET, file_name)
+	// })
+	
+	var xhr = new XMLHttpRequest();
+	xhr.open('POST', s3Data.url);
+	
+	var postData = new FormData();
+	for (key in s3Data.data) { postData.append(key, s3Data.data[key]); }
+	postData.append('file', blob);
+	
+	xhr.onreadystatechange = function() {
+		
+		if (xhr.readyState === 4)
+		{
+			if (xhr.status === 200 || xhr.status === 204)
+			{
+				console.log(xhr.responseText);
+			}
+			else
+			{
+				console.log(xhr.responseText);
+			}
+		}
+	};
+	
+	xhr.send(postData);
+}
+
+

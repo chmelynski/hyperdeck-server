@@ -15,10 +15,6 @@ FILE_TYPES = (
     ('L', 'Link')
 )
 
-BASE_WORKBOOK = {'metadata':{'version':1,'view':'all'},'components':[]}
-
-MY_FIRST_WORKBOOK = json.dumps(BASE_WORKBOOK)
-
 logger = logging.getLogger(__name__)
 
 
@@ -31,6 +27,10 @@ class AccountSizeError(Exception):
 
 
 class MaxWorkbookSizeError(Exception):
+    """
+    This workbook exceeds the maximum workbook size: please make it smaller before saving.
+    """
+    # settings.MAX_WORKBOOK_SIZE, but how do we get that into the triple-quoted string?
     pass
 
 
@@ -45,14 +45,12 @@ class Workbook(models.Model):
     version = models.IntegerField(default=1)
     name = models.CharField(max_length=200)
     slug = models.SlugField()
-    text = models.TextField(blank=True, default=MY_FIRST_WORKBOOK)
+    size = models.IntegerField(default=0)
+    text = models.TextField(blank=True)
     modified = models.DateTimeField(null=True, auto_now=True)
     public = models.BooleanField(default=False)
     deleted = models.BooleanField(default=False)  # user-initiated removal
     locked = models.BooleanField(default=False)  # automated/administrative
-
-    class Meta:
-        unique_together = ("owner", "parent", "slug")
 
     @cached_property
     def path_to_file(self):
@@ -78,41 +76,27 @@ class Workbook(models.Model):
                          str(self.owner.pk), self.path])\
                   .replace('//', '/')
 
-    @property
-    def size(self):
-        return len(self.text)
-
     def __unicode__(self):
         return self.uri
+    
+    def isDescendantOf(self, ancestor):
+        if self == ancestor:
+            return True
+        elif self.parent == None:
+            return False
+        else:
+            return self.parent.isDescendantOf(ancestor)
 
     def save(self, *args, **kwargs):
-        '''
-        Before saving a workbook, check account size against plan size.
-        If saving would break plan size limit, lock stuff as needed.
-        Unresolved so far: notifications regarding account size stuff.
-
-        ALSO: convert name to slug for URI
-
-        Future warning: much more complicated in python3 -- see:
-        http://stackoverflow.com/questions/4013230/how-many-bytes-does-a-string-have
-        '''
-
-        # deal with the hard nopes first
-        if len(self.text) >= settings.MAX_WORKBOOK_SIZE:
-            raise MaxWorkbookSizeError("Sorry, this workbook is too big for\
-                                        your current account.")
-        if len(self.text) >= self.owner.plan_size * 1024 * 1024:
-            raise AccountSizeError("Sorry, this workbook is too big for your\
-                                    current account.")
-
+        
+        # trim leading and trailing whitespace
+        # convert spaces to hyphens
+        # remove all characters except alphanumeric, hyphen, and underscore
+        # convert to lower case
         self.slug = slugify(self.name)
 
-        # save before handling size restrictions other than hard nopes
-        # this means everything below should be careful re: recursion?
         super(Workbook, self).save(*args, **kwargs)
 
-        # surprise! actually now we're doing both signal and override.
-        # pre_save signal for workbooks handles workbook/account size checks.
 
 
 class Plan(models.Model):
@@ -205,6 +189,8 @@ class Account(models.Model):
     size = property(_get_size)
 
     plan_size = models.IntegerField(default=2) # in MB
+    noncompliant = models.BooleanField(default=False)
+    noncompliantSince = models.DateTimeField(null=True)
     locked = models.BooleanField(default=False)
 
     def _get_upgrade_link(self):
