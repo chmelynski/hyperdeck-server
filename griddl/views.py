@@ -2,6 +2,9 @@ from __future__ import unicode_literals
 
 import logging
 import traceback
+import boto3
+import json
+import os
 
 from django import forms
 from django.db import transaction
@@ -10,16 +13,17 @@ from django.http import HttpResponseNotFound, HttpResponseServerError
 from django.shortcuts import render
 from django.template import loader
 from django.contrib import messages
-from django.core import exceptions
+from django.core.exceptions import ValidationError, PermissionDenied
 from django.core.urlresolvers import reverse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.template.defaultfilters import slugify
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
 
-from mysite.settings import SUBDOMAINS
+from mysite.settings import SUBDOMAINS, MAX_WORKBOOK_SIZE
 
 from .decorators import require_subdomain, exclude_subdomain
 from .models import Workbook, Account, Plan, Copy
@@ -28,7 +32,91 @@ from .utils import resolve_ancestry
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_WORKBOOK = '{"metadata":{"version":1,"view":"all"},"components":[]}'
 
+s3 = boto3.client('s3')
+S3_BUCKET = os.environ.get('S3_BUCKET')
+S3_WORKBOOK_FOLDER = os.environ.get('S3_WORKBOOK_FOLDER')
+
+class DuplicateError(Exception):
+    pass
+
+class SelfParentError(Exception):
+    pass
+
+class InvalidNameError(Exception):
+    pass
+
+class AccountLockedError(Exception):
+    pass
+
+# called by workbook
+def s3get(wb):
+    if len(wb.text) > 0: # text is stored in wb.text on failed puts to S3
+        return wb.text
+    else:
+        key = S3_WORKBOOK_FOLDER+'/'+str(wb.id)
+        response = s3.get_object(Bucket=S3_BUCKET,Key=key)
+        logger.debug(response)
+        #if response['ResponseMetadata']['HTTPStatusCode'] != 200:
+        #    raise Exception('S3 Error')
+        body = response['Body'] # botocore.response.StreamingBody
+        binarystring = body.read()
+        text = binarystring.decode('utf-8')
+        return text
+
+# called by save, saveas, directory (for save/saveas resolution)
+def s3put(wb):
+    # this is a best-efforts function
+    # the caller is responsible for setting wb.text before calling s3put and then calling wb.save() afterwards
+    # if the put to S3 is successful, wb.text will be cleared before returning
+    key = S3_WORKBOOK_FOLDER+'/'+str(wb.id)
+    logger.debug('S3 Put: %s', key)
+    response = s3.put_object(Bucket=S3_BUCKET,Key=key,Body=wb.text) # what if we don't get a response?  maybe a bSuccess flag
+    logger.debug(response)
+    responseMetadata = response['ResponseMetadata']
+    statusCode = responseMetadata['HTTPStatusCode']
+    if statusCode == 200 or statusCode == 204:
+        logger.debug('S3 PUT successful')
+        wb.text = ''
+        return True
+    else:
+        logger.debug('S3 PUT failed')
+        return False
+
+# slugify() converts to ASCII if allow_unicode is False (default - allow_unicode param added in django 1.9)
+# strips leading and trailing whitespace
+# converts spaces to hyphens
+# removes characters that aren't alphanumeric, underscores, or hyphens
+# converts to lowercase
+
+# permitted characters: A-Za-z0-9-_\s
+# previous validation was name.strip('/').replace('/', '-')
+def isValidName(name):
+    return True
+
+# called by saveas, create, createDir, rename, move
+# the standard response to duplicate names is to send an error message and let the user correct it
+def checkForDuplicate(account, parent, slug):
+    bDuplicate = Workbook.objects.filter(owner=account, parent=parent, slug=slug, deleted=False).exists()
+    if bDuplicate:
+        raise DuplicateError()
+
+# however, in some situations like save/saveas resolution, you have to complete the transaction - so add suffixes
+# called by save/saveas resolution
+# what about invalid names - what exactly does slugify do?
+# for saveas, will need to sanitize automatically or just replace with a dummy name)
+def getNonduplicateName(account, name):
+    wbs = Workbook.objects.filter(owner=account, parent=None, deleted=False)
+    slug = slugify(name)
+    while True:
+        bNameCollision = wbs.filter(slug=slug).exists()
+        if bNameCollision:
+            name += '-copy'
+            slug = slugify(name)
+        else:
+            return name
+        
 def logoutView(request):
     logout(request)
     return HttpResponseRedirect("/")  # Redirect to a success page.
@@ -144,6 +232,12 @@ def ajaxregister(request):
 
 
 @login_required
+@exclude_subdomain(SUBDOMAINS['sandbox'])
+def password_change_redirect(request):
+    messages.success(request, "Your password has been changed.")
+    return HttpResponseRedirect(reverse('account', args=(request.user.pk,)))
+
+@login_required
 def directoryRedirect(request):
     return HttpResponseRedirect(reverse(directory,
                                         args=(request.user.account.pk, '',)))
@@ -155,19 +249,39 @@ def directory(request, userid, path=None):
         return HttpResponseRedirect(reverse(directory,
                                             args=(request.user.account.pk,
                                                   '',)))
-
+    # save/saveas resolution for logged-out users
     # open question: is there a better place for this?
-    if 'saveas' in request.session:  # saveas resolution for logged-out users
+    # what if the user's account is locked?  right now we just let it go through
+    # we could permit the workbook to be saved but then lock reading for the workbook
+    # if we're willing to interpret wb.locked as a read-lock rather than a write-lock
+    # or create a new readLocked field
+    if 'save' in request.session:
         with transaction.atomic():
-            wbs = Workbook.objects.filter(pk=request.user.account.pk)
+            data = request.session['save']
+            wb = Workbook.objects.get(pk=data['wb'])
+            if wb.owner != request.user.account:
+                wb.owner = request.user.account
+                wb.public = False
+                wb.pk = None # copy wb if non-owner tries to save
+                wb.name = getNonduplicateName(account=request.user.account, name=wb.name)
+            wb.text = data['text']
+            wb.size = len(wb.text)
+            s3put(wb)
+            wb.save()
+            del(request.session['save'])
+            
+    if 'saveas' in request.session:
+        with transaction.atomic():
             data = request.session['saveas']
-            clone = Workbook.objects.get(pk=data['wb'])
-            clone.owner = request.user.account
-            clone.name = data['name']
-            clone.text = data['text']
-            clone.public = False
-            clone.pk = None
-            clone.save()
+            wb = Workbook.objects.get(pk=data['wb'])
+            wb.owner = request.user.account
+            wb.public = False
+            wb.pk = None
+            wb.name = getNonduplicateName(account=request.user.account, name=data['name'])
+            wb.text = data['text']
+            wb.size = len(wb.text)
+            s3put(wb)
+            wb.save()
             del(request.session['saveas'])
 
     try:
@@ -175,10 +289,10 @@ def directory(request, userid, path=None):
     except TypeError:  # NoneType has no indices -- returned no ancestry
         this = None
 
-    wbs = Workbook.objects.filter(owner=request.user.account.pk, parent=this) \
+    wbs = Workbook.objects.filter(owner=request.user.account.pk, parent=this, deleted=False) \
         .order_by('filetype', 'name')
 
-    dirs = Workbook.objects.filter(owner=request.user.account.pk, filetype='D')
+    dirs = Workbook.objects.filter(owner=request.user.account.pk, filetype='D', deleted=False)
 
     acctdirs = []
     
@@ -207,20 +321,18 @@ def directory(request, userid, path=None):
 
     return render(request, 'griddl/directory.htm', context)
 
-
 @login_required
 @exclude_subdomain(SUBDOMAINS['sandbox'])
 def account(request, userid):
-
     acct = Account.objects.select_related('plan')\
         .get(user=request.user.account.pk)
-        
     plan_pk = acct.plan.pk
-    
-    context = {};
+    context = {}
+    context['size'] = acct.size
+    context['plan_size'] = acct.plan_size
+    context['noncompliant'] = acct.noncompliant
     context['plan'] = acct.plan.get_name_display()
     context['action'] = ('billing' if (plan_pk == 1) else 'sub_change')
-
     return render(request, 'griddl/account.htm', context)
 
 
@@ -230,7 +342,7 @@ def togglepublic(request):
     try:
         pk = request.POST.get('pk', False)
         if not pk:
-            raise exceptions.ValidationError('bad request')
+            raise ValidationError('bad request')
         wb = Workbook.objects.get(pk=pk)
         if wb.owner != request.user.account:
             return JsonResponse({'success': False,
@@ -238,104 +350,131 @@ def togglepublic(request):
         wb.public = not wb.public
         wb.save()
         return JsonResponse({'success': True, 'message': 'saved'})
-    except exceptions.ValidationError as e:
+    except ValidationError as e:
         return JsonResponse({'success': False, 'message': e.message})
     except Exception:
         logger.error(traceback.format_exc())
         msg = "An error occurred. Please try again."
         return JsonResponse({'success': False, 'message': msg})
 
-
 @exclude_subdomain(SUBDOMAINS['sandbox'])
 def save(request):
-    # todo: this comment does not match the current behavior :(
-    #       - actually not even close, would take some effort.
-    # if user is looking at a workbook belonging to another user:
-    #   if user is logged in:
-    #     redirect to create_new_workbook, prompt for a name
-    #   else:
-    #     prompt for login or signup
-    # else: # if user is looking at his own workbook
-    #   if workbook is read-only:
-    #     redirect to save_workbook_as
-    #   else:
-    #     save (note: until we have some sort of version control,
-    #     this involves overwriting the old data.
+    pk = request.POST.get('id', False)
+    wb = Workbook.objects.get(pk=pk)
     if request.user.is_authenticated():
         try:
-            pk = request.POST.get('id', False)
-            if not pk:
-                raise exceptions.ValidationError('bad request')
-
-            wb = Workbook.objects.get(pk=pk)
             if wb.owner != request.user.account:
                 return JsonResponse({'success': False,
                                      'message': 'Access denied'})
-            wb.text = request.POST.get('text', '')  # todo: is this ok?
+            if request.user.account.locked:
+                raise AccountLockedError()
+            wb.text = request.POST.get('text', '') # todo: is this ok?
+            wb.size = len(wb.text)
+            if wb.size > MAX_WORKBOOK_SIZE:
+                raise MaxWorkbookSizeError()
+            s3put(wb)
             wb.save()
             return JsonResponse({'success': True, 'message': 'saved',
                                  'wb_size': wb.size,
                                  'acct_size': request.user.account.size,
                                  'plan_size': request.user.account.plan_size})
-        except (AccountSizeError, MaxWorkbookSizeError) as e:
+        except MaxWorkbookSizeError as e:
+            msg = e.message + " Please delete some data to save this workbook."
+            return JsonResponse({'success': False, 'message': msg})
+        except AccountLockedError as e:
+            msg = 'Error: Your account is over your plan size limit and must be upgraded before saving.'
+            return JsonResponse({'success':False, 'message': msg})
+        except AccountSizeError as e:
             msg = e.message + " Please <a target='_blank' href='/subscriptions'>upgrade\
                                              to a larger plan</a> or delete\
                                              some data to save this workbook."
             return JsonResponse({'success': False, 'message': msg})
-        except exceptions.ValidationError as e:
-            return JsonResponse({'success': False, 'message': e.message})
+        except ValidationError as e:
+            msg = e.message
+            return JsonResponse({'success': False, 'message': msg})
         except Exception:
             logger.error(traceback.format_exc())
             msg = "An error occurred. Please try again."
             return JsonResponse({'success': False, 'message': msg})
     else:
-        return JsonResponse({'success': False, 'message': 'Access denied'})
-
+        try:
+            text = request.POST.get('text')
+            if len(text) > MAX_WORKBOOK_SIZE:
+                    raise MaxWorkbookSizeError()
+            request.session['save'] = {
+                'wb': wb.pk,
+                'text': text
+            }
+            messages.info(
+                request,
+                'Please log in or create an account to save\
+                your copy of the workbook "%s"' %
+                wb.name
+                )
+            return JsonResponse({'redirect': '/login'})
+        except MaxWorkbookSizeError as e:
+            msg = e.message
+            return JsonResponse({'success': False, 'message': msg})
 
 @exclude_subdomain(SUBDOMAINS['sandbox'])
 def saveas(request):
-    # prompt for a name (with a popup or something)
-    # save as that new name
-    # similar login/signup prompts necessary if no user
-    # todo: fixup for better error handling, messages, etc
-
-    wb = Workbook.objects.get(pk=request.POST.get('id'))
-    original = wb.name
-
+    pk = request.POST.get('id')
+    wb = Workbook.objects.get(pk=pk)
     if request.user.is_authenticated():
-        fork = (request.user != wb.owner)
-        wb.owner = request.user.account
-        wb.name = request.POST.get('newname')
-        wb.text = request.POST.get('text')
-        wb.public = False  # for now, don't copy public status
-        wb.pk = None
         try:
+            if request.user.account.locked:
+                raise AccountLockedError()
+            original = wb.name
+            wb.owner = request.user.account
+            wb.name = request.POST.get('newname')
+            wb.slug = slugify(wb.name)
+            checkForDuplicate(account=request.user.account, parent=None, slug=wb.slug)
+            wb.text = request.POST.get('text')
+            wb.size = len(wb.text)
+            wb.public = False  # for now, don't copy public status
+            wb.pk = None
+            if wb.size > MAX_WORKBOOK_SIZE:
+                raise MaxWorkbookSizeError()
+            s3put(wb)
             wb.save()
-        except (AccountSizeError, MaxWorkbookSizeError) as e:
-            # todo: actually save wb just in case?
-            messages.error(e.message)
-            return JsonResponse({'redirect': '/subscriptions?billing=true'})
-
-        response = {'success': True}
-        if fork:
+            response = {}
+            response['success'] = True
             response['redirect'] = ''.join(['http://',SUBDOMAINS['workbook'],'.hyperdeck.io',wb.uri])
-            messages.success(
-                request, "Successfully copied workbook {}.".format(original))
-        return JsonResponse(response)
+            messages.success(request, "Successfully copied workbook {}.".format(original))
+            return JsonResponse(response)
+        except AccountLockedError as e:
+            msg = 'Error: Your account is over your plan size limit and must be upgraded before saving.'
+            return JsonResponse({'success':False, 'message': msg})
+        except DuplicateError as e:
+            msg = 'Error: duplicate name - please pick another name/destination.'
+            return JsonResponse({'success':False, 'message': msg})
+        except MaxWorkbookSizeError as e:
+            msg = 'Error: workbook is over maximum allowed size.'
+            return JsonResponse({'success':False, 'message': msg})
+        except Exception:
+            logger.error(traceback.format_exc())
+            msg = "An error occurred. Please try again."
+            return JsonResponse({'success': False, 'message': msg})
     else:
-        request.session['saveas'] = {
-            'wb': wb.pk,
-            'name': request.POST.get('newname'),
-            'text': request.POST.get('text')
-            }
-        messages.info(
-            request,
-            'Please log in or create an account to save\
-            your copy of the workbook "%s"' %
-            wb.name
-            )
-        return JsonResponse({'redirect': '/signup'})
-
+        try:
+            text = request.POST.get('text')
+            if len(text) > MAX_WORKBOOK_SIZE:
+                    raise MaxWorkbookSizeError()
+            request.session['saveas'] = {
+                'wb': wb.pk,
+                'name': request.POST.get('newname'),
+                'text': text
+                }
+            messages.info(
+                request,
+                'Please log in or create an account to save\
+                your copy of the workbook "%s"' %
+                wb.name
+                )
+            return JsonResponse({'redirect': '/signup'})
+        except MaxWorkbookSizeError as e:
+            msg = 'Error: workbook is over maximum allowed size.'
+            return JsonResponse({'success':False, 'message': msg})
 
 @login_required
 @exclude_subdomain(SUBDOMAINS['sandbox'])
@@ -344,57 +483,60 @@ def create(request):
     specifically, create a workbook file, not a "dir"
     '''
     try:
+        name = request.POST.get('name')
+        if not name:
+            raise ValidationError('request missing param "name"')
+        if not isValidName(name):
+            raise InvalidNameError()
+        path = request.POST.get('path', '')
+        try:
+            parent = resolve_ancestry(request.user.account.pk, path)[0]
+        except TypeError:
+            parent = None
+        slug = slugify(name)
+        checkForDuplicate(account=request.user.account, parent=parent, slug=slug)
         wb = Workbook()
         wb.owner = request.user.account
-        wb.name = request.POST.get('name')
-        if not wb.name:
-            raise exceptions.ValidationError('request missing param "name"')
-
+        wb.name = name
         wb.public = False
-        path = request.POST.get('path', '')
-
-        try:
-            wb.parent = resolve_ancestry(wb.owner.pk, path)[0]
-        except TypeError:
-            wb.parent = None
-
+        wb.parent = parent
         wb.filetype = 'F'
+        wb.text = DEFAULT_WORKBOOK
+        wb.size = len(DEFAULT_WORKBOOK)
         wb.save()
         return HttpResponseRedirect(''.join(['http://',SUBDOMAINS['workbook'],'.hyperdeck.io',wb.uri]))
+    except InvalidNameError as e:
+        msg = 'Error: workbook and directory names can only contain alphanumeric characters, dashes, underscores, and spaces.'
+        messages.error(request, msg)
+        return HttpResponseServerError()
+    except ValidationError as e:
+        messages.error(request, e.message)
+        return HttpResponseServerError()
+    except DuplicateError as e:
+        msg = 'Error: duplicate name - please pick another name/destination.'
+        messages.error(request, msg)
+        return HttpResponseServerError()
     except Exception:
         logger.error(traceback.format_exc())
         return HttpResponseServerError()
-
-
-@login_required
-@exclude_subdomain(SUBDOMAINS['sandbox'])
-def password_change_redirect(request):
-    messages.success(request, "Your password has been changed.")
-    return HttpResponseRedirect(reverse('account', args=(request.user.pk,)))
-
 
 @login_required
 @exclude_subdomain(SUBDOMAINS['sandbox'])
 def createDir(request):
     try:
-        # no slashes pls
-        name = request.POST.get('name', False).strip('/').replace('/', '-')
+        name = request.POST.get('name', False)
         if not name:
-            raise exceptions.ValidationError('request missing param "name"')
-
-        # note: this is "path" in the griddl.urls sense --
-        #     i.e. everything between "/d/" and the last piece
-        path = request.POST.get('path', None)
-        logger.debug(path)
-
+            raise ValidationError('request missing param "name"')
+        if not isValidName(name):
+            raise InvalidNameError()
+        path = request.POST.get('path', None) # parent path - e.g. 2/foo/bar
         family = resolve_ancestry(request.user.account.pk, path)
         if family:
-            logger.debug("family yes - path = ".format(path))
             parent = family[0]
         else:
-            logger.debug("family no :( - path = ".format(path))
             parent = None
-
+        slug = slugify(name)
+        checkForDuplicate(account=request.user.account, parent=parent, slug=slug)
         wb = Workbook()
         wb.owner = request.user.account
         wb.name = name
@@ -404,11 +546,19 @@ def createDir(request):
         wb.filetype = 'D'
         wb.save()
         return JsonResponse({'success': True, 'redirect': wb.uri})
-    except exceptions.ValidationError:
-        return JsonResponse({'success': False})  # todo: send error message
+    except DuplicateError as e:
+        msg = 'Error: duplicate name - please pick another name/destination.'
+        return JsonResponse({'success': False, 'message': msg})
+    except InvalidNameError as e:
+        msg = 'Error: workbook and directory names can only contain alphanumeric characters, dashes, underscores, and spaces.'
+        return JsonResponse({'success': False, 'message': msg})
+    except ValidationError as e:
+        msg = e.message
+        return JsonResponse({'success': False, 'message': msg})
     except Exception:
         logger.error(traceback.format_exc())
-        return JsonResponse({'success': False})
+        msg = 'An error occured - please try again.'
+        return JsonResponse({'success': False, 'message': msg})
 
 
 @login_required
@@ -417,45 +567,34 @@ def rename(request):
     try:
         pk = request.POST.get('id', False)
         if not pk:
-            raise exceptions.ValidationError('request missing param "id"')
-
+            raise ValidationError('request missing param "id"')
+        name = request.POST.get('newname', False).strip('/').replace('/', '-')
+        if not name:
+            raise ValidationError('request missing param "newname"')
+        if not isValidName(name):
+            raise InvalidNameError()
         wb = Workbook.objects.get(pk=pk)
         if wb.owner != request.user.account:
-            raise exceptions.PermissionDenied('user is not workbook owner')
-
-        wb.name = request.POST.get('newname', False) \
-            .strip('/').replace('/', '-')
-        if not wb.name:
-            raise exceptions.ValidationError('request missing param "newname"')
-
+            raise PermissionDenied('user is not workbook owner')
+        slug = slugify(name)    
+        checkForDuplicate(account=request.user.account, parent=wb.parent, slug=slug)
+        wb.name = name
         wb.save()
         return JsonResponse({'success': True, 'uri': wb.uri})
-    except exceptions.PermissionDenied:
+    except PermissionDenied:
         return JsonResponse({'success': False, 'redirect': '/login'})
+    except ValidationError as e:
+        msg = e.message
+        return JsonResponse({'success': False, 'message': msg})
+    except InvalidNameError as e:
+        msg = 'Error: workbook and directory names can only contain alphanumeric characters, dashes, underscores, and spaces.'
+        return JsonResponse({'success': False, 'message': msg})
+    except DuplicateError as e:
+        msg = 'Error: duplicate name - please pick another name/destination.'
+        return JsonResponse({'success': False, 'message': msg})
     except Exception:
         logger.error(traceback.format_exc())
         return JsonResponse({'success': False})
-
-
-@login_required
-@exclude_subdomain(SUBDOMAINS['sandbox'])
-def delete(request):
-    try:
-        pk = request.POST.get('id', False)
-        if not pk:
-            raise exceptions.ValidationError('request missing param "id"')
-
-        wb = Workbook.objects.get(pk=pk)
-        if wb.owner != request.user.account:
-            raise exceptions.PermissionDenied('user is not workbook owner')
-        wb.delete()
-        return JsonResponse({'success': True})
-    except exceptions.PermissionDenied:
-        return JsonResponse({'success': False, 'redirect': '/login'})
-    except Exception:
-        logger.error(traceback.format_exc())
-        return JsonResponse({'success': False})
-
 
 @login_required
 @exclude_subdomain(SUBDOMAINS['sandbox'])
@@ -463,57 +602,92 @@ def move(request):
     try:
         pk = request.POST.get('id', False)
         if not pk:
-            raise exceptions.ValidationError('request missing param "id"')
-
+            raise ValidationError('request missing param "id"')
         wb = Workbook.objects.get(pk=pk)
         if wb.owner != request.user.account:
-            raise exceptions.PermissionDenied('user is not workbook owner')
-
-        parent = request.POST.get('parent', False)
-        if not parent:
-            raise exceptions.ValidationError('request missing param "parent"')
-
-        dstFolder = '/'
-        
-        if parent == 'root':  # special case, sorry
-            wb.parent = None
+            raise PermissionDenied('user is not workbook owner')
+        parentId = request.POST.get('parent', False)
+        if not parentId:
+            raise ValidationError('request missing param "parent"')
+        if parentId == 'root':
+            parent = None
+            dstFolder = '/'
         else:
-            dst = Workbook.objects.get(pk=parent)
-            if wb == dst:
-                raise Exception()
-            wb.parent = dst
-            dstFolder = wb.parent.path
-
+            parent = Workbook.objects.get(pk=parentId)
+            if parent.isDescendantOf(wb):
+                raise SelfParentError()
+            dstFolder = parent.path
+        checkForDuplicate(account=request.user.account, parent=parent, slug=wb.slug)
+        wb.parent = parent
         wb.save()
-        return JsonResponse({'success': True, 'slug': wb.slug, 'dstFolder': dstFolder })
-    except exceptions.PermissionDenied:
+        return JsonResponse({'success': True, 'slug': wb.slug, 'dstFolder': dstFolder})
+    except PermissionDenied:
         return JsonResponse({'success': False, 'redirect': '/login'})
+    except ValidationError as e:
+        msg = e.message
+        return JsonResponse({'success': False, 'message': msg})
+    except DuplicateError as e:
+        msg = 'Error: duplicate name - please pick another name/destination.'
+        return JsonResponse({'success': False, 'message': msg})
+    except SelfParentError as e:
+        msg = 'Error: directories are not allowed to contain themselves - please pick another destination.'
+        return JsonResponse({'success': False, 'message': msg})
+    except Exception:
+        logger.error(traceback.format_exc())
+        msg = 'An error occurred - please try again.'
+        return JsonResponse({'success': False, 'message': msg})
+
+@login_required
+@exclude_subdomain(SUBDOMAINS['sandbox'])
+def delete(request):
+    try:
+        pk = request.POST.get('id', False)
+        if not pk:
+            raise ValidationError('request missing param "id"')
+        wb = Workbook.objects.get(pk=pk)
+        if wb.owner != request.user.account:
+            raise PermissionDenied('user is not workbook owner')
+        if wb.filetype == 'D':
+            allwbs = Workbook.objects.filter(owner=request.user.account, deleted=False)
+            for w in allwbs:
+                if w.isDescendantOf(wb):
+                    w.deleted = True
+                    w.size = 0
+                    w.save() # should these saves be batched?
+        else:
+            wb.deleted = True
+            wb.size = 0
+            wb.save()
+        return JsonResponse({'success': True})
+    except PermissionDenied:
+        return JsonResponse({'success': False, 'redirect': '/login'})
+    except ValidationError as e:
+        msg = e.message
+        return JsonResponse({'success': False, 'message': msg})
     except Exception:
         logger.error(traceback.format_exc())
         return JsonResponse({'success': False})
-
 
 def workbook(request, userid, path, slug):
     try:
         family = resolve_ancestry(userid, '/'.join([path, slug]))
         wb = family[0]
+        text = s3get(wb)
     except Exception:
-        return HttpResponse('Not found')  # todo? more specific maybe.
-
+        logger.error(traceback.format_exc())
+        return HttpResponse('Not found')
     if not wb.public:
         if request.user.is_authenticated():
             if not request.user.account == wb.owner:
                 return HttpResponse('Access denied')
         else:
             return HttpResponse('Access denied')
-
-    context = {
-        "workbook": wb,
-        "path": path,
-        "userid": userid,
-        "sandbox": SUBDOMAINS['sandbox']
-        }
-
+    context = {}
+    context["text"] = text
+    context["workbook"] = wb
+    context["path"] = path
+    context["userid"] = userid
+    context["sandbox"] = SUBDOMAINS['sandbox']
     tpl = loader.get_template('griddl/workbook.htm').render(context, request)
     response = HttpResponse(tpl, content_type='text/html')
     csp = "script-src 'self' https://code.jquery.com/"
@@ -523,39 +697,30 @@ def workbook(request, userid, path, slug):
 
 @require_subdomain(SUBDOMAINS['sandbox'])
 def results(request, userid, path, slug):
-    # todo: this is now WET wrt views.workbook :'(
-    #        AND views.directory ;_;
-    #        well, tbh it was probably worse before
     try:
         family = resolve_ancestry(userid, '/'.join([path, slug]))
         wb = family[0]
     except Exception:
-        return HttpResponse('Not found')  # todo? more specific maybe.
-
+        return HttpResponse('Not found')
     if not wb.public:
         if request.user.is_authenticated():
             if not request.user.account == wb.owner:
                 return HttpResponse('Access denied')
         else:
             return HttpResponse('Access denied')
-
-    context = {
-        "workbook": wb
-    }
+    context = {"workbook": wb}
     if request.user.is_authenticated() and request.user.account == wb.owner:
         notWorkbookSubdomain = SUBDOMAINS['notWorkbook']
-        period = '.'
-        if notWorkbookSubdomain == '':
-            period = ''
+        period = ('' if (notWorkbookSubdomain == '') else '.')
         if wb.parent != None:
-            context['parentdir'] = ''.join(['http://',notWorkbookSubdomain,period,'hyperdeck.io',wb.parent.uri])
+            uri = wb.parent.uri # /d/2/foo/bar
         else:
-            uri = reverse(directory,
-                          kwargs={'userid': request.user.account.pk,
-                                  'path': ''})
-            # reverse returns the relative url
-            context['parentdir'] = ''.join(['http://',notWorkbookSubdomain,period,'hyperdeck.io',uri])
-
+            kwargs = {}
+            kwargs['userid'] = request.user.account.pk
+            kwargs['path'] = ''
+            # reverse returns the relative uri - /d/2
+            uri = reverse(directory, kwargs=kwargs)
+        context['parentdir'] = ''.join(['http://',notWorkbookSubdomain,period,'hyperdeck.io',uri])
     return render(request, 'griddl/results.htm', context)
 
 
@@ -564,24 +729,22 @@ def raw(request, userid, path, slug):
     try:
         family = resolve_ancestry(userid, '/'.join([path, slug]))
         wb = family[0]
+        text = s3get(wb)
     except Exception:
-        return HttpResponse('Not found')  # todo? more specific maybe.
-
+        return HttpResponse('Not found')
     if not wb.public:
         if request.user.is_authenticated():
             if not request.user.account == wb.owner:
                 return HttpResponse('Access denied')
         else:
             return HttpResponse('Access denied')
-
-    context = {
-        "workbook": wb
-    }
-
+    context = {}
+    context["text"] = text
+    context["workbook"] = wb
     return render(request, 'griddl/raw.htm', context)
 
 
-@login_required  # is it though?
+@login_required
 def export(request):
     import datetime
     import json
@@ -606,15 +769,35 @@ def export(request):
     header = 'attachment; filename=archive{}.tar.gz'.format(datestr)
     response['Content-Disposition'] = header
     response['Content-Encoding'] = 'gzip'
-
     return response
+
+
+def sign_s3(request):
+    file_name = request.GET.get('file_name', '')
+    file_type = request.GET.get('file_type', '')
+    
+    presigned_post = s3.generate_presigned_post(
+      Bucket = S3_BUCKET,
+      Key = file_name,
+      Fields = {"acl": "private", "Content-Type": file_type},
+      Conditions = [
+        {"acl": "private"},
+        {"Content-Type": file_type}
+      ],
+      ExpiresIn = 3600
+    )
+
+    return JsonResponse({
+      'data': presigned_post,
+      #'url': 'https://%s.s3.amazonaws.com/%s' % (S3_BUCKET, file_name)
+      'url': 'https://s3.amazonaws.com/%s/%s' % (S3_BUCKET, file_name)
+    })
 
 
 def index(request):
     context = {}
     return render(request, 'griddl/index.htm', context)
-
-
+    
 def jslog(request):
     msg = "JSLOG - {} - {}"
     msg.format(request.get_post('file', '(no file)'), request.get_post('msg'))
