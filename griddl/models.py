@@ -35,11 +35,12 @@ class MaxWorkbookSizeError(Exception):
 
 
 class Workbook(models.Model):
-    owner = models.ForeignKey("Account")
+    owner = models.ForeignKey("Account", null=True, blank=True,
+			      on_delete=models.SET_NULL)
     filetype = models.CharField(max_length=1, choices=FILE_TYPES,
                                 default='F')
     parent = models.ForeignKey('self', null=True, blank=True,
-                               on_delete=models.CASCADE,
+                               on_delete=models.SET_NULL,
                                limit_choices_to={'filetype': 'D'})
     contentType = models.CharField(blank=True, max_length=200)
     version = models.IntegerField(default=1)
@@ -168,7 +169,8 @@ class Account(models.Model):
     extend User model with Account info
     '''
     user = models.OneToOneField(settings.AUTH_USER_MODEL)
-    plan = models.ForeignKey(Plan, default=Plan.FREE)
+    plan = models.ForeignKey(Plan, default=Plan.FREE, blank=True, null=True,
+			    on_delete=models.SET_NULL)
     #subscription = models.ForeignKey('billing.Subscription', null=True,
     #                                 on_delete=models.SET_NULL, blank=True)
                  
@@ -220,4 +222,12 @@ class Copy(models.Model):
 
 class DefaultWorkbook:
     pass
+
+class Log(models.Model):
+    account = models.ForeignKey('Account', blank=True, null=True,
+				on_delete=models.SET_NULL)
+    category = models.CharField(max_length=50)
+    time = models.DateTimeField(auto_now=True)
+    text = models.CharField(max_length=255)
+    viewed = models.BooleanField(default=False)
 

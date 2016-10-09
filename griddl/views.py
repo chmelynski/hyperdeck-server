@@ -5,6 +5,7 @@ import traceback
 import boto3
 import json
 import os
+import datetime
 
 from django import forms
 from django.db import transaction
@@ -26,7 +27,7 @@ from crispy_forms.layout import Submit
 from mysite.settings import SUBDOMAINS, MAX_WORKBOOK_SIZE
 
 from .decorators import require_subdomain, exclude_subdomain
-from .models import Workbook, Account, Plan, Copy
+from .models import Workbook, Account, Plan, Copy, Log
 from .models import AccountSizeError, MaxWorkbookSizeError
 from .utils import resolve_ancestry
 
@@ -71,17 +72,16 @@ def s3put(wb):
     # the caller is responsible for setting wb.text before calling s3put and then calling wb.save() afterwards
     # if the put to S3 is successful, wb.text will be cleared before returning
     key = S3_WORKBOOK_FOLDER+'/'+str(wb.id)
-    logger.debug('S3 Put: %s', key)
     response = s3.put_object(Bucket=S3_BUCKET,Key=key,Body=wb.text) # what if we don't get a response?  maybe a bSuccess flag
     logger.debug(response)
     responseMetadata = response['ResponseMetadata']
     statusCode = responseMetadata['HTTPStatusCode']
     if statusCode == 200 or statusCode == 204:
-        logger.debug('S3 PUT successful')
+        Log.objects.create(account=wb.owner, category='S3 Put', text='S3 Put success - ' + key)
         wb.text = ''
         return True
     else:
-        logger.debug('S3 PUT failed')
+        Log.objects.create(account=wb.owner, category='S3 Put', text='S3 Put failure - ' + key)
         return False
 
 # slugify() converts to ASCII if allow_unicode is False (default - allow_unicode param added in django 1.9)
@@ -679,9 +679,9 @@ def workbook(request, userid, path, slug):
     if not wb.public:
         if request.user.is_authenticated():
             if not request.user.account == wb.owner:
-                return HttpResponse('Access denied')
+                return HttpResponse('Not found')
         else:
-            return HttpResponse('Access denied')
+            return HttpResponse('Not found')
     context = {}
     context["text"] = text
     context["workbook"] = wb
@@ -705,9 +705,9 @@ def results(request, userid, path, slug):
     if not wb.public:
         if request.user.is_authenticated():
             if not request.user.account == wb.owner:
-                return HttpResponse('Access denied')
+                return HttpResponse('Not found')
         else:
-            return HttpResponse('Access denied')
+            return HttpResponse('Not found')
     context = {"workbook": wb}
     if request.user.is_authenticated() and request.user.account == wb.owner:
         notWorkbookSubdomain = SUBDOMAINS['notWorkbook']
@@ -735,9 +735,9 @@ def raw(request, userid, path, slug):
     if not wb.public:
         if request.user.is_authenticated():
             if not request.user.account == wb.owner:
-                return HttpResponse('Access denied')
+                return HttpResponse('Not found')
         else:
-            return HttpResponse('Access denied')
+            return HttpResponse('Not found')
     context = {}
     context["text"] = text
     context["workbook"] = wb
@@ -802,3 +802,30 @@ def jslog(request):
     msg = "JSLOG - {} - {}"
     msg.format(request.get_post('file', '(no file)'), request.get_post('msg'))
     logger.error(msg)
+
+def logs(request):
+    if not request.user.is_superuser:
+        return HttpResponse('<h1>Not Found</h1><p>The requested URL /logs was not found on this server.</p>')
+    lgs = Log.objects.all()
+    lgs.update(viewed=True)
+    context = {'logs': lgs}
+    return render(request, 'griddl/logs.htm', context)
+
+def clearViewedLogs(request):
+    if not request.user.is_superuser:
+        return HttpResponse('<h1>Not Found</h1><p>The requested URL /clearViewedLogs was not found on this server.</p>')
+    # delete() return value (intNumberDeleted, {}) added in django 1.9
+    Log.objects.filter(viewed=True).delete()
+    return HttpResponse('logs cleared')
+
+def lockAccounts(request):
+    if not request.user.is_superuser:
+        return HttpResponse('<h1>Not Found</h1><p>The requested URL /lockAccounts was not found on this server.</p>')
+    cutoff = datetime.datetime.now() - datetime.timedelta(days=14)
+    logger.debug(cutoff)
+    accounts = Account.objects.filter(noncompliant=True, locked=False, noncompliantSince__lt=cutoff)
+    numberLocked = accounts.update(locked=True)
+    for account in accounts:
+        # put up message
+        pass
+    return HttpResponse(str(numberLocked) + ' accounts locked')
