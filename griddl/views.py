@@ -9,6 +9,7 @@ import datetime
 
 from django import forms
 from django.db import transaction
+from django.db.models import Sum
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.http import HttpResponseNotFound, HttpResponseServerError
 from django.shortcuts import render
@@ -829,3 +830,19 @@ def lockAccounts(request):
         # put up message
         pass
     return HttpResponse(str(numberLocked) + ' accounts locked')
+
+def stats(request):
+    if not request.user.is_superuser:
+        return HttpResponse('<h1>Not Found</h1><p>The requested URL /stats was not found on this server.</p>')
+    context = {}
+    context['nUsers'] = User.objects.count()
+    context['nWorkbooks'] = Workbook.objects.count()
+    accounts = Account.objects.all()
+    context['storageUsed'] = Workbook.objects.aggregate(Sum('size'))['size__sum']
+    context['freePlans'] = accounts.filter(plan=1).count()
+    context['smallPlans'] = accounts.filter(plan=2).count()
+    context['mediumPlans'] = accounts.filter(plan=3).count()
+    context['largePlans'] = accounts.filter(plan=4).count()
+    context['nAccountsNoncompliant'] = accounts.filter(noncompliant=True).count()
+    context['MRR'] = context['smallPlans'] * 10 + context['mediumPlans'] * 20 + context['largePlans'] * 50
+    return render(request, 'griddl/stats.htm', context)
