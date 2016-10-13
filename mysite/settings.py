@@ -293,6 +293,10 @@ SUBDOMAIN_URLCONFS = {
     SUBDOMAINS['sandbox']: 'mysite.urls',
 } 
 
+SECURE_SSL_REDIRECT = (production == 'TRUE')
+SESSION_COOKIE_SECURE = (production == 'TRUE')
+CSRF_COOKIE_SECURE = (production == 'TRUE')
+
 # session is cross-subdomain unless that's too insecure
 SESSION_COOKIE_DOMAIN = ".hyperdeck.io"
 SESSION_COOKIE_NAME = SUBDOMAINS['main'] + 'sessionid'

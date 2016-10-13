@@ -6,6 +6,7 @@ import boto3
 import json
 import os
 import datetime
+import re
 
 from django import forms
 from django.db import transaction
@@ -39,6 +40,7 @@ DEFAULT_WORKBOOK = '{"metadata":{"version":1,"view":"all"},"components":[]}'
 s3 = boto3.client('s3')
 S3_BUCKET = os.environ.get('S3_BUCKET')
 S3_WORKBOOK_FOLDER = os.environ.get('S3_WORKBOOK_FOLDER')
+PROTOCOL = os.environ.get('PROTOCOL')
 
 class DuplicateError(Exception):
     pass
@@ -94,7 +96,7 @@ def s3put(wb):
 # permitted characters: A-Za-z0-9-_\s
 # previous validation was name.strip('/').replace('/', '-')
 def isValidName(name):
-    return True
+    return re.match('^[A-Za-z0-9-_ ]+$', name) is not None
 
 # called by saveas, create, createDir, rename, move
 # the standard response to duplicate names is to send an error message and let the user correct it
@@ -308,6 +310,7 @@ def directory(request, userid, path=None):
     context = {
         "workbooks": wbs,
         "acctdirs": acctdirs,
+        "protocol": PROTOCOL,
         "workbookSubdomain": SUBDOMAINS['workbook']
         }
     try:
@@ -440,7 +443,7 @@ def saveas(request):
             wb.save()
             response = {}
             response['success'] = True
-            response['redirect'] = ''.join(['http://',SUBDOMAINS['workbook'],'.hyperdeck.io',wb.uri])
+            response['redirect'] = ''.join([PROTOCOL,'://',SUBDOMAINS['workbook'],'.hyperdeck.io',wb.uri])
             messages.success(request, "Successfully copied workbook {}.".format(original))
             return JsonResponse(response)
         except AccountLockedError as e:
@@ -505,7 +508,7 @@ def create(request):
         wb.text = DEFAULT_WORKBOOK
         wb.size = len(DEFAULT_WORKBOOK)
         wb.save()
-        return HttpResponseRedirect(''.join(['http://',SUBDOMAINS['workbook'],'.hyperdeck.io',wb.uri]))
+        return HttpResponseRedirect(''.join([PROTOCOL,'://',SUBDOMAINS['workbook'],'.hyperdeck.io',wb.uri]))
     except InvalidNameError as e:
         msg = 'Error: workbook and directory names can only contain alphanumeric characters, dashes, underscores, and spaces.'
         messages.error(request, msg)
@@ -688,6 +691,7 @@ def workbook(request, userid, path, slug):
     context["workbook"] = wb
     context["path"] = path
     context["userid"] = userid
+    context["protocol"] = PROTOCOL
     context["sandbox"] = SUBDOMAINS['sandbox']
     tpl = loader.get_template('griddl/workbook.htm').render(context, request)
     response = HttpResponse(tpl, content_type='text/html')
@@ -721,7 +725,7 @@ def results(request, userid, path, slug):
             kwargs['path'] = ''
             # reverse returns the relative uri - /d/2
             uri = reverse(directory, kwargs=kwargs)
-        context['parentdir'] = ''.join(['http://',notWorkbookSubdomain,period,'hyperdeck.io',uri])
+        context['parentdir'] = ''.join([PROTOCOL,'://',notWorkbookSubdomain,period,'hyperdeck.io',uri])
     return render(request, 'griddl/results.htm', context)
 
 
@@ -753,7 +757,7 @@ def export(request):
     import tarfile
 
     workbooks = Workbook.objects.filter(owner=request.user.account)
-    mem = StringIO.StringIO()
+    mem = StringIO.StringIO() # how about ByteIO instead?  how do we construct from string w/ explicit conversion to utf-8?
     with tarfile.open('export.tar.gz', 'w:gz', mem) as archive:
         for wb in workbooks:
             if wb.size > 0:
