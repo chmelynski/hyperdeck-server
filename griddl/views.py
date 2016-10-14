@@ -119,16 +119,26 @@ def getNonduplicateName(account, name):
             slug = slugify(name)
         else:
             return name
-        
+
+def root(request):
+    kwargs = {}
+    kwargs['userid'] = request.user.account.pk
+    kwargs['path'] = '';
+    # reverse returns the relative uri - /d/2
+    url = reverse(directory, kwargs=kwargs)
+    return url
+
 def logoutView(request):
     logout(request)
     return HttpResponseRedirect("/")  # Redirect to a success page.
 
 
 def login_redirect(request):
-    return HttpResponseRedirect(
-        reverse(directory, kwargs={'userid': request.user.account.pk,
-                                   'path': ''}))
+    # we are having trouble getting login and logout to use HTTPS
+    # so for now, do this:
+    url = 'https://www.hyperdeck.io/d/' + str(request.user.account.pk)
+    #url = root(request)
+    return HttpResponseRedirect(url)
 
 
 class SignupForm(forms.Form):
@@ -187,24 +197,18 @@ def register(request):
     existingUser = User.objects.filter(username=username)
     if existingUser.count() > 0:
         form = SignupForm()
-        return render(request,
-                      'griddl/signup.htm',
-                      {
-                          'errorMessage': 'Already a user with this username \
-                                       - please pick a new one',
-                          'form': form
-                      })
+        context = {}
+        msg = 'Already a user with this username - please pick a new one'
+        context['errorMessage'] = msg
+        context['form'] = form
+        return render(request, 'griddl/signup.htm', context)
     else:
         user = User.objects.create_user(username, email, password)
-
         user = authenticate(username=username, password=password)
         login(request, user)
-
-        # change to return directoryRedirect(request) ?
-        messages.success(request,
-                         "Congratulations, your account has been created!")
-        return HttpResponseRedirect(
-            reverse(directory, kwargs={'userid': user.pk, 'path': ''}))
+        msg = "Congratulations, your account has been created!"
+        messages.success(request, msg)
+        return HttpResponseRedirect(root(request))
 
 
 @exclude_subdomain(SUBDOMAINS['sandbox'])
@@ -220,16 +224,14 @@ def ajaxregister(request):
     #    form.cleaned_data['username']
     existingUser = User.objects.filter(username=username)
     if existingUser.count() > 0:
-        return HttpResponseNotFound(
-            'Already a user with this username - please pick a new one')
+        msg = 'Already a user with this username - please pick a new one'
+        return HttpResponseNotFound(msg)
     else:
         user = User.objects.create_user(username, email, password)
-
         user = authenticate(username=username, password=password)
         login(request, user)
-        messages.success(request,
-                         "Congratulations, your account has been created!")
-
+        msg = "Congratulations, your account has been created!"
+        messages.success(request, msg)
         # must replace csrftokens with a new one
         return HttpResponseRedirect("/newcsrftoken")
 
@@ -242,16 +244,13 @@ def password_change_redirect(request):
 
 @login_required
 def directoryRedirect(request):
-    return HttpResponseRedirect(reverse(directory,
-                                        args=(request.user.account.pk, '',)))
+    return HttpResponseRedirect(root(request))
 
 
 @login_required
 def directory(request, userid, path=None):
     if request.user.account.pk != int(userid):
-        return HttpResponseRedirect(reverse(directory,
-                                            args=(request.user.account.pk,
-                                                  '',)))
+        return HttpResponseRedirect(root(request))
     # save/saveas resolution for logged-out users
     # open question: is there a better place for this?
     # what if the user's account is locked?  right now we just let it go through
@@ -317,8 +316,7 @@ def directory(request, userid, path=None):
         context['path'] = this.path
         context['parentdir'] = this.parent.uri
     except:
-        uri = reverse(directory, kwargs={'userid': request.user.account.pk,
-                                         'path': ''})
+        uri = root(request)
         if request.path != uri:  # set "Up" link if not root dir
             context['parentdir'] = uri
             context['path'] = this.path
@@ -720,11 +718,7 @@ def results(request, userid, path, slug):
         if wb.parent != None:
             uri = wb.parent.uri # /d/2/foo/bar
         else:
-            kwargs = {}
-            kwargs['userid'] = request.user.account.pk
-            kwargs['path'] = ''
-            # reverse returns the relative uri - /d/2
-            uri = reverse(directory, kwargs=kwargs)
+            uri = root(request)
         context['parentdir'] = ''.join([PROTOCOL,'://',notWorkbookSubdomain,period,'hyperdeck.io',uri])
     return render(request, 'griddl/results.htm', context)
 

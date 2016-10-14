@@ -131,6 +131,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.security.SecurityMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
@@ -296,6 +297,8 @@ SUBDOMAIN_URLCONFS = {
 SECURE_SSL_REDIRECT = (production == 'TRUE')
 SESSION_COOKIE_SECURE = (production == 'TRUE')
 CSRF_COOKIE_SECURE = (production == 'TRUE')
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_REDIRECT_EXEMPT = '^notify/'
 
 # session is cross-subdomain unless that's too insecure
 SESSION_COOKIE_DOMAIN = ".hyperdeck.io"
