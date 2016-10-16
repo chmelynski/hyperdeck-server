@@ -214,9 +214,9 @@ Data.prototype._refreshDatgui = function() {
 	//downloadFolder.add(comp, 'downloadXLSX');
 	var hooksFolder = gui.addFolder('hooks');
 	hooksFolder.add(comp, 'afterChange');
-	var tools = gui.addFolder('tools');
-	tools.add(comp, 'Undo');
-	tools.add(comp, 'Redo');
+	//var tools = gui.addFolder('tools');
+	//tools.add(comp, 'Undo');
+	//tools.add(comp, 'Redo');
 	
 	comp._datguiDiv.append($(gui.domElement));
 };
@@ -842,7 +842,7 @@ var doubleQuotedStringRegexString = '"([^"]|\\")*"';
 var stringRegexString = '(' + singleQuotedStringRegexString + '|' + doubleQuotedStringRegexString + ')';
 var newlineRegexString = '(\\r\\n|\\r|\\n)'; // newlines act as object delimiters
 
-var numberRegex = new RegExp('^\\s*[+-]?([0-9]{1,3}((,[0-9]{3})*|([0-9]{3})*))?(\\.[0-9]+)?%?\\s*$');
+var numberRegex = new RegExp('^\\s*[+-]?([0-9]{1,3}((,[0-9]{3})*|([0-9]{3})*))?(\\.[0-9]*)?%?\\s*$');
 var digitRegex = new RegExp('[0-9]');
 var trueRegex = new RegExp('^true$', 'i');
 var falseRegex = new RegExp('^false$', 'i');
@@ -1022,7 +1022,52 @@ function WriteCsv() { return WriteSeparatedValues.apply(this, [',']); }
 
 function SeparatedValuesToMatrix(text, delimiter) {
 	
-	// there's lots of room here to do structure validation and generate hopefully useful error messages
+	// 'a	b	c' => [['a','b','c']]
+	// 'a	"b	b"	c' => [['a','b\tb','c']] // tab in the middle of bar is part of the payload, not a delimiter
+	// 'a	 "b" 	c' => [['a',' "b" ','c']] // spaces are not stripped - this payload is ' "b" '
+	// 'a	 "b	b" 	c' => ?? // the question is what to do with this.  do we demand that quotes be at the beginning, or do we allow leading and trailing whitespace?
+	// 'a	"b	c' => ERROR, unclosed quote // quote never closes - throws error
+	// 'a	"b"b	c' => ERROR, character after closing quote is not a delimiter // character after closing quote is not a delimiter - throws error
+	// 'a	"b	"c"' => ERROR, character after closing quote is not a delimiter // the quote before c is interpreted as a closing quote - throws same error as above, although the situation is clearly different
+	
+	// '"a\rb"' // accept raw newline within a quote?
+	// '"a\n"b"' // missing closing quote around a - means the newline gets swallowed, and the error will say a delimiter must follow a closing quote
+	
+
+	
+	// how do we distinguish between rows that are [] and rows that are [null]?  they are both represented by an empty row
+	// this is where we could use a null literal, like NULL - but that would require 'NULL' to be inputted as '"NULL"'
+	// 'NULL' => null => 'NULL' if singleton row, '' otherwise
+	// or better, which would not break the system for Mr. NULL, is to have a special null escape that can only be used in single-char strings
+	// so we define \0 as the null literal
+	// '' => [[]]
+	// '"\\0"' => [[null]]
+	// '\n' => [[]]
+	// '"a\\0"' => [['a\\0']] // the null escape only works if it is the only thing in the string
+	// '\\0' => [['\\0']]
+	// '"\\\\0"' => [['\\0']]
+	
+	// trailing newlines are stripped
+	// '' => [[]]
+	// '\n' => [[]]
+	// '\n\n' => [[],[]]
+	// 'a\n' => [['a']]
+	// '\na' => [[],['a']]
+	// 'a\nb' => [['a'],['b']]
+	// 'a\n\nb' => [['a'],[],['b']]
+	// '""' => [['']]
+	// '\t' => [[null,null]]
+	
+	// CRLF stuff
+	// 'a\rb' => [['a'],['b']]
+	// 'a\r\nb' => [['a'],['b']] // CRLF must be treated as one newline
+	// 'a\r\rb' => [['a'],[],['b']]
+	// 'a\n\nb' => [['a'],[],['b']]
+	// 'a\n\rb' => [['a'],[],['b']] // LFCR is two line breaks
+	
+	
+	
+	
 	
 	var delimiterRegexStr = delimiter;
 	var delimiterLessRegexStr = '[^' + delimiter + '\\r\\n]+';
@@ -1082,7 +1127,7 @@ function ReadSeparatedValues(text, delimiter) {
 	if (areAllRowLengthsUnity)
 	{
 		comp._form = 'list';
-		data = matrix.map(function(row) { return ParseStringToObjCsvTsv(row[0]); }); // interpret text as a list
+		data = matrix.map(function(row) { return ParseStringToObj(row[0]); }); // interpret text as a list
 	}
 	else
 	{
@@ -1125,7 +1170,7 @@ function ReadSeparatedValues(text, delimiter) {
 					// will expand to
 					// row[0] = matrix[i][0]
 					// row[1] = matrix[i][2]
-					row[j] = ParseStringToObjCsvTsv(matrix[i][headerIndexes[j]]);
+					row[j] = ParseStringToObj(matrix[i][headerIndexes[j]]);
 				}
 				
 				data.push(row);
@@ -1143,7 +1188,7 @@ function ReadSeparatedValues(text, delimiter) {
 				
 				for (var j = 0; j < headers.length; j++) // stopping at headers.length means that excess entries will simply get dropped
 				{
-					obj[headers[j]] = ParseStringToObjCsvTsv(matrix[i][j]);
+					obj[headers[j]] = ParseStringToObj(matrix[i][j]);
 				}
 				
 				data.push(obj);
@@ -1162,7 +1207,7 @@ function WriteSeparatedValues(delimiter) {
 	
 	if (comp._form == 'list')
 	{
-		ls = comp._data.map(function(val) { return WriteObjToStringCsvTsv(val, delimiter); });
+		ls = comp._data.map(function(val) { return WriteObjToString(val, delimiter); });
 	}
 	else
 	{
@@ -1175,7 +1220,7 @@ function WriteSeparatedValues(delimiter) {
 			for (var k = 0; k < comp._headers.length; k++)
 			{
 				var val = comp._data[i][comp._headers[k]];
-				var str = WriteObjToStringCsvTsv(val, delimiter)
+				var str = WriteObjToString(val, delimiter)
 				entries.push(str);
 			}
 			
@@ -1186,7 +1231,7 @@ function WriteSeparatedValues(delimiter) {
 	return ls.join('\n') + '\n';
 }
 
-var WriteObjToStringCsvTsv = function(obj, delimiter) {
+var WriteObjToString = function(obj, delimiter) {
 	
 	if (obj === null || obj === undefined) { return ''; }
 	
@@ -1204,9 +1249,9 @@ var WriteObjToStringCsvTsv = function(obj, delimiter) {
 	
 	if (type == '[object String]')
 	{
-		if (obj.length == 0 || obj.indexOf(delimiter) >= 0 || obj.indexOf('"') >= 0 || obj.indexOf('\n') >= 0 || obj.indexOf('\r') >= 0 || (numberRegex.test(obj) && digitRegex.test(obj)) || trueRegex.test(obj) || falseRegex.test(obj))
+		if (obj.length == 0 || obj.startsWith(' ') || obj.endsWith(' ') || obj.indexOf(delimiter) >= 0 || obj.indexOf('"') >= 0 || obj.indexOf("'") >= 0 || obj.indexOf('\t') >= 0 || obj.indexOf('\n') >= 0 || obj.indexOf('\r') >= 0 || (numberRegex.test(obj) && digitRegex.test(obj)) || trueRegex.test(obj) || falseRegex.test(obj))
 		{
-			str = '"' + obj.replace('\\', '\\\\').replace('"', '\\"').replace('\t', '\\t').replace('\r', '\\r').replace('\n', '\\n') + '"';
+			str = '"' + obj.replace(/\\/g, '\\\\').replace(/\"/g, '\\"').replace(/\t/g, '\\t').replace(/\r/g, '\\r').replace(/\n/g, '\\n') + '"';
 		}
 		else
 		{
@@ -1226,7 +1271,7 @@ var WriteObjToStringCsvTsv = function(obj, delimiter) {
 	
 	return str;
 };
-var ParseStringToObjCsvTsv = function(str) {
+var ParseStringToObj = function(str) {
 	
 	if (str === null || str === undefined) { return null; }
 	
@@ -1239,9 +1284,64 @@ var ParseStringToObjCsvTsv = function(str) {
 	if (str[0] == '"')
 	{
 		// if we start with a quote, strip quotes and unescape
-		val = str.substr(1, str.length - 2).replace('\\"', '"').replace('\\r', '\r').replace('\\n', '\n').replace('\\t', '\t').replace('\\\\', '\\');
+		var input = str.substr(1, str.length - 2);
+		
+		val = '';
+		var escaped = false;
+		
+		for (var k = 0; k < input.length; k++)
+		{
+			var c = input[k];
+			
+			if (escaped)
+			{
+				if (c == '\\')
+				{
+					val += '\\';
+				}
+				else if (c == '"')
+				{
+					val += '"';
+				}
+				else if (c == 'r')
+				{
+					val += '\r';
+				}
+				else if (c == 'n')
+				{
+					val += '\n';
+				}
+				else if (c == 't')
+				{
+					val += '\t';
+				}
+				else if (c == 's')
+				{
+					val += ' ';
+				}
+				else
+				{
+					val += '\\';
+					val += c;
+				}
+				
+				escaped = false;
+			}
+			else
+			{
+				if (c == '\\')
+				{
+					escaped = true;
+				}
+				else
+				{
+					val += c;
+					escaped = false;
+				}
+			}
+		}
 	}
-	else if (numberRegex.test(str) && digitRegex.test(str)) // since all parts of numberRegex are optional, "+.%" is a valid number.  so we test digitRegex too
+	else if (numberRegex.test(str) && digitRegex.test(str)) // since all parts of numberRegex are optional, "+.%" is a valid number.  so we test digitRegex too, which checks for the presence of a digit anywhere in the string
 	{
 		var divisor = 1;
 		str = str.trim();
@@ -1275,65 +1375,101 @@ var ParseStringToObjCsvTsv = function(str) {
 	return val;
 };
 
-// json/yaml - numbers and bools are taken care of by the spec, this is for additional syntax embedded in strings
-// nb that embedding syntax in strings creates severe complications
-// auto-parsing of dates might be convenient in certain situations, but what if people don't want their strings parsed into dates?
-// they're boned, that's what.  and it's a major complaint about excel
-var WriteObjToString = function(obj) {
+function RunTests() {
 	
-	if (obj === null || obj === undefined) { return 'null'; }
+	var f = function(str) { return str.split('').map(function(c) { return c.charCodeAt(0); }); };
 	
-	var type = Object.prototype.toString.call(obj);
+	var testData = [
+		{input:'1',internal:1,output:'1'},
+		{input:' 1 ',internal:1,output:'1'}, // numbers can have leading and trailing whitespace, which is stripped
+		{input:'1.5',internal:1.5,output:'1.5'},
+		{input:'.1',internal:0.1,output:'0.1'},
+		{input:'1.',internal:1,output:'1'},
+		{input:'-1.5',internal:-1.5,output:'-1.5'},
+		{input:'+1.5',internal:1.5,output:'1.5'},
+		{input:'1.5%',internal:0.015,output:'0.015'}, // percentages are valid input but are dropped in the output
+		{input:'.',internal:'.',output:'.'}, // not a number
+		{input:'+.%',internal:'+.%',output:'+.%'}, // not a number
+		{input:'1.5.',internal:'1.5.',output:'1.5.'}, // not a number
+		{input:'00',internal:0,output:'0'}, // numbers with leading zeroes are still numbers
+		{input:'0x00',internal:'0x00',output:'0x00'}, // no support for hexadecimal
+		{input:'2016-01-01',internal:'2016-01-01',output:'2016-01-01'}, // dates are not parsed automatically
+		{input:'true',internal:true,output:'true'},
+		{input:'True',internal:true,output:'true'}, // boolean parsing is case-insensitive, but output is all lower case
+		{input:'TRUE',internal:true,output:'true'},
+		{input:'"true"',internal:'true',output:'"true"'}, // strings that would parse as bools must be quoted
+		{input:'',internal:null,output:''}, // blank values parse to null
+		{input:'null',internal:'null',output:'null'}, // "null" remains a literal string, is not parsed to null
+		{input:'"1"',internal:'1',output:'"1"'}, // strings that would parse as numbers must be quoted
+		{input:'"1.5"',internal:'1.5',output:'"1.5"'}, // strings that would parse as numbers must be quoted
+		{input:'"1.5%"',internal:'1.5%',output:'"1.5%"'}, // strings that would parse as numbers must be quoted
+		{input:'a',internal:'a',output:'a'},
+		{input:'"a"',internal:'a',output:'a'}, // quotes get dropped if not needed
+		{input:'\'a\'',internal:'\'a\'',output:'"\'a\'"'}, // single quotes are not quotes (largely because they can be apostrophes) but output gets quoted
+		{input:'"a\tb"',internal:'a\tb',output:'"a\\tb"'}, // raw tabs get converted to escaped form, value gets quoted
+		{input:'"\\"a\\""',internal:'"a"',output:'"\\"a\\""'}, // here, the quotes are part of the payload
+		{input:' "a" ',internal:' "a" ',output:'" \\"a\\" "'}, // this will not be interpreted as a quote, because the quote is not directly after the delimiter - spaces at beginning or end mean the value gets quoted
+		//input:'""a""',internal:null,output:null, // ERROR, endquote not immediately followed by a delimiter
+		{input:'\\t\\n\\r\\\\',internal:'\\t\\n\\r\\\\',output:'\\t\\n\\r\\\\'}, // this is literal - escapes happen only within quoted strings
+		{input:'"\\t"',internal:'\t',output:'"\\t"'}, // escaped char within string
+		{input:' ',internal:' ',output:'" "'}, // space at the beginning or end is outputted in quotes, to highlight them for the user
+		{input:'a b',internal:'a b',output:'a b'}, // interior spaces do not cause output to be quoted
+		{input:'" "',internal:' ',output:'" "'},
+		{input:'"\\s"',internal:' ',output:'" "'}, // sometimes escaped spaces are useful, but we can't have it as the canonical output
+		{input:'"\\g"',internal:'\\g',output:'\\g'}, // \g is not a recognized escape, so the slash becomes part of the payload - we can strip quotes in this instance, which might indicate the anomaly to the user (unless the string gets quoted for other reasons
+		{input:'"\\\\t"',internal:'\\t',output:'\\t'}, // an escaped backslash, quotes can be stripped
+	];
 	
-	if (type == '[object String]' || type == '[object Date]')
-	{
-		return '"' + obj.toString() + '"';
-	}
-	else
-	{
-		return obj.toString();
-	}
-};
-var ParseStringToObj = function(str) {
-	
-	if (str === null || str === undefined) { return null; }
-	if (str.length == 0) { return ''; } // the numberRegex accepts the empty string because all the parts are optional
-	
-	var val = null;
-	
-	if (numberRegex.test(str) && digitRegex.test(str)) // since all parts of numberRegex are optional, "+.%" is a valid number.  so we test digitRegex too
-	{
-		var divisor = 1;
-		str = str.trim();
-		if (str.indexOf('%') >= 0) { divisor = 100; str = str.replace('%', ''); }
-		str = str.replace(',', '');
+	function SingleTest(t) {
 		
-		if (str.indexOf('.') >= 0)
+		var input = t.input;
+		var object = ParseStringToObj(input);
+		
+		if (object === null)
 		{
-			val = parseFloat(str);
+			if (t.internal === null)
+			{
+				return 'passed';
+			}
+			else
+			{
+				return 'failed - object=null';
+			}
+		}
+		
+		if (typeof(object) != typeof(t.internal)) { return 'failed - object=' + object.toString(); }
+		
+		if (typeof(object) == 'string')
+		{
+			if (object.length != t.internal.length) { return 'failed - object=' + object.toString(); }
+			
+			for (var k = 0; k < object.length; k++)
+			{
+				if (object[k] != t.internal[k])
+				{
+					return 'failed - object=' + object.toString();
+				}
+			}
 		}
 		else
 		{
-			val = parseInt(str);
+			if (object != t.internal) { return 'failed - object=' + object.toString(); }
 		}
 		
-		val /= divisor;
-	}
-	else if (trueRegex.test(str))
-	{
-		val = true;
-	}
-	else if (falseRegex.test(str))
-	{
-		val = false;
-	}
-	else
-	{
-		val = str;
+		var actualOutput = WriteObjToString(object, '\t');
+		
+		if (actualOutput != t.output) { return 'failed - output=' + actualOutput; }
+		
+		return 'passed';
 	}
 	
-	return val;
-};
+	for (var i = 0; i < testData.length; i++)
+	{
+		var msg = SingleTest(testData[i]);
+		console.log(testData[i].input + ' - ' + msg);
+	}
+}
+//RunTests();
 
 Hyperdeck.Components.data = Data;
 
