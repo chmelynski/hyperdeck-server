@@ -418,7 +418,7 @@ def save(request):
                 your copy of the workbook "%s"' %
                 wb.name
                 )
-            return JsonResponse({'redirect': '/signup'})
+            return JsonResponse({'success':True, 'redirect': '/signup'})
         except MaxWorkbookSizeError as e:
             msg = e.message
             return JsonResponse({'success': False, 'message': msg})
@@ -464,7 +464,6 @@ def saveas(request):
             return JsonResponse({'success': False, 'message': msg})
     else:
         try:
-            logger.debug('saveas to session')
             text = request.POST.get('text')
             if len(text) > MAX_WORKBOOK_SIZE:
                     raise MaxWorkbookSizeError()
@@ -479,9 +478,8 @@ def saveas(request):
                 your copy of the workbook "%s"' %
                 wb.name
                 )
-            return JsonResponse({'redirect': '/signup'})
+            return JsonResponse({'success':True, 'redirect': '/signup'})
         except MaxWorkbookSizeError as e:
-            logger.debug('MaxWorkbookSizeError')
             msg = 'Error: workbook is over maximum allowed size.'
             return JsonResponse({'success':False, 'message': msg})
 
