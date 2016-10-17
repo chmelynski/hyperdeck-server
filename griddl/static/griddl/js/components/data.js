@@ -1022,91 +1022,159 @@ function WriteCsv() { return WriteSeparatedValues.apply(this, [',']); }
 
 function SeparatedValuesToMatrix(text, delimiter) {
 	
-	// 'a	b	c' => [['a','b','c']]
-	// 'a	"b	b"	c' => [['a','b\tb','c']] // tab in the middle of bar is part of the payload, not a delimiter
-	// 'a	 "b" 	c' => [['a',' "b" ','c']] // spaces are not stripped - this payload is ' "b" '
-	// 'a	 "b	b" 	c' => ?? // the question is what to do with this.  do we demand that quotes be at the beginning, or do we allow leading and trailing whitespace?
-	// 'a	"b	c' => ERROR, unclosed quote // quote never closes - throws error
-	// 'a	"b"b	c' => ERROR, character after closing quote is not a delimiter // character after closing quote is not a delimiter - throws error
-	// 'a	"b	"c"' => ERROR, character after closing quote is not a delimiter // the quote before c is interpreted as a closing quote - throws same error as above, although the situation is clearly different
-	
-	// '"a\rb"' // accept raw newline within a quote?
-	// '"a\n"b"' // missing closing quote around a - means the newline gets swallowed, and the error will say a delimiter must follow a closing quote
-	
-
-	
-	// how do we distinguish between rows that are [] and rows that are [null]?  they are both represented by an empty row
-	// this is where we could use a null literal, like NULL - but that would require 'NULL' to be inputted as '"NULL"'
-	// 'NULL' => null => 'NULL' if singleton row, '' otherwise
-	// or better, which would not break the system for Mr. NULL, is to have a special null escape that can only be used in single-char strings
-	// so we define \0 as the null literal
-	// '' => [[]]
-	// '"\\0"' => [[null]]
-	// '\n' => [[]]
-	// '"a\\0"' => [['a\\0']] // the null escape only works if it is the only thing in the string
-	// '\\0' => [['\\0']]
-	// '"\\\\0"' => [['\\0']]
-	
-	// trailing newlines are stripped
-	// '' => [[]]
-	// '\n' => [[]]
-	// '\n\n' => [[],[]]
-	// 'a\n' => [['a']]
-	// '\na' => [[],['a']]
-	// 'a\nb' => [['a'],['b']]
-	// 'a\n\nb' => [['a'],[],['b']]
-	// '""' => [['']]
-	// '\t' => [[null,null]]
-	
-	// CRLF stuff
-	// 'a\rb' => [['a'],['b']]
-	// 'a\r\nb' => [['a'],['b']] // CRLF must be treated as one newline
-	// 'a\r\rb' => [['a'],[],['b']]
-	// 'a\n\nb' => [['a'],[],['b']]
-	// 'a\n\rb' => [['a'],[],['b']] // LFCR is two line breaks
-	
-	
-	
-	
-	
-	var delimiterRegexStr = delimiter;
-	var delimiterLessRegexStr = '[^' + delimiter + '\\r\\n]+';
-	
-	var regex = new RegExp('(' + doubleQuotedStringRegexString + '|' + newlineRegexString + '|' + delimiterRegexStr + '|' + delimiterLessRegexStr + ')', 'g');
-	
 	var matrix = [];
 	var row = [];
+	var start = 0;
+	var end = 0;
+	var entry = null;
 	
-	var match = regex.exec(text);
+	var START = 0;
+	var ENTRY = 1;
+	var QUOTE = 2;
+	var AFTERQUOTE = 3;
+	var ESCAPE = 4;
+	var AFTER_CR = 5;
 	
-	var afterEntry = false;
+	if (text == '') { return []; }
+	if (!text.endsWith('\n')) { text += '\n'; }
 	
-	while (match != null)
+	var state = START;
+	
+	for (var k = 0; k < text.length; k++)
 	{
-		var token = match[0];
+		var c = text[k];
 		
-		if (token == delimiter)
+		if (state == START)
 		{
-			if (!afterEntry)
+			if (c == delimiter)
 			{
 				row.push(null);
+				state = START;
 			}
-			
-			afterEntry = false;
+			else if (c == '\r' || c == '\n')
+			{
+				row.push(null);
+				matrix.push(row);
+				row = [];
+				state = ((c == '\r') ? AFTER_CR : START);
+			}
+			else if (c == '"')
+			{
+				start = k;
+				state = QUOTE
+			}
+			else
+			{
+				start = k;
+				state = ENTRY
+			}
 		}
-		else if (token.length <= 2 && token.trim() == '') // newline
+		else if (state == AFTER_CR)
 		{
-			matrix.push(row);
-			row = [];
-			afterEntry = false;
+			if (c == delimiter)
+			{
+				row.push(null);
+				state = START;
+			}
+			else if (c == '\r')
+			{
+				row.push(null);
+				matrix.push(row);
+				row = [];
+				state = AFTER_CR;
+			}
+			else if (c == '\n')
+			{
+				state = START;
+			}
+			else if (c == '"')
+			{
+				start = k;
+				state = QUOTE;
+			}
+			else
+			{
+				start = k;
+				state = ENTRY;
+			}
+		}
+		else if (state == ENTRY)
+		{
+			if (c == delimiter)
+			{
+				entry = text.substring(start, k);
+				row.push(entry);
+				state = START;
+			}
+			else if (c == '\r' || c == '\n')
+			{
+				entry = text.substring(start, k);
+				row.push(entry);
+				matrix.push(row);
+				row = [];
+				state = ((c == '\r') ? AFTER_CR : START);
+			}
+			else
+			{
+				state = ENTRY;
+			}
+		}
+		else if (state == QUOTE)
+		{
+			if (c == '"')
+			{
+				entry = text.substring(start, k + 1);
+				row.push(entry);
+				state = AFTERQUOTE;
+			}
+			else if (c == '\\')
+			{
+				state = ESCAPE;
+			}
+			else
+			{
+				state = QUOTE;
+			}
+		}
+		else if (state == AFTERQUOTE)
+		{
+			if (c == delimiter)
+			{
+				state = START;
+			}
+			else if (c == '\r' || c == '\n')
+			{
+				matrix.push(row);
+				row = [];
+				state = ((c == '\r') ? AFTER_CR : START);
+			}
+			else
+			{
+				throw new Error('Endquotes must be followed by a delimiter: at row ' + matrix.length + ', col ' + row.length);
+			}
+		}
+		else if (state == ESCAPE)
+		{
+			state = QUOTE;
 		}
 		else
 		{
-			row.push(token);
-			afterEntry = true;
+			throw new Error();
 		}
-		
-		match = regex.exec(text);
+	}
+	
+	if (state == QUOTE || state == ESCAPE)
+	{
+		throw new Error('Unclosed quote: quote starts at row ' + matrix.length + ', col ' + start);
+	}
+	else if (state == AFTERQUOTE)
+	{
+		// entry was already added
+	}
+	else if (state == ENTRY)
+	{
+		entry = text.substring(start, k);
+		row.push(entry);
 	}
 	
 	if (row.length > 0) { matrix.push(row); }
@@ -1281,7 +1349,11 @@ var ParseStringToObj = function(str) {
 	
 	var val = null;
 	
-	if (str[0] == '"')
+	if (str == '"\\0"')
+	{
+		val = null; // this is how you get a row with a single null
+	}
+	else if (str[0] == '"')
 	{
 		// if we start with a quote, strip quotes and unescape
 		var input = str.substr(1, str.length - 2);
@@ -1375,9 +1447,140 @@ var ParseStringToObj = function(str) {
 	return val;
 };
 
-function RunTests() {
+function RunMatrixTests() {
 	
-	var f = function(str) { return str.split('').map(function(c) { return c.charCodeAt(0); }); };
+	var tests = [];
+	
+	// basic usage and quotes
+	tests.push({input:'a	b	c',output:[['a','b','c']]});
+	tests.push({input:'a	"b	b"	c',output:[['a','b\tb','c']]}); // tab in the middle of bar is part of the payload, not a delimiter
+	tests.push({input:'a	 "b" 	c',output:[['a',' "b" ','c']]}); // spaces are not stripped - this payload is ' "b" '
+	//tests.push({input:'a	 "b	b" 	c',output:null}); // the question is what to do with this.  do we demand that quotes be at the beginning, or do we allow leading and trailing whitespace?
+	tests.push({input:'a	"b	c',output:'ERROR: unclosed quote'}); // ERROR, unclosed quote
+	tests.push({input:'a	"b"b	c',output:'ERROR: delimiter must follow closing quote'}); // ERROR, character after closing quote is not a delimiter
+	tests.push({input:'a	"b	"c"',output:'ERROR: delimiter must follow closing quote'}); // ERROR, character after closing quote is not a delimiter (same msg, but different situation)
+	tests.push({input:'"a\rb"',output:[['a\rb']]}); // maybe show a warning for a raw newline within a quote
+	tests.push({input:'"a\n"b"',output:'ERROR: delimiter must follow closing quote'}); // ERROR missing closing quote around a - means the newline gets swallowed, and the error will say a delimiter must follow a closing quote
+	
+	
+	tests.push({input:'"a"\n"\\"a\\""',output:[['a'],['"a"']]}); // actual displayed output is "a\"\n\"\"a\"", not sure why
+	// do the quoteRegexStrings need a quadrupled \?
+	
+	// how do we distinguish between rows that are [] and rows that are [null]?  they are both represented by an empty row
+	// this is where we could use a null literal, like NULL - but that would require 'NULL' to be inputted as '"NULL"'
+	// 'NULL' => null => 'NULL' if singleton row, '' otherwise
+	// or better, which would not break the system for Mr. NULL, is to have a special null escape that can only be used in single-char strings
+	// so we define \0 as the null literal
+	tests.push({input:'"\\0"',output:[[null]]});
+	tests.push({input:'"a\\0"',output:[['a\\0']]}); // the null escape only works if it is the only thing in the string
+	tests.push({input:'\\0',output:[['\\0']]}); // null literals are only accepted if within quotes
+	tests.push({input:'"\\\\0"',output:[['\\0']]}); // this is how you specify this output string in a quoted input
+	
+	// a \n is added to the end if the last character is not already a \n
+	tests.push({input:'',output:[]}); // special case, checked at start of parsing function
+	tests.push({input:'\n',output:[[null]]});
+	tests.push({input:'\t',output:[[null,null]]});
+	tests.push({input:'\n\n',output:[[null],[null]]});
+	tests.push({input:'a\n',output:[['a']]});
+	tests.push({input:'\na',output:[[null],['a']]});
+	tests.push({input:'a\nb',output:[['a'],['b']]});
+	tests.push({input:'a\n\nb',output:[['a'],[null],['b']]});
+	tests.push({input:'""',output:[['']]});
+	
+	// CRLF stuff
+	tests.push({input:'a\rb',output:[['a'],['b']]});
+	tests.push({input:'a\r\nb',output:[['a'],['b']]}); // CRLF is be treated as one newline
+	tests.push({input:'a\r\rb',output:[['a'],[null],['b']]});
+	tests.push({input:'a\n\nb',output:[['a'],[null],['b']]});
+	tests.push({input:'a\n\rb',output:[['a'],[null],['b']]});
+	
+	function SingleTest(t) {
+		
+		var input = t.input;
+		
+		var matrix = null;
+		
+		try
+		{
+			matrix = SeparatedValuesToMatrix(input, '\t');
+		}
+		catch (e)
+		{
+			if (typeof(t.output) == 'string')
+			{
+				return 'passed'; // we could check to make sure the message matches, but nah
+			}
+			else
+			{
+				return 'failed - unexpected error: ' + e.message;
+			}
+		}
+		
+		if (typeof(t.output) == 'string')
+		{
+			return 'failed - should have thrown an error';
+		}
+		
+		for (var i = 0; i < matrix.length; i++)
+		{
+			for (var k = 0; k < matrix[i].length; k++)
+			{
+				matrix[i][k] = ParseStringToObj(matrix[i][k]);
+			}
+		}
+		
+		if (t.output.length != matrix.length) { return 'failed - wrong length'; }
+		
+		for (var i = 0; i < matrix.length; i++)
+		{
+			if (t.output[i].length != matrix[i].length) { return 'failed - row ' + i + ' is the wrong length'; }
+			
+			for (var k = 0; k < matrix[i].length; k++)
+			{
+				var object = matrix[i][k];
+				var expected = t.output[i][k];
+				
+				if (object === null)
+				{
+					if (expected !== null)
+					{
+						return 'failed - entry ' + i + ',' + k + ' = null';
+					}
+				}
+				
+				if (typeof(object) != typeof(expected)) { return 'failed - entry ' + i + ',' + k + ' = ' + object.toString(); }
+				
+				if (typeof(object) == 'string')
+				{
+					if (object.length != expected.length) { return 'failed - entry ' + i + ',' + k + ' = ' + object.toString(); }
+					
+					for (var j = 0; j < object.length; j++)
+					{
+						if (object[j] != expected[j])
+						{
+							return 'failed - entry ' + i + ',' + k + ' = ' + object.toString();
+						}
+					}
+				}
+				else
+				{
+					if (object != expected) { return 'failed - entry ' + i + ',' + k + ' = ' + object.toString(); }
+				}
+			}
+		}
+		
+		return 'passed';
+	}
+	
+	console.log('----------');
+	for (var i = 0; i < tests.length; i++)
+	{
+		var msg = SingleTest(tests[i]);
+		console.log(tests[i].input + ' - ' + msg);
+		console.log('----------');
+	}
+}
+function RunTests() {
 	
 	var testData = [
 		{input:'1',internal:1,output:'1'},
@@ -1469,6 +1672,7 @@ function RunTests() {
 		console.log(testData[i].input + ' - ' + msg);
 	}
 }
+//RunMatrixTests();
 //RunTests();
 
 Hyperdeck.Components.data = Data;
