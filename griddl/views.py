@@ -136,7 +136,10 @@ def logoutView(request):
 def login_redirect(request):
     # we are having trouble getting login and logout to use HTTPS
     # so for now, do this:
-    url = 'https://www.hyperdeck.io/d/' + str(request.user.account.pk)
+    if PROTOCOL == 'https':
+        url = 'https://www.hyperdeck.io/d/' + str(request.user.account.pk)
+    else:
+        url = '/d/' + str(request.user.account.pk)
     #url = root(request)
     return HttpResponseRedirect(url)
 
@@ -268,8 +271,9 @@ def directory(request, userid, path=None):
                 wb.name = getNonduplicateName(account=request.user.account, name=wb.name)
             wb.text = data['text']
             wb.size = len(wb.text)
+            wb.save() # the first save sets a new pk, if called for
             s3put(wb)
-            wb.save()
+            wb.save() # the second save saves the blanked textfield (if the s3put worked)
             del(request.session['save'])
             
     if 'saveas' in request.session:
@@ -282,8 +286,9 @@ def directory(request, userid, path=None):
             wb.name = getNonduplicateName(account=request.user.account, name=data['name'])
             wb.text = data['text']
             wb.size = len(wb.text)
+            wb.save() # the first save sets a new pk
             s3put(wb)
-            wb.save()
+            wb.save() # the second save saves the blanked textfield (if the s3put worked)
             del(request.session['saveas'])
 
     try:
@@ -413,7 +418,7 @@ def save(request):
                 your copy of the workbook "%s"' %
                 wb.name
                 )
-            return JsonResponse({'redirect': '/login'})
+            return JsonResponse({'redirect': '/signup'})
         except MaxWorkbookSizeError as e:
             msg = e.message
             return JsonResponse({'success': False, 'message': msg})
@@ -459,6 +464,7 @@ def saveas(request):
             return JsonResponse({'success': False, 'message': msg})
     else:
         try:
+            logger.debug('saveas to session')
             text = request.POST.get('text')
             if len(text) > MAX_WORKBOOK_SIZE:
                     raise MaxWorkbookSizeError()
@@ -475,6 +481,7 @@ def saveas(request):
                 )
             return JsonResponse({'redirect': '/signup'})
         except MaxWorkbookSizeError as e:
+            logger.debug('MaxWorkbookSizeError')
             msg = 'Error: workbook is over maximum allowed size.'
             return JsonResponse({'success':False, 'message': msg})
 
