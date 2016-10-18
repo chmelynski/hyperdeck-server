@@ -192,7 +192,7 @@ class Account(models.Model):
 
     plan_size = models.IntegerField(default=2) # in MB
     noncompliant = models.BooleanField(default=False)
-    noncompliantSince = models.DateTimeField(null=True)
+    noncompliantSince = models.DateTimeField(blank=True, null=True)
     locked = models.BooleanField(default=False)
 
     def _get_upgrade_link(self):
