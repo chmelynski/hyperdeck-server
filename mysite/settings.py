@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 import os
+import sys
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -42,7 +43,7 @@ else:
     }
 
 if staging:
-    TEST_DATABASES = { 'default': dj_database_url.config(env='HEROKU_POSTGRESQL_YELLOW_URL') }
+    #TEST_DATABASES = { 'default': dj_database_url.config(env='HEROKU_POSTGRESQL_YELLOW_URL') }
     TEST_RUNNER = 'griddl.test_suite_runner.HerokuTestSuiteRunner'
 
 # DATABASE_ROUTERS = [ 'path.to.AuthRouter' , 'path.to.MasterSlaveRouter' ]
