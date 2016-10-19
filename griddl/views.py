@@ -337,6 +337,7 @@ def account(request, userid):
     context = {}
     context['size'] = acct.size
     context['plan_size'] = acct.plan_size
+    context['pct'] = (100 * context['size']) // (context['plan_size'] * 1024 * 1024)
     context['noncompliant'] = acct.noncompliant
     context['plan'] = acct.plan.get_name_display()
     context['action'] = ('billing' if (plan_pk == 1) else 'sub_change')
@@ -842,10 +843,14 @@ def stats(request):
     context['nWorkbooks'] = Workbook.objects.count()
     accounts = Account.objects.all()
     context['storageUsed'] = Workbook.objects.aggregate(Sum('size'))['size__sum']
+    context['storageAllowed'] = accounts.aggregate(Sum('plan_size'))['plan_size__sum']
+    context['capacityFactor'] = context['storageUsed'] / (context['storageAllowed'] * 1024 * 1024)
+    context['avgWorkbookSize'] = context['storageUsed'] / context['nWorkbooks']
     context['freePlans'] = accounts.filter(plan=1).count()
     context['smallPlans'] = accounts.filter(plan=2).count()
     context['mediumPlans'] = accounts.filter(plan=3).count()
     context['largePlans'] = accounts.filter(plan=4).count()
     context['nAccountsNoncompliant'] = accounts.filter(noncompliant=True).count()
+    context['nAccountsLocked'] = accounts.filter(locked=True).count()
     context['MRR'] = context['smallPlans'] * 10 + context['mediumPlans'] * 20 + context['largePlans'] * 50
     return render(request, 'griddl/stats.htm', context)
