@@ -854,3 +854,27 @@ def stats(request):
     context['nAccountsLocked'] = accounts.filter(locked=True).count()
     context['MRR'] = context['smallPlans'] * 10 + context['mediumPlans'] * 20 + context['largePlans'] * 50
     return render(request, 'griddl/stats.htm', context)
+
+def backup(request):
+    if not request.user.is_superuser:
+        return HttpResponse('<h1>Not Found</h1><p>The requested URL /backup was not found on this server.</p>')
+    ls = []
+    users = User.objects.all()
+    for user in users:
+        ls.append("User.objects.create(id=" + str(user.id) +
+                  ", username='" + str(user.username) +
+                  "', email='" + str(user.email) +
+                  "', password='" + str(user.password) + 
+                  "')")
+    wbs = Workbook.objects.all()
+    for wb in wbs:
+        ls.append("Workbook.objects.create(id=" + str(wb.id) +
+                  ", owner='" + str(wb.owner) +
+                  "', parent='" + str(wb.parent) +
+                  "', slug='" + str(wb.slug) +
+                  "', name='" + str(wb.name) +
+                  "', filetype='" + str(wb.filetype) +
+                  "', public=" + str(wb.public) + ")")
+    context = {'text':"\n".join(ls)}
+    return render(request, 'griddl/backup.htm', context)
+
