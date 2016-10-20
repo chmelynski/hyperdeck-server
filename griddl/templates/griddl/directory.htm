@@ -1,6 +1,6 @@
 {% extends 'griddl/__base.htm' %}
 {% load static from staticfiles %}
-{% block title %} My Profile | {{ block.super }} {% endblock %}
+{% block title %} {{ path }}{{ parentdir|yesno:',My Profile' }} | {{ block.super }} {% endblock %}
 {% block styles %}
   {{ block.super }}
 {% endblock %}
