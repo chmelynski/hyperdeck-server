@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
-from .models import Account, Workbook, AccountSizeError
+from .models import Account, Workbook, AccountSizeError, Message
 from .views import DEFAULT_WORKBOOK
 
 import stored_messages
@@ -55,9 +55,10 @@ def check_size(sender, instance, **kwargs):
             account.noncompliantSince = datetime.now()
             account.save()
             msg = "Notice: your account size has gone over the \
-                   allowed size of your subscription plan.  Please upgrade at \
-                   %s to maintain the ability to save workbooks." % account.details_url
+                   allowed size of your subscription plan.  Please upgrade \
+                   to maintain the ability to save workbooks."
             stored_messages.api.add_message_for([account.user], messages.WARNING, msg)
+            Message.objects.create(recipient=account, category='overflow', text=msg)
     else:
         if account.noncompliant:
             account.noncompliant = False

@@ -20,7 +20,7 @@ import requests
 import stored_messages
 
 from mysite import settings
-from griddl.models import Account, Plan, Copy
+from griddl.models import Account, Plan, Copy, Message
 from .models import BillingRedirect, Subscription, API_URL
 
 logger = logging.getLogger(__name__)
@@ -290,5 +290,6 @@ class PayFail(FastSpringNotificationView):
                Please check your payment settings at \
                %s to avoid disruptions to your account." % acct.details_url
         stored_messages.api.add_message_for([acct.user], messages.WARNING, msg)
+        message = Message.objects.create(recipient=acct, category='payfail', text=msg)
 
         return HttpResponse()

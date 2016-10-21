@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 
-from models import Account, Workbook, Plan, Copy, Preferences, Log
+from models import Account, Workbook, Plan, Copy, Preferences, Log, Message
 
 from mysite.settings import DEBUG
 
@@ -49,6 +49,10 @@ class CopyAdmin(admin.ModelAdmin):
 class LogAdmin(admin.ModelAdmin):
     list_display = ('time', 'category', 'account', 'text')
     list_display_links = ('time',)
+    
+class MessageAdmin(admin.ModelAdmin):
+    list_display = ('sent', 'seen', 'recipient', 'category')
+    list_display_links = ('sent',)
 
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
@@ -57,3 +61,5 @@ admin.site.register(Workbook, WorkbookAdmin)
 admin.site.register(Plan)
 admin.site.register(Copy, CopyAdmin)
 admin.site.register(Log, LogAdmin)
+admin.site.register(Message, MessageAdmin)
+

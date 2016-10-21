@@ -231,3 +231,12 @@ class Log(models.Model):
     text = models.CharField(max_length=255)
     viewed = models.BooleanField(default=False)
 
+class Message(models.Model):
+	recipient = models.ForeignKey('Account', blank=True, null=True,
+				on_delete=models.SET_NULL)
+	category = models.CharField(max_length=10)
+	sent = models.DateTimeField(auto_now_add=True)
+	seen = models.DateTimeField(blank=True, null=True)
+	text = models.CharField(max_length=255)
+	
+	
