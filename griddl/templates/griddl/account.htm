@@ -15,18 +15,23 @@
   <div class="col-xs-2">
     <label>Plan: </label><span id="plan">{{ plan }}</span>
   </div>
-  <div class="col-xs-7">
+  <div class="col-xs-4">
     Storage used: {{ size|filesizeformat }} of {{ plan_size }} MB ({{ pct }}%)
+  </div>
+  <div class="col-xs-3">
+    {% if noncompliant %}
+	  <span style="color:red">Overflow - please reduce storage usage</span>
+    {% endif %}
   </div>
 </div>
 <hr />
 {% if user.is_superuser %}
 <div class="row">
 	<div class="col-xs-3">
-		<a class="btn btn-default fixed-width" title="Versions" href="/versions">Workbook versions</a>
+		<a class="btn btn-default fixed-width" title="Recycle" href="/recycle">Recycle bin</a>
 	</div>
 	<div class="col-xs-9">
-		View all saved versions of your workbooks, with options to restore
+		View and optionally restore deleted workbooks
 	</div>
 </div>
 <hr />
@@ -39,7 +44,6 @@
 	</div>
 </div>
 <hr />
-{% endif %}
 <div class="row">
 	<div class="col-xs-3">
 		<a class="btn btn-default fixed-width" title="Export" href="/export">Export data</a>
@@ -49,6 +53,7 @@
 	</div>
 </div>
 <hr />
+{% endif %}
 <div class="row">
 	<div class="col-xs-3">
 		<a class="btn btn-default fixed-width" id="password" title="Change your password" href="{% url 'django.contrib.auth.views.password_change' %}">Change your password</a>
