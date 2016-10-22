@@ -55,12 +55,15 @@ class AccountLockedError(Exception):
     pass
 
 # called by workbook
-def s3get(wb):
+def s3get(wb, versionId):
     if len(wb.text) > 0: # text is stored in wb.text on failed puts to S3
         return wb.text
     else:
-        key = S3_WORKBOOK_FOLDER+'/'+str(wb.id)
-        response = s3.get_object(Bucket=S3_BUCKET,Key=key)
+        key = S3_WORKBOOK_FOLDER+'/'+str(wb.id).zfill(9)
+        if versionId:
+            response = s3.get_object(Bucket=S3_BUCKET,Key=key,VersionId=versionId)
+        else:
+            response = s3.get_object(Bucket=S3_BUCKET,Key=key)
         logger.debug(response)
         #if response['ResponseMetadata']['HTTPStatusCode'] != 200:
         #    raise Exception('S3 Error')
@@ -74,7 +77,7 @@ def s3put(wb):
     # this is a best-efforts function
     # the caller is responsible for setting wb.text before calling s3put and then calling wb.save() afterwards
     # if the put to S3 is successful, wb.text will be cleared before returning
-    key = S3_WORKBOOK_FOLDER+'/'+str(wb.id)
+    key = S3_WORKBOOK_FOLDER+'/'+str(wb.id).zfill(9)
     response = s3.put_object(Bucket=S3_BUCKET,Key=key,Body=wb.text) # what if we don't get a response?  maybe a bSuccess flag
     logger.debug(response)
     responseMetadata = response['ResponseMetadata']
@@ -87,6 +90,20 @@ def s3put(wb):
         Log.objects.create(account=wb.owner, category='S3 Put', text='S3 Put failure - ' + key)
         return False
 
+def s3versions(wb):
+    # with zfill(9), prefix collisions won't happen for a long time
+    prefix = S3_WORKBOOK_FOLDER+'/'+str(wb.id).zfill(9)
+    response = s3.list_object_versions(Bucket=S3_BUCKET,Prefix=prefix)
+    logger.debug(response)
+    responseMetadata = response['ResponseMetadata']
+    statusCode = responseMetadata['HTTPStatusCode']
+    if statusCode == 200 or statusCode == 204:
+        Log.objects.create(account=wb.owner, category='S3 Versions', text='S3 Versions success - ' + prefix)
+        return filter(lambda v: v['Key'] == prefix, response['Versions'])
+    else:
+        Log.objects.create(account=wb.owner, category='S3 Versions', text='S3 Versions failure - ' + prefix)
+        return []
+    
 # slugify() converts to ASCII if allow_unicode is False (default - allow_unicode param added in django 1.9)
 # strips leading and trailing whitespace
 # converts spaces to hyphens
@@ -676,11 +693,39 @@ def delete(request):
         logger.error(traceback.format_exc())
         return JsonResponse({'success': False})
 
+class Version():
+    def __init__(self, name, timestamp):
+        self.id = name
+        self.datetime = timestamp
+    
+@login_required
+@exclude_subdomain(SUBDOMAINS['sandbox'])
+def versions(request, userid, path, slug):
+    try:
+        family = resolve_ancestry(userid, '/'.join([path, slug]))
+        wb = family[0]
+        versions = s3versions(wb)
+        #versions = []
+        #versions.append(Version('foo', datetime.datetime.now()))
+        #versions.append(Version('bar', datetime.datetime.now()))
+        context = {}
+        context['wb'] = wb
+        context['versions'] = versions
+        context['parentdir'] = parentdir(request, wb)
+        return render(request, 'griddl/versions.htm', context)
+    except Exception:
+        logger.error(traceback.format_exc())
+        return HttpResponse('Not found')
+
 def workbook(request, userid, path, slug):
     try:
         family = resolve_ancestry(userid, '/'.join([path, slug]))
         wb = family[0]
-        text = s3get(wb)
+        if 'version' in request.GET:
+            versionId = request.GET['version']
+        else:
+            versionId = None
+        text = s3get(wb, versionId)
     except Exception:
         logger.error(traceback.format_exc())
         return HttpResponse('Not found')
@@ -719,15 +764,18 @@ def results(request, userid, path, slug):
             return HttpResponse('Not found')
     context = {"workbook": wb}
     if request.user.is_authenticated() and request.user.account == wb.owner:
-        notWorkbookSubdomain = SUBDOMAINS['notWorkbook']
-        period = ('' if (notWorkbookSubdomain == '') else '.')
-        if wb.parent != None:
-            uri = wb.parent.uri # /d/2/foo/bar
-        else:
-            uri = root(request)
-        context['parentdir'] = ''.join([PROTOCOL,'://',notWorkbookSubdomain,period,'hyperdeck.io',uri])
+        context['parentdir'] = parentdir(request, wb)
     return render(request, 'griddl/results.htm', context)
 
+# this could be made a property of the Workbook model?
+def parentdir(request, wb):
+    notWorkbookSubdomain = SUBDOMAINS['notWorkbook']
+    period = ('' if (notWorkbookSubdomain == '') else '.')
+    if wb.parent != None:
+        uri = wb.parent.uri # /d/2/foo/bar
+    else:
+        uri = root(request)
+    return ''.join([PROTOCOL,'://',notWorkbookSubdomain,period,'hyperdeck.io',uri])
 
 @require_subdomain(SUBDOMAINS['sandbox'])
 def raw(request, userid, path, slug):

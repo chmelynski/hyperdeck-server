@@ -80,7 +80,7 @@
         </td>
         <td>
           {% if workbook.filetype == 'F' %}
-            {{ workbook.modified|date:"Y-m-d" }}&nbsp;&nbsp;{{ workbook.modified|time:"H:i" }}
+            <a href="{% if workbook.filetype == 'F' %}{{ protocol }}://{{ workbookSubdomain }}.hyperdeck.io{% endif %}/versions{{ workbook.uri }}">{{ workbook.modified|date:"Y-m-d" }}&nbsp;&nbsp;{{ workbook.modified|time:"H:i" }}</a>
           {% endif %}
         </td>
         <td>

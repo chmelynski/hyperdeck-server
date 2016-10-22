@@ -1,0 +1,37 @@
+{% extends 'griddl/__base.htm' %}
+{% load static from staticfiles %}
+{% block title %} Versions | {{ block.super }} {% endblock %}
+{% block styles %}
+  {{ block.super }}
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+{% endblock %}
+
+{% block body %}
+  <div style="display:inline; margin:2em; height:10em">
+    <div style="display:inline-block; border:0px solid black; float:left; margin:1em;">
+      <a style="margin-right:1em;" class="btn btn-default" {{ parentdir|yesno:',disabled' }} href="{{ parentdir }}">
+        <i class="fa fa-level-up fa-flip-horizontal fa-2x" style="vertical-align: middle;"></i>
+        &nbsp;Up
+      </a>
+      <h4 id="workbookName" style="margin-right:1em;">{{ wb.name }}</h4>
+    </div>
+  </div>
+
+  <table class='table table-striped'>
+    <tr>
+      <th>Saved versions</th>
+      <th></th>
+    </tr>
+    {% for version in versions %}
+      <tr>
+        <td><a href="{{ wb.uri }}?version={{ version.VersionId }}">{{ version.LastModified|date:"Y-m-d" }}&nbsp;&nbsp;{{ version.LastModified|time:"H:i" }}</a></td>
+        <td>{{ version.LastModified|timesince }} ago</td>
+      </tr>
+    {% endfor %}
+  </table>
+
+{% endblock %}
+

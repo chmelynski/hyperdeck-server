@@ -41,6 +41,7 @@ urlpatterns = patterns(
     url(r'^f/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ _%]*)/(?P<slug>[A-Za-z0-9-/ _%]*)$', views.workbook),
     url(r'^d/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ _]*)$', views.directory),
     url(r'^results/f/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ _%]*)/(?P<slug>[A-Za-z0-9-/ _%]*)$', views.results),
+    url(r'^versions/f/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ _%]*)/(?P<slug>[A-Za-z0-9-/ _%]*)$', views.versions),
     url(r'^raw/f/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ _%]*)/(?P<slug>[A-Za-z0-9-/ _%]*)$', views.raw),
 )
 
