@@ -133,11 +133,11 @@ Code.prototype._refreshDatgui = function() {
 	{
 		gui.add(comp, 'Run');
 		gui.add(comp, 'mode', ['default','canvas','htmlgen']).onChange(function(value) { comp._markDirty(); });
-		var displayControl = gui.add(comp, 'display', ['codemirror','pre','stats']);
-		displayControl.onChange(function(value) { comp._markDirty(); comp._add(); });
 		gui.add(comp, 'runOnBlur').onChange(function(value) { comp._markDirty(); });
 		gui.add(comp, 'runOnLoad').onChange(function(value) { comp._markDirty(); });
 	}
+	var displayControl = gui.add(comp, 'display', ['codemirror','pre','stats']);
+	displayControl.onChange(function(value) { comp._markDirty(); comp._add(); });
 	gui.add(comp, 'Upload');
 	gui.add(comp, 'Download');
 	
