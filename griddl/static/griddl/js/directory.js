@@ -10,7 +10,7 @@ function togglePublic(pk) {
            if (response.success) {
              $.alert('Workbook status successfully toggled.', 'success');
            } else {
-             $.alert('Sorry - an error occurred. Please try again later.');
+             $.alert('Sorry - an error occurred. Please try again later.', 'danger');
            }
          },
          'json'
@@ -35,7 +35,7 @@ $(document).ready(function() {
           $tgt.closest('td').find('.namelink').attr('href', response.uri).text(name);
           renameToggle();
         } else {
-          $.alert("Sorry, something went wrong. Please try again later.");
+          $.alert(response.message, 'danger');
         }
       },
       "json"
@@ -57,7 +57,7 @@ $(document).ready(function() {
           $.alert(filetype + "'" + name + "' was deleted.", 'success');
           $('#deleteModal').modal('hide');
         } else {
-          $.alert("Sorry, something went wrong. Please try again later.");
+          $.alert("Sorry, something went wrong. Please try again later.", 'danger');
         }
       },
       "json"
@@ -79,7 +79,7 @@ $(document).ready(function() {
         if (response.success) {
           $.alert("Success! You will be redirected to the new directory momentarily.", 'success');
         } else {
-          $.alert("Sorry, something went wrong. Please try again later.");
+          $.alert(response.message, 'danger');
         }
       },
       "json"
@@ -102,7 +102,7 @@ $(document).ready(function() {
           $.alert('"' + name + '" was moved to "' + response.dstFolder + '" folder.', 'success');
           $('#moveModal').modal('hide');
         } else {
-          $.alert("Sorry, something went wrong. Please try again later.");
+          $.alert(response.message, 'danger');
         }
       },
       "json"
