@@ -379,7 +379,7 @@ def togglepublic(request):
         return JsonResponse({'success': False, 'message': e.message})
     except Exception:
         logger.error(traceback.format_exc())
-        msg = "An error occurred. Please try again."
+        msg = "Error: please try again."
         return JsonResponse({'success': False, 'message': msg})
 
 @exclude_subdomain(SUBDOMAINS['sandbox'])
@@ -478,7 +478,7 @@ def saveas(request):
             return JsonResponse({'success':False, 'message': msg})
         except Exception:
             logger.error(traceback.format_exc())
-            msg = "An error occurred. Please try again."
+            msg = "Error: please try again."
             return JsonResponse({'success': False, 'message': msg})
     else:
         try:
@@ -529,21 +529,21 @@ def create(request):
         wb.text = DEFAULT_WORKBOOK
         wb.size = len(DEFAULT_WORKBOOK)
         wb.save()
-        return HttpResponseRedirect(''.join([PROTOCOL,'://',SUBDOMAINS['workbook'],'.hyperdeck.io',wb.uri]))
+        redirectUri = ''.join([PROTOCOL,'://',SUBDOMAINS['workbook'],'.hyperdeck.io',wb.uri])
+        return JsonResponse({'success': True, 'redirect': redirectUri})
     except InvalidNameError as e:
         msg = 'Error: workbook and directory names can only contain alphanumeric characters, dashes, underscores, and spaces.'
-        messages.error(request, msg)
-        return HttpResponseServerError()
+        return JsonResponse({'success': False, 'message': msg})
     except ValidationError as e:
-        messages.error(request, e.message)
-        return HttpResponseServerError()
+        msg = 'Error: request is missing some parameters.'
+        return JsonResponse({'success': False, 'message': msg})
     except DuplicateError as e:
         msg = 'Error: duplicate name - please pick another name/destination.'
-        messages.error(request, msg)
-        return HttpResponseServerError()
+        return JsonResponse({'success': False, 'message': msg})
     except Exception:
         logger.error(traceback.format_exc())
-        return HttpResponseServerError()
+        msg = 'Error: please try again.'
+        return JsonResponse({'success': False, 'message': msg})
 
 @login_required
 @exclude_subdomain(SUBDOMAINS['sandbox'])
@@ -619,7 +619,8 @@ def rename(request):
         return JsonResponse({'success': False, 'message': msg})
     except Exception:
         logger.error(traceback.format_exc())
-        return JsonResponse({'success': False})
+        mes = 'Error: please try again.'
+        return JsonResponse({'success': False, 'message': msg})
 
 @login_required
 @exclude_subdomain(SUBDOMAINS['sandbox'])
@@ -691,7 +692,8 @@ def delete(request):
         return JsonResponse({'success': False, 'message': msg})
     except Exception:
         logger.error(traceback.format_exc())
-        return JsonResponse({'success': False})
+        msg = 'Error: please try again.'
+        return JsonResponse({'success': False, 'message': msg})
 
 class Version():
     def __init__(self, name, timestamp):
