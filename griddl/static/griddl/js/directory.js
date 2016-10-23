@@ -24,10 +24,6 @@ $(document).ready(function() {
     $tgt = $(event.target);
     name = $tgt.find('[name="newname"]').val();
 
-    if (!validateName(name)) {
-      return false;
-    }
-
     $.post("/rename",
       $tgt.serialize(),
       function(response) {
@@ -63,16 +59,24 @@ $(document).ready(function() {
       "json"
     );
   });
+  
+  $('#newWorkbookForm').on('submit', function(event) {
+    event.preventDefault();
+    $.post("/create",
+      $(event.target).serialize(),
+      function(response) {
+        if (response.success) {
+          $.alert("Success! You will be redirected to the new workbook momentarily.", 'success');
+        } else {
+          $.alert(response.message, 'danger');
+        }
+      },
+      "json"
+    );
+  });
 
   $('#newDirectoryForm').on('submit', function(event) {
     event.preventDefault();
-
-    name = $('[name="name"]', event.target).val();
-    
-    if (!validateName(name)) {
-      return false;
-    }
-
     $.post("/createDir",
       $(event.target).serialize(),
       function(response) {

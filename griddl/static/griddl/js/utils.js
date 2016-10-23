@@ -6,23 +6,14 @@ $.extend({
   }
 });
 
-//handle redirects required by ajax results
+// handle redirects required by ajax results
+// this is called after the response is handled in directory.js
 $(document).ajaxComplete(function(event, xhr, settings) {
   response = $.parseJSON(xhr.responseText);
   if (response.redirect) {
     document.location.href = response.redirect;
   }
 });
-
-function validateName(str) {
-  // don't allow names with forward slashes. ever.
-  if (str.indexOf("/") == -1) {
-    return true;
-  } else {
-    $.alert('Sorry, "/" (forward-slash) is not allowed in file or folder names.');
-    return false;
-  }
-}
 
 //from django docs, impt for ajax csrf
 function getCookie(name) {
