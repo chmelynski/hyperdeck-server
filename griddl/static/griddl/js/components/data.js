@@ -914,8 +914,7 @@ function WriteJson() {
 			
 			for (var k = 0; k < comp._headers.length; k++)
 			{
-				// wrong - numbers get incorrectly written as strings.  need a smarter stringify function
-				ls.push('\t\t"' + comp._headers[k] + '": ' + WriteObjToString(comp._data[i][comp._headers[k]]) + ((k < comp._headers.length - 1) ? ',' : ''));
+				ls.push('\t\t"' + comp._headers[k] + '": ' + WriteObjToString(comp._data[i][comp._headers[k]], null) + ((k < comp._headers.length - 1) ? ',' : ''));
 			}
 			
 			ls.push('\t}' + ((i < comp._data.length - 1) ? ',' : ''));
@@ -942,7 +941,7 @@ function WriteYaml() {
 		{
 			for (var k = 0; k < comp._headers.length; k++)
 			{
-				ls.push(((k == 0) ? '-' : ' ') + ' ' + comp._headers[k] + ': ' +  WriteObjToString(comp._data[i][comp._headers[k]]));
+				ls.push(((k == 0) ? '-' : ' ') + ' ' + comp._headers[k] + ': ' +  WriteObjToString(comp._data[i][comp._headers[k]], null));
 			}
 		}
 		
@@ -1305,19 +1304,12 @@ var WriteObjToString = function(obj, delimiter) {
 	
 	var type = Object.prototype.toString.call(obj);
 	
-	// the nice thing about csv/tsv is that you don't have to quote strings
-	// however, that means that we need a way to distinguish 0 from "0" and true from "true"
-	// the parser and the writer have to be in sync
-	
-	// how do you encode nulls?  with 'null' or with ''?
-	// how do you parse the empty string?  does it parse as null or the empty string?
-	// if you parse the empty string as null, how do you encode an empty string?  as '""', i guess
-	
 	var str = null;
 	
 	if (type == '[object String]')
 	{
-		if (obj.length == 0 || obj.startsWith(' ') || obj.endsWith(' ') || obj.indexOf(delimiter) >= 0 || obj.indexOf('"') >= 0 || obj.indexOf("'") >= 0 || obj.indexOf('\t') >= 0 || obj.indexOf('\n') >= 0 || obj.indexOf('\r') >= 0 || (numberRegex.test(obj) && digitRegex.test(obj)) || trueRegex.test(obj) || falseRegex.test(obj))
+		// delimiter == null indicates we're writing to json/yaml, which means strings must be quoted
+		if (delimiter == null || obj.length == 0 || obj[0] === ' ' || obj[obj.length-1] === ' ' || obj.indexOf(delimiter) >= 0 || obj.indexOf('"') >= 0 || obj.indexOf("'") >= 0 || obj.indexOf('\t') >= 0 || obj.indexOf('\n') >= 0 || obj.indexOf('\r') >= 0 || (numberRegex.test(obj) && digitRegex.test(obj)) || trueRegex.test(obj) || falseRegex.test(obj))
 		{
 			str = '"' + obj.replace(/\\/g, '\\\\').replace(/\"/g, '\\"').replace(/\t/g, '\\t').replace(/\r/g, '\\r').replace(/\n/g, '\\n') + '"';
 		}
