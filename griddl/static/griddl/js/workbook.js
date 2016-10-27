@@ -57,10 +57,6 @@ function receiveMessage(event) {
 function save_as_passthru(payload) {
   $form = $('#saveAsForm');
   $form.find('#saveAsFormTextInput').val(payload.text);
-
-  if (!validateName(payload.newname)) {
-    return false;
-  }
   
   $form.find("[name='newname']").val(payload.newname);
 
