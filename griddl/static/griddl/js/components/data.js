@@ -144,6 +144,8 @@ Data.prototype._add = function() {
 	}
 	else if (comp._display == 'gui')
 	{
+		initText = '';
+		
 		comp._contentDiv.append($('<hr />'));
 		
 		var datagui = new dat.GUI({autoPlace:false, width:"100%"});
