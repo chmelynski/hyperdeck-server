@@ -92,6 +92,7 @@ var Main = function(text) {
 	comps = [];
 	jsons.forEach(function(json) { NewComponent(json, json.type); });
 	comps.forEach(function(comp) { if (comp._afterLoad) { comp._afterLoad(); } });
+	comps.forEach(function(comp) { if (comp._afterAllLoaded) { comp._afterAllLoaded(); } });
 	
 	MakeSortable();
 	MarkClean();
@@ -118,7 +119,9 @@ var NewComponent = function(json, type, name) {
 	comp._div = createComponentDivToUse($('#cells'), comp);
 	comp._div.css('border', '1px solid gray');
 	comp._div.css('background-color', 'rgb(230,230,230)');
+	if (comp._afterLoad) { comp._afterLoad(); }
 	comp._add();
+	if (comp._afterAllLoaded) { comp._afterAllLoaded(); }
 };
 var AddComponent = function(type, useLocalCreateComponentDiv) {
 	if (useLocalCreateComponentDiv) { createComponentDivToUse = LocalCreateComponentDiv; }
@@ -224,13 +227,8 @@ var MakeSortable = function() {
 		
 		$('#output').html('');
 		
-		comps.forEach(function(comp) {
-			if (comp._type == 'html' || comp._type == 'md' || comp._type == 'css') // not ideal to dispatch on type here
-			{
-				comp._addOutputElements();
-				comp._exec();
-			}
-		});
+		comps.forEach(function(comp) { if (comp._afterLoad) { comp._afterLoad(); } });
+		comps.forEach(function(comp) { if (comp._afterAllLoaded) { comp._afterAllLoaded(); } });
 	}});
 };
 

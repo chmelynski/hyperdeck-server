@@ -121,8 +121,6 @@ Code.prototype._add = function() {
 	{
 		throw new Error();
 	}
-	
-	comp._addOutputElements();
 };
 Code.prototype._refreshDatgui = function() {
 	
@@ -158,12 +156,14 @@ Code.prototype._addOutputElements = function() {
 	}
 };
 Code.prototype._onblur = function() {
-	
 	var comp = this;
 	if (comp._runOnBlur) { comp._exec(); }
 };
 Code.prototype._afterLoad = function() {
-	
+	var comp = this;
+	comp._addOutputElements();
+};
+Code.prototype._afterAllLoaded = function() {
 	var comp = this;
 	if (comp._runOnLoad) { comp._exec(); }
 };
