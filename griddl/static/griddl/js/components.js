@@ -119,9 +119,8 @@ var NewComponent = function(json, type, name) {
 	comp._div = createComponentDivToUse($('#cells'), comp);
 	comp._div.css('border', '1px solid gray');
 	comp._div.css('background-color', 'rgb(230,230,230)');
-	if (comp._afterLoad) { comp._afterLoad(); }
 	comp._add();
-	if (comp._afterAllLoaded) { comp._afterAllLoaded(); }
+	if (comp._afterLoad) { comp._afterLoad(); }
 };
 var AddComponent = function(type, useLocalCreateComponentDiv) {
 	if (useLocalCreateComponentDiv) { createComponentDivToUse = LocalCreateComponentDiv; }
