@@ -90,8 +90,7 @@ var Main = function(text) {
 	$('#cells').html('');
 	
 	comps = [];
-	jsons.forEach(function(json) { NewComponent(json, json.type); });
-	comps.forEach(function(comp) { if (comp._afterLoad) { comp._afterLoad(); } });
+	jsons.forEach(function(json) { NewComponent(json, json.type); }); // NewComponent calls _afterLoad
 	comps.forEach(function(comp) { if (comp._afterAllLoaded) { comp._afterAllLoaded(); } });
 	
 	MakeSortable();
