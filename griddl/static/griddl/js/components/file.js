@@ -40,6 +40,7 @@ var File = function(json, type, name) {
 	
 	this._uint8array = null;
 	
+	this._img = null; // for image only - the HTMLImageElement
 	this._imagetype = null; // for image only - 'png', 'jpg', etc.
 	this._files = null; // for zipfile only - { filename  : String , uint8array : Uint8Array , size : String }
 	
@@ -78,6 +79,7 @@ File.prototype._add = function() {
 			
 			var imgdiv = $('<div style="margin:1em;overflow:auto"></div>');
 			var imageElement = $('<img src="' + b64 + '"></img>').appendTo(imgdiv);
+			comp._img = imageElement;
 			
 			var urlDiv = $('<div style="margin:1em"></div>')
 			urlDiv.text(URL.createObjectURL(blob));
@@ -301,7 +303,14 @@ File.prototype._get = function(options) {
 	}
 	else
 	{
-		result = comp._uint8array;
+		if (comp._type == 'image')
+		{
+			result = comp._img;
+		}
+		else
+		{
+			result = comp._uint8array;
+		}
 	}
 	
 	return result;
