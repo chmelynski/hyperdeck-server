@@ -14,31 +14,64 @@
 {% block body %}
 
 <div class="container">
-  <div class="center-block" style="width:300px;margin-top:1em"><a class="btn btn-lg btn-success" href="/signup" role="button">Sign up for Hyperdeck</a></div>
-  <h1>What is Hyperdeck?</h1>
-  <p class="lead">Hyperdeck is a notebook programming environment for analysis and communication.  It's a medium-weight and easy-to-use platform for tasks usually done with standard office software - analyzing data, running code, and writing documents.</p>
-  <p>Hyperdeck has been designed from the ground up to live on the web - the interface is a lot like writing a webpage in a webpage.  The modern browser environment is powerful, fast, extensible, ubiquitous - and <i>entirely different</i> than the world of the 80's that your office suite was designed for.  It's time to move forward.</p>
-  <p>Get updates on <a href="https://twitter.com/hyperdeckapp">twitter</a> or on our <a href="https://blog.hyperdeck.io">blog</a>.</p>
+
+<div class="center-block" style="width:20em;margin-top:1em">
+  <a class="btn btn-lg btn-success center-block" href="/signup" role="button">Sign up for Hyperdeck</a>
 </div>
+
+<p class="lead" style="margin-top:1em">
+  Hyperdeck is a notebook environment for front-end programming, making it easy to analyze data, run code, and write documents using standard web technologies.
+</p>
+<p>
+  Hyperdeck makes the power of the modern web easy to use.
+  You can focus on front-end design and programming, without having to worry about storage or servers.
+  Hyperdeck can be used to write documents, prototype websites, or anything else that can be done in a browser! 
+</p>
+<p>Get updates on <a href="https://twitter.com/hyperdeckapp">twitter</a> or on our <a href="https://blog.hyperdeck.io">blog</a>.</p>
+
+<hr />
+  
+<div>
+  <h4 style="text-align:center">Example workbook</h4>
+  <a href="/f/11/examples/bar-chart"><img width="100%" src="https://s3.amazonaws.com/hyperdeck-storage/static/img/bar-chart.png"></img></a>
+</div>
+
+<hr />
+
+<h4>Features</h4>
+<ul>
+  <li>Hyperdeck is just HTML/CSS/JS - edit front-end documents, store and share in the cloud</li>
+  <li>Code, data, and document are combined into a single package
+    <ul>
+      <li>Upstream changes to code or data flow seamlessly into the final document</li>
+      <li>Analysis is easy to reproduce</li>
+      <li>Data is a first-class citizen, editable as CSV/TSV/JSON/YAML</li>
+    </ul>
+  </li>
+  <li>Documents live in a cloud filesystem, with easy sharing, forking, and versioning</li>
+  <li>Markdown and MathJax are supported</li>
+  <li>Pull in Javascript libraries with &lt;script&gt; tags to do what you need</li>
+  <li>Documents are sandboxed in an iframe served from a separate domain, so that untrusted code has limited capabilites</li>
+</ul>
 
 <hr />
 
 <div class="container">
   <div class="row">
-    <div class="col-md-4">
-      <h4 style="text-align:center">Examples</h4>
-      <a href="/f/11/examples/index"><img width="100%" src="https://s3.amazonaws.com/hyperdeck-storage/static/img/example.png"></img></a>
-    </div>
-    <div class="col-md-4">
+    <div class="col-md-6">
       <h4 style="text-align:center">Tutorial</h4>
       <a href="/f/11/tutorial"><img width="100%" src="https://s3.amazonaws.com/hyperdeck-storage/static/img/tutorial.png"></img></a>
     </div>
-    <div class="col-md-4">
-      <h4 style="text-align:center">Links</h4>
-      <a href="/f/11/links"><img width="100%" src="https://s3.amazonaws.com/hyperdeck-storage/static/img/links.png"></img></a>
+    <div class="col-md-6">
+      <h4 style="text-align:center">Reference</h4>
+      <a href="/f/11/reference-links"><img width="100%" src="https://s3.amazonaws.com/hyperdeck-storage/static/img/reference.png"></img></a>
     </div>
   </div>
 </div>
+
+</div>
+
+
 
 
 

@@ -850,7 +850,7 @@ def sign_s3(request):
 
 
 def index(request):
-    context = {}
+    context = {'scrollable':'scrollable'}
     return render(request, 'griddl/index.htm', context)
     
 def jslog(request):

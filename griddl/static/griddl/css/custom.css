@@ -1,7 +1,11 @@
-body:not(.framed){
+body:not(.framed) {
   overflow: hidden;
   padding: 4em 0px 0px 0px;
   margin: 0px;
+}
+
+body.scrollable {
+  overflow: auto;
 }
 
 html, body {
@@ -79,6 +83,10 @@ iframe#results {
 
 #workbookName {
   display: inline;
+}
+
+.scrollable {
+  overflow-y: auto;
 }
 
 #cells-container {
