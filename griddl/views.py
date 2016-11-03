@@ -784,7 +784,7 @@ def raw(request, userid, path, slug):
     try:
         family = resolve_ancestry(userid, '/'.join([path, slug]))
         wb = family[0]
-        text = s3get(wb)
+        text = s3get(wb, None)
     except Exception:
         return HttpResponse('Not found')
     if not wb.public:
