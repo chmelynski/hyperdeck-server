@@ -645,11 +645,7 @@ $(document).ready(function() {
 
 function saveAsSubmit() {
 	newname = $("[name='newname']").val();
-	
-	if (!validateName(newname)) {
-		return false;
-	}
-	
+
 	save_as(newname).done(function(success) {
 		if (success) {
 			$('#workbookName').text(newname);

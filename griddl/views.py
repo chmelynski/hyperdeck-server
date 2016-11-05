@@ -456,8 +456,9 @@ def saveas(request):
             wb.pk = None
             if wb.size > MAX_WORKBOOK_SIZE:
                 raise MaxWorkbookSizeError()
+            wb.save() # the first save sets a new pk
             s3put(wb)
-            wb.save()
+            wb.save() # the second save saves the blanked textfield (if the s3put worked)
             response = {}
             response['success'] = True
             response['redirect'] = ''.join([PROTOCOL,'://',SUBDOMAINS['workbook'],'.hyperdeck.io',wb.uri])
