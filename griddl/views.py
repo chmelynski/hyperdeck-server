@@ -3,7 +3,6 @@ from __future__ import unicode_literals
 import logging
 import traceback
 import boto3
-import json
 import os
 import datetime
 import re
@@ -12,7 +11,7 @@ from django import forms
 from django.db import transaction
 from django.db.models import Sum
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.http import HttpResponseNotFound, HttpResponseServerError
+from django.http import HttpResponseNotFound
 from django.shortcuts import render
 from django.template import loader
 from django.contrib import messages
@@ -23,13 +22,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.template.defaultfilters import slugify
 
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Submit
-
 from mysite.settings import SUBDOMAINS, MAX_WORKBOOK_SIZE
 
 from .decorators import require_subdomain, exclude_subdomain
-from .models import Workbook, Account, Plan, Copy, Log
+from .models import Workbook, Account, Log
 from .models import AccountSizeError, MaxWorkbookSizeError
 from .utils import resolve_ancestry
 
@@ -42,17 +38,22 @@ S3_BUCKET = os.environ.get('S3_BUCKET')
 S3_WORKBOOK_FOLDER = os.environ.get('S3_WORKBOOK_FOLDER')
 PROTOCOL = os.environ.get('PROTOCOL')
 
+
 class DuplicateError(Exception):
     pass
+
 
 class SelfParentError(Exception):
     pass
 
+
 class InvalidNameError(Exception):
     pass
 
+
 class AccountLockedError(Exception):
     pass
+
 
 # called by workbook
 def s3get(wb, versionId):
@@ -71,6 +72,7 @@ def s3get(wb, versionId):
         binarystring = body.read()
         text = binarystring.decode('utf-8')
         return text
+
 
 # called by save, saveas, directory (for save/saveas resolution)
 def s3put(wb):
@@ -137,13 +139,15 @@ def getNonduplicateName(account, name):
         else:
             return name
 
+
 def root(request):
     kwargs = {}
     kwargs['userid'] = request.user.account.pk
-    kwargs['path'] = '';
+    kwargs['path'] = ''
     # reverse returns the relative uri - /d/2
     url = reverse(directory, kwargs=kwargs)
     return url
+
 
 def logoutView(request):
     logout(request)
@@ -157,31 +161,27 @@ def login_redirect(request):
         url = 'https://www.hyperdeck.io/d/' + str(request.user.account.pk)
     else:
         url = '/d/' + str(request.user.account.pk)
-    #url = root(request)
+    # url = root(request)
     return HttpResponseRedirect(url)
 
 
+def unique_username(username):
+    '''
+    validator for username so we can use more standard form stuff and less
+    hand-written boilerplate
+    '''
+    existingUser = User.objects.filter(username=username)
+    if existingUser:
+        raise ValidationError('Username already exists')
+
+
 class SignupForm(forms.Form):
-    def __init__(self, *args, **kwargs):
-        super(SignupForm, self).__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_method = 'post'
-        self.helper.form_class = 'form-horizontal'
-        self.helper.form_action = '/register'
-        self.helper.label_class = 'col-md-2'
-        self.helper.field_class = 'col-md-10'
-        self.helper.add_input(Submit('submit', 'Register'))
+    from passwords.fields import PasswordField
 
-    username = forms.CharField(max_length=100, label="Username")
-    password = forms.CharField(max_length=100, label="Password",
-                               widget=forms.PasswordInput)
+    username = forms.CharField(max_length=100, label="Username",
+                               validators=[unique_username])
+    password = PasswordField(label="Password")
     email = forms.EmailField(max_length=254, label="Email Address")
-
-
-def signup(request):
-    form = SignupForm()
-    context = {'form': form, 'next': request.GET.get('next', '')}
-    return render(request, 'griddl/signup.htm', context)
 
 
 def saveasForm(request):
@@ -205,30 +205,26 @@ def ajaxlogin(request):
 
 
 @exclude_subdomain(SUBDOMAINS['sandbox'])
-@exclude_subdomain('dev')
 @exclude_subdomain('staging')
 def register(request):
-    username = request.POST.get('username')
-    password = request.POST.get('password')
-    email = request.POST.get('email')
-    # form = SignupForm(request.POST)
-    # use if form.is_valid(): and do this to access the fields:
-    #     form.cleaned_data['username']
-    existingUser = User.objects.filter(username=username)
-    if existingUser.count() > 0:
-        form = SignupForm()
-        context = {}
-        msg = 'Already a user with this username - please pick a new one'
-        context['errorMessage'] = msg
-        context['form'] = form
-        return render(request, 'griddl/signup.htm', context)
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        form = SignupForm(request.POST)
+        context = {'form': form}
+        if form.is_valid():
+            email = form.cleaned_data['email']
+            password = form.cleaned_data['password']
+            user = User.objects.create_user(username, email, password)
+            user = authenticate(username=username, password=password)
+            login(request, user)
+            msg = "Congratulations, your account has been created!"
+            messages.success(request, msg)
+            return HttpResponseRedirect(root(request))
     else:
-        user = User.objects.create_user(username, email, password)
-        user = authenticate(username=username, password=password)
-        login(request, user)
-        msg = "Congratulations, your account has been created!"
-        messages.success(request, msg)
-        return HttpResponseRedirect(root(request))
+        form = SignupForm()
+        context = {'form': form, 'next': request.GET.get('next', '')}
+
+    return render(request, 'griddl/signup.htm', context)
 
 
 @exclude_subdomain(SUBDOMAINS['sandbox'])

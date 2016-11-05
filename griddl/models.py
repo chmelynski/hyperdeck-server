@@ -216,12 +216,15 @@ class Preferences(models.Model):
     def __unicode__(self):
         return self.user.username
 
+
 class Copy(models.Model):
     key = models.CharField(max_length=255)
     val = models.TextField(blank=True)
 
+
 class DefaultWorkbook:
     pass
+
 
 class Log(models.Model):
     account = models.ForeignKey('Account', blank=True, null=True,
@@ -230,6 +233,7 @@ class Log(models.Model):
     time = models.DateTimeField(auto_now=True)
     text = models.CharField(max_length=255)
     viewed = models.BooleanField(default=False)
+
 
 class Message(models.Model):
 	recipient = models.ForeignKey('Account', blank=True, null=True,

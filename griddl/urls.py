@@ -12,7 +12,6 @@ urlpatterns = patterns(
     url(r'^logout$', views.logoutView),
     url(r'^saveasForm$', views.saveasForm),
     url(r'^newcsrftoken$', views.newcsrftoken),
-    url(r'^signup$', views.signup),
     url(r'^register$', views.register),
     url(r'^ajaxregister$', views.ajaxregister),
     url(r'^export$', views.export),

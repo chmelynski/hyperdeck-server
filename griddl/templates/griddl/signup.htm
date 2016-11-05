@@ -1,6 +1,6 @@
 {% extends 'griddl/__base.htm' %}
 {% load static from staticfiles %}
-{% load crispy_forms_tags %}
+{% load bootstrap3 %}
 
 {% block header %}
     <div class="row">
@@ -11,13 +11,10 @@
 {% endblock %}
 
 {% block body %}
-    {% if errorMessage %}
-        <div class="row">
-            <div class="col-md-12">
-                <p><span style="color:red;">{{ errorMessage }}</span></p>
-            </div>
-        </div>
-    {% endif %}
-
-    {% crispy form %}
+  <form action="/register" method="POST" class="form-horizontal">
+    {% csrf_token %}
+    {% bootstrap_form form layout="horizontal" %}
+    {% buttons submit="Submit" layout="horizontal" %}
+    {% endbuttons %}
+  </form>
 {% endblock %}

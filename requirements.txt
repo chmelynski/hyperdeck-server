@@ -7,7 +7,6 @@ SQLAlchemy==1.0.4
 whitenoise==1.0.6
 requests
 django-bootstrap3
-django-crispy-forms
 django-password-reset
 git+https://github.com/nthall/django-stored-messages#egg=stored_messages
 python-postmark>=0.4.3
@@ -16,3 +15,4 @@ mock
 django-pipeline
 jsmin
 boto3
+django-passwords

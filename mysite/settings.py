@@ -160,7 +160,6 @@ INSTALLED_APPS = (
 
     'stored_messages', # django-stored-messages
     'bootstrap3',      # django-bootstrap3
-    'crispy_forms',    # django-crispy-forms
     'password_reset',  # django-password-reset
     'pipeline',        # django-pipeline
 
@@ -170,9 +169,6 @@ INSTALLED_APPS = (
 
 # workaround for migration problem
 AUTH_USER_MODEL = 'auth.User'
-
-# crispy_forms setting
-CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.JSONSerializer'
 
