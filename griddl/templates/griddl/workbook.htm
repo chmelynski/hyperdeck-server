@@ -8,6 +8,11 @@
 
 {% block styles %}
   {{ block.super }}
+  <style type="text/css">
+    body {
+      overflow: hidden;
+    }
+  </style>
 {% endblock %}
 
 
@@ -15,7 +20,6 @@
   {{ block.super }}
   <script type='text/javascript' src="{% static 'griddl/js/workbook.js' %}"></script>
 {% endblock %}
-
 
 {% block body %}
   <div class="row full-height">

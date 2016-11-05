@@ -456,9 +456,8 @@ def saveas(request):
             wb.pk = None
             if wb.size > MAX_WORKBOOK_SIZE:
                 raise MaxWorkbookSizeError()
-            wb.save() # the first save sets a new pk
             s3put(wb)
-            wb.save() # the second save saves the blanked textfield (if the s3put worked)
+            wb.save()
             response = {}
             response['success'] = True
             response['redirect'] = ''.join([PROTOCOL,'://',SUBDOMAINS['workbook'],'.hyperdeck.io',wb.uri])
@@ -493,10 +492,11 @@ def saveas(request):
                 your copy of the workbook "%s"' %
                 wb.name
                 )
-            return JsonResponse({'success':True, 'redirect': '/signup'})
-        except MaxWorkbookSizeError as e:
+            return JsonResponse({'success': True, 'redirect': '/signup'})
+        except MaxWorkbookSizeError:
             msg = 'Error: workbook is over maximum allowed size.'
-            return JsonResponse({'success':False, 'message': msg})
+            return JsonResponse({'success': False, 'message': msg})
+
 
 @login_required
 @exclude_subdomain(SUBDOMAINS['sandbox'])
@@ -528,19 +528,20 @@ def create(request):
         wb.save()
         redirectUri = ''.join([PROTOCOL,'://',SUBDOMAINS['workbook'],'.hyperdeck.io',wb.uri])
         return JsonResponse({'success': True, 'redirect': redirectUri})
-    except InvalidNameError as e:
+    except InvalidNameError:
         msg = 'Error: workbook and directory names can only contain alphanumeric characters, dashes, underscores, and spaces.'
         return JsonResponse({'success': False, 'message': msg})
-    except ValidationError as e:
+    except ValidationError:
         msg = 'Error: request is missing some parameters.'
         return JsonResponse({'success': False, 'message': msg})
-    except DuplicateError as e:
+    except DuplicateError:
         msg = 'Error: duplicate name - please pick another name/destination.'
         return JsonResponse({'success': False, 'message': msg})
     except Exception:
         logger.error(traceback.format_exc())
         msg = 'Error: please try again.'
         return JsonResponse({'success': False, 'message': msg})
+
 
 @login_required
 @exclude_subdomain(SUBDOMAINS['sandbox'])
@@ -551,7 +552,7 @@ def createDir(request):
             raise ValidationError('request missing param "name"')
         if not isValidName(name):
             raise InvalidNameError()
-        path = request.POST.get('path', None) # parent path - e.g. 2/foo/bar
+        path = request.POST.get('path', None)  # parent path - e.g. 2/foo/bar
         family = resolve_ancestry(request.user.account.pk, path)
         if family:
             parent = family[0]
