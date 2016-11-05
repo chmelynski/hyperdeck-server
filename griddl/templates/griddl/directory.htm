@@ -3,6 +3,11 @@
 {% block title %} {{ path }}{{ parentdir|yesno:',My Profile' }} | {{ block.super }} {% endblock %}
 {% block styles %}
   {{ block.super }}
+  <style type="text/css">
+    table {
+      margin-top: 5em;
+    }
+  </style>
 {% endblock %}
 
 {% block scripts %}
@@ -11,7 +16,7 @@
 {% endblock %}
 
 {% block body %}
-  <div style="display:inline; margin:2em; height:10em">
+  <div id="floatbar" style="position: fixed; top: 4em; display:inline;">
     <div style="display:inline-block; border:0px solid black; float:left; margin:1em;">
       <a style="margin-right:1em;" class="btn btn-default" {{ parentdir|yesno:',disabled' }} href="{{ parentdir }}">
         <i class="fa fa-level-up fa-flip-horizontal fa-2x" style="vertical-align: middle;"></i>
