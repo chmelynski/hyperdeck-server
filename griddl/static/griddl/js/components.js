@@ -130,7 +130,7 @@ var AddComponent = function(type, useLocalCreateComponentDiv) {
 var RenameComponent = function(comp, newname) {
 	
 	// if there is a conflict, post an error message and return the old name to be set in the input
-	if (names[newname])
+	if (names[newname] || $('#' + newname).length > 0)
 	{
 		$.alert('Name "' + newname + '" conflicts with an existing name.', 'danger');
 		return comp._name;
