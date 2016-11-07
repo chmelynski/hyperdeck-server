@@ -1037,7 +1037,7 @@ function SeparatedValuesToMatrix(text, delimiter) {
 	var AFTER_CR = 5;
 	
 	if (text == '') { return []; }
-	if (!text.endsWith('\n')) { text += '\n'; }
+	if (text[text.length - 1] != '\n') { text += '\n'; }
 	
 	var state = START;
 	
