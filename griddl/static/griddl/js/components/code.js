@@ -23,7 +23,7 @@ var Code = function(json, type, name) {
 	this._codemirrorDiv = null;
 	this._codemirror = null;
 	
-	this._display = (json.display === undefined) ? 'codemirror' : json.display; // 'codemirror','pre','stats'
+	this._display = (json.display === undefined) ? 'codemirror' : json.display; // 'codemirror','readonly','summary'
 	
 	// javascript options
 	this._mode = (json.mode === undefined) ? 'default' : json.mode; // 'default','canvas','htmlgen'
@@ -109,11 +109,11 @@ Code.prototype._add = function() {
 		
 		//comp._errorSpan = $('<span style="color:red"></span>').appendTo(comp._codemirrorDiv);
 	}
-	else if (comp._display == 'pre')
+	else if (comp._display == 'pre' || comp._display == 'readonly')
 	{
 		$('<pre></pre>').text(comp._text).appendTo(comp._codemirrorDiv);
 	}
-	else if (comp._display == 'stats')
+	else if (comp._display == 'stats' || comp._display == 'summary')
 	{
 		$('<pre></pre>').text(comp._text.length + ' chars').appendTo(comp._codemirrorDiv);
 	}
@@ -134,7 +134,7 @@ Code.prototype._refreshDatgui = function() {
 		gui.add(comp, 'runOnBlur').onChange(function(value) { comp._markDirty(); });
 		gui.add(comp, 'runOnLoad').onChange(function(value) { comp._markDirty(); });
 	}
-	var displayControl = gui.add(comp, 'display', ['codemirror','pre','stats']);
+	var displayControl = gui.add(comp, 'display', ['codemirror','readonly','summary']);
 	displayControl.onChange(function(value) { comp._markDirty(); comp._add(); });
 	gui.add(comp, 'Upload');
 	gui.add(comp, 'Download');

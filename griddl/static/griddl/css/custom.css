@@ -113,3 +113,8 @@ iframe#results {
 .form-align {
   margin-top: 1.8em !important;
 }
+
+table.data-component-display { border-collapse : collapse }
+table.data-component-display th { border : 1px solid rgb(170,170,170) ; padding : 2px }
+table.data-component-display td { border : 1px solid rgb(170,170,170) ; padding : 2px }
+

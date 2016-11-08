@@ -139,19 +139,29 @@ Data.prototype._add = function() {
 	}
 	else if (comp._display == 'pre' || comp._display == 'readonly')
 	{
-		initText = DisplayAsPre(comp);
+		if (comp._form == 'listOfObjects' || comp._form == 'listOfLists')
+		{
+			initText = DisplayAsTable(comp);
+		}
+		else
+		{
+			initText = DisplayAsPre(comp);
+		}
+		
 		comp._contentDiv.html(initText);
 	}
 	else if (comp._display == 'summary')
 	{
 		var ls = [];
 		
+		ls.push('<pre>');
 		ls.push('form: ' + comp._form);
 		if (comp._headers) { ls.push('headers: ' + comp._headers.join(', ')); }
-		if (comp._form == 'listOfObjects' || comp._form == 'listOfLists' || comp.form == 'list')
+		if (comp._form == 'listOfObjects' || comp._form == 'listOfLists' || comp._form == 'list')
 		{
 			ls.push('length: ' + comp._data.length);
 		}
+		ls.push('</pre>');
 		
 		comp._contentDiv.html(ls.join('\n'));
 	}
@@ -463,7 +473,7 @@ function DetermineDataForm(data) {
 					var sub = data[i][key];
 					var subtype = Object.prototype.toString.call(sub);
 					
-					if (subtype == '[object Array]' || type == '[object Object]')
+					if (subtype == '[object Array]' || subtype == '[object Object]')
 					{
 						allSubPrimitives = false;
 						break;
@@ -511,7 +521,7 @@ function DetermineDataForm(data) {
 						var sub = data[i][j];
 						var subtype = Object.prototype.toString.call(sub);
 						
-						if (subtype == '[object Array]' || type == '[object Object]')
+						if (subtype == '[object Array]' || subtype == '[object Object]')
 						{
 							allSubPrimitives = false;
 							break;
@@ -634,7 +644,48 @@ function DisplayAsPre(comp) {
 	
 	return '<pre>' + l.join('\n') + '</pre>';
 }
-
+function DisplayAsTable(comp) {
+	
+	var l = [];
+	
+	l.push('<table class="data-component-display">');
+	l.push('<tr><th></th><th>');
+	l.push(comp._headers.join('</th><th>'));
+	l.push('</th></tr>');
+	
+	if (comp._form == 'listOfObjects')
+	{
+		for (var i = 0; i < comp._data.length; i++)
+		{
+			l.push('<tr><td>' + i.toString() + '</td>');
+			
+			for (var k = 0; k < comp._headers.length; k++)
+			{
+				l.push('<td>' + comp._data[i][comp._headers[k]] + '</td>');
+			}
+			
+			l.push('</tr>');
+		}
+	}
+	else if (comp._form == 'listOfLists')
+	{
+		for (var i = 0; i < comp._data.length; i++)
+		{
+			l.push('<tr><td>' + i.toString() + '</td>');
+			
+			for (var j = 0; j < comp._data[i].length; j++)
+			{
+				l.push('<td>' + comp._data[i][j] + '</td>');
+			}
+			
+			l.push('</tr>');
+		}
+	}
+	
+	l.push('</table>');
+	return l.join('');
+}
+	
 Data.prototype._pushUndo = function(size) {
 	
 	var comp = this;
@@ -1350,7 +1401,10 @@ var WriteObjToString = function(obj, delimiter) {
 	{
 		// we only get here if we're setting with an object
 		// if we're writing an object that we ourselves parsed, we're fine
-		throw new Error('Unsupported type: "' + type + '".  Please convert to string.');
+		//throw new Error('Unsupported type: "' + type + '".  Please convert to string.');
+		
+		// we should not actually get here
+		str = JSON.stringify(obj);
 	}
 	
 	return str;
