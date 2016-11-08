@@ -108,6 +108,10 @@ var Main = function(text) {
 			}
 		}
 	});
+	
+	// we already have Code._afterAllLoaded() -> Code.exec() -> MathJax.Hub.Typeset()
+	// but that does not seem to be doing the trick 
+	if (MathJax) { MathJax.Hub.Typeset(); }
 };
 var NewComponent = function(json, type, name) {
 	
