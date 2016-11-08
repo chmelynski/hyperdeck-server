@@ -89,7 +89,7 @@ Data.prototype._add = function() {
 	
 	comp._refreshDatgui();
 	
-	var initText = null;
+	var initText = '';
 	
 	if (comp._display == 'json' || comp._display == 'yaml' || comp._display == 'csv' || comp._display == 'tsv')
 	{
@@ -137,15 +137,26 @@ Data.prototype._add = function() {
 		comp._grid.draw();
 		ctx.canvas.focus();
 	}
-	else if (comp._display == 'pre')
+	else if (comp._display == 'pre' || comp._display == 'readonly')
 	{
 		initText = DisplayAsPre(comp);
 		comp._contentDiv.html(initText);
 	}
+	else if (comp._display == 'summary')
+	{
+		var ls = [];
+		
+		ls.push('form: ' + comp._form);
+		if (comp._headers) { ls.push('headers: ' + comp._headers.join(', ')); }
+		if (comp._form == 'listOfObjects' || comp._form == 'listOfLists' || comp.form == 'list')
+		{
+			ls.push('length: ' + comp._data.length);
+		}
+		
+		comp._contentDiv.html(ls.join('\n'));
+	}
 	else if (comp._display == 'gui')
 	{
-		initText = '';
-		
 		comp._contentDiv.append($('<hr />'));
 		
 		var datagui = new dat.GUI({autoPlace:false, width:"100%"});
@@ -153,7 +164,18 @@ Data.prototype._add = function() {
 		for (var key in comp._data)
 		{
 			var control = datagui.add(comp._data, key);
-			control.onChange(function(value) { comp._runAfterChange(); });
+			var type = Object.prototype.toString.call(comp._data[key]);
+			
+			if (type == '[object String]')
+			{
+				// if the string has to be parsed (like in rgb() strings),
+				// then intermediate values often make no sense and throw errors
+				control.onFinishChange(function(value) { comp._runAfterChange(); });
+			}
+			else
+			{
+				control.onChange(function(value) { comp._runAfterChange(); });
+			}
 		}
 		
 		comp._contentDiv.append($(datagui.domElement));
@@ -189,11 +211,11 @@ Data.prototype._refreshDatgui = function() {
 	comp._datguiDiv.html('');
 	
 	var displayOptionDict = {};
-	displayOptionDict.other = ['json','yaml'];
-	displayOptionDict.listOfObjects = ['json','yaml','csv','tsv','pre'];
-	displayOptionDict.listOfLists = ['json','yaml','csv','tsv','pre'];
-	displayOptionDict.list = ['json','yaml','csv','tsv','pre'];
-	displayOptionDict.object = ['json','yaml','gui'];
+	displayOptionDict.other = ['json','yaml','readonly','summary'];
+	displayOptionDict.listOfObjects = ['json','yaml','csv','tsv','readonly','summary'];
+	displayOptionDict.listOfLists = ['json','yaml','csv','tsv','readonly','summary'];
+	displayOptionDict.list = ['json','yaml','csv','tsv','readonly','summary'];
+	displayOptionDict.object = ['json','yaml','gui','readonly','summary'];
 	
 	var displayOptions = displayOptionDict[comp._form];
 	if (Hyperdeck.Preferences.Experimental && Hyperdeck.Preferences.Experimental.enableGrid) { displayOptions.push('grid'); }
@@ -595,7 +617,7 @@ function DisplayAsPre(comp) {
 		for (var k = 0; k < comp._headers.length; k++)
 		{
 			var key = comp._headers[k];
-			l.push(key + '\t' + comp._data[key]);
+			l.push(key + ': ' + comp._data[key]);
 		}
 	}
 	else if (comp._form == 'list')
@@ -607,7 +629,7 @@ function DisplayAsPre(comp) {
 	}
 	else
 	{
-		throw new Error();
+		l = [JSON.stringify(comp._data)];
 	}
 	
 	return '<pre>' + l.join('\n') + '</pre>';
