@@ -133,12 +133,12 @@ TEMPLATES = [
 MIDDLEWARE_CLASSES = (
     'subdomains.middleware.SubdomainMiddleware',
     'subdomains.middleware.SubdomainURLRoutingMiddleware',
+    'django.middleware.security.SecurityMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.security.SecurityMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
@@ -269,6 +269,7 @@ else:
 REMOVE_WWW_FROM_DOMAIN = False
 
 # subdomain settings
+DEFAULT_URL_SCHEME = 'https'
 SUBDOMAINS = {
     'main': 'www',
     'sandbox': 'sandbox',
