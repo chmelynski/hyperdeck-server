@@ -298,6 +298,9 @@ SUBDOMAIN_URLCONFS = {
     SUBDOMAINS['sandbox']: 'mysite.urls',
 } 
 
+if production: 
+    print "production: {}".format(production)
+
 SECURE_SSL_REDIRECT = (production == 'TRUE')
 SESSION_COOKIE_SECURE = (production == 'TRUE')
 CSRF_COOKIE_SECURE = (production == 'TRUE')
