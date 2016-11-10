@@ -306,6 +306,9 @@ CSRF_COOKIE_SECURE = (production == 'TRUE')
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_REDIRECT_EXEMPT = '^notify/'
 
+if SECURE_HSTS_INCLUDE_SUBDOMAINS and SECURE_SSL_REDIRECT:
+    print "production sanity"
+
 # session is cross-subdomain unless that's too insecure
 SESSION_COOKIE_DOMAIN = ".hyperdeck.io"
 SESSION_COOKIE_NAME = SUBDOMAINS['main'] + 'sessionid'
