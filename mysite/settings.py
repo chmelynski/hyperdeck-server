@@ -131,9 +131,9 @@ TEMPLATES = [
 ]
 
 MIDDLEWARE_CLASSES = (
+    'django.middleware.security.SecurityMiddleware',
     'subdomains.middleware.SubdomainMiddleware',
     'subdomains.middleware.SubdomainURLRoutingMiddleware',
-    'django.middleware.security.SecurityMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
