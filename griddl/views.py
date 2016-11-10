@@ -280,13 +280,14 @@ def directory(request, userid, path=None):
             if wb.owner != request.user.account:
                 wb.owner = request.user.account
                 wb.public = False
-                wb.pk = None # copy wb if non-owner tries to save
+                wb.pk = None  # copy wb if non-owner tries to save
                 wb.name = getNonduplicateName(account=request.user.account, name=wb.name)
+                wb.parent = None
             wb.text = data['text']
             wb.size = len(wb.text)
-            wb.save() # the first save sets a new pk, if called for
+            wb.save()  # the first save sets a new pk, if called for
             s3put(wb)
-            wb.save() # the second save saves the blanked textfield (if the s3put worked)
+            wb.save()  # the second save saves the blanked textfield (if the s3put worked)
             del(request.session['save'])
             
     if 'saveas' in request.session:
@@ -296,12 +297,13 @@ def directory(request, userid, path=None):
             wb.owner = request.user.account
             wb.public = False
             wb.pk = None
+            wb.parent = None  # TODO: revisit & add check for existing users
             wb.name = getNonduplicateName(account=request.user.account, name=data['name'])
             wb.text = data['text']
             wb.size = len(wb.text)
-            wb.save() # the first save sets a new pk
+            wb.save()  # the first save sets a new pk
             s3put(wb)
-            wb.save() # the second save saves the blanked textfield (if the s3put worked)
+            wb.save()  # the second save saves the blanked textfield (if the s3put worked)
             del(request.session['saveas'])
 
     try:
