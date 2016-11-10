@@ -298,9 +298,8 @@ SUBDOMAIN_URLCONFS = {
     SUBDOMAINS['sandbox']: 'mysite.urls',
 } 
 
-if production: 
-    print "production: {}".format(production)
-
+SECURE_HSTS_SECONDS = 3153600
+SECURE_HSTS_INCLUDE_SUBDOMAINS = (production == 'TRUE')
 SECURE_SSL_REDIRECT = (production == 'TRUE')
 SESSION_COOKIE_SECURE = (production == 'TRUE')
 CSRF_COOKIE_SECURE = (production == 'TRUE')
