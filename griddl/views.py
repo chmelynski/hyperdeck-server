@@ -432,7 +432,7 @@ def save(request):
                 your copy of the workbook "%s"' %
                 wb.name
                 )
-            return JsonResponse({'success':True, 'redirect': '/signup'})
+            return JsonResponse({'success':True, 'redirect': '/register'})
         except MaxWorkbookSizeError as e:
             msg = e.message
             return JsonResponse({'success': False, 'message': msg})
