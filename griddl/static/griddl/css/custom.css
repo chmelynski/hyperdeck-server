@@ -36,12 +36,39 @@ body.framed > .container-fluid {
   vertical-align: middle;
 }
 
-tr.workbook:hover { background-color:rgb(240,240,240) !important; }
-tr.workbook:hover td { background-color:rgba(0,0,0,0) !important; }
+#floatbar {
+  width: 100%;
+  background-color: white;
+  position: relative;
+  display: inline-block;
+}
+
+#floatbar > div.inner {
+  display: inline-block;
+  border: 0px solid black;
+  float: left;
+  margin: 1em;
+}
+
+div.table-wrapper {
+  position: relative;
+}
+
+div.table-scroll {
+  overflow: auto;
+  margin-top: 3em;
+  height: 83vh;
+}
+
+thead.directory {
+  position: absolute;
+  width: 100%;
+  top: -3em;
+  background-color: #f9f9f9;
+  z-index: 2;
+}
 tr.selected { background-color:rgb(220,220,255) !important; }
 tr.selected td { background-color:rgba(0,0,0,0) !important; }
-tr.selected:hover { background-color:rgb(220,220,255) !important; }
-tr.selected:hover td { background-color:rgba(0,0,0,0) !important; }
 
 button + button,
 a.button + a.button {
