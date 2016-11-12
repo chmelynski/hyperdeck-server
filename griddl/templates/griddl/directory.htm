@@ -7,9 +7,27 @@
   <script type='text/javascript' src="{% static 'griddl/js/directory.js' %}"></script>
 {% endblock %}
 
+{% comment %}remove the styles block{% endcomment %}
+{% block styles %}		
+  {{ block.super }}		
+  <style type="text/css">		
+    table {		
+      margin-top: 5em;		
+    }		
+  </style>		
+{% endblock %}
+
 {% block body %}
+
+  {% comment %}
   <div id="floatbar">
     <div class="inner clear">
+  {% endcomment %}
+      
+   {% comment %}remove these next two lines{% endcomment %}   
+   <div id="floatbar" style="position: fixed; top: 4em; display:inline;">
+     <div style="display:inline-block; border:0px solid black; float:left; margin:1em;">
+       
       <a style="margin-right:1em;" class="btn btn-default" {{ parentdir|yesno:',disabled' }} href="{{ parentdir }}">
         <i class="fa fa-level-up fa-flip-horizontal fa-2x" style="vertical-align: middle;"></i>
         &nbsp;Up
@@ -47,19 +65,26 @@
   </div>
 
 
-  <div class='table-wrapper'>
-  <div class='table-scroll'>
-  <table class='table table-striped table-hover'>
-    <thead class='directory'>
+  {% comment %}<div class='table-wrapper'>{% endcomment %}
+  {% comment %}<div class='table-scroll'>{% endcomment %}
+  <table class='table table-striped{% comment %} table-hover{% endcomment %}'>
+    {% comment %}<thead class='directory'>{% endcomment %}
       <tr style="height:3em;">
+        {% comment %}
         <th style="width:4.5em;"></th>
         <th style="width:21.5em;">Name</th>
         <th style="width:11.5em;">Size</th>
         <th style="width:22.5em;">Modified</th>
         <th style="width:7em;">Public?</th>
+        {% endcomment %}
+        <th style="width:3em;"></th>
+        <th style="width:20em;">Name</th>
+        <th style="width:10em;">Size</th>
+        <th style="width:20em;">Modified</th>
+        <th style="width:3em;">Public?</th>
       </tr>
-    </thead>
-    <tbody class='directory'>
+    {% comment %}</thead>{% endcomment %}
+    {% comment %}<tbody class='directory'>{% endcomment %}
     {% for workbook in workbooks %}
       <tr class="workbook" id="wb{{ workbook.pk }}" data-pk="{{ workbook.pk }}">
         <td><span class="fa fa-{% if workbook.filetype == 'F' %}file-o{% else %}folder-o{% endif %}"></span></td>
@@ -92,10 +117,10 @@
         </td>
       </tr>
     {% endfor %}
-    </tbody>
+    {% comment %}</tbody>{% endcomment %}
   </table>
-  </div>
-  </div>
+  {% comment %}</div>{% endcomment %}
+  {% comment %}</div>{% endcomment %}
 
 {% endblock %}
 
