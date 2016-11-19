@@ -261,7 +261,7 @@ MESSAGE_STORAGE = 'stored_messages.storage.PersistentStorage'
 EMAIL_BACKEND = 'postmark.django_backend.EmailBackend'
 POSTMARK_SENDER = 'admin@hyperdeck.io'
 DEFAULT_FROM_EMAIL = 'admin@hyperdeck.io' # password reset uses this, not sure who reads POSTMARK_SENDER
-if noahDev or herokuDev:  # don't waste our free emails on dev
+if noahDev:
     POSTMARK_TEST_MODE = True
 else:
     POSTMARK_API_KEY = os.getenv("POSTMARK_API_KEY", False)

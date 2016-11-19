@@ -36,6 +36,7 @@ urlpatterns = patterns(
     url(r'^lockAccounts$', views.lockAccounts),
     url(r'^stats$', views.stats),
     url(r'^backup$', views.backup),
+    url(r'^emailTest$', views.emailTest),
     
     url(r'^f/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ _%]*)/(?P<slug>[A-Za-z0-9-/ _%]*)$', views.workbook),
     url(r'^d/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ _]*)$', views.directory),

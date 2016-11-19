@@ -16,6 +16,7 @@ from django.shortcuts import render
 from django.template import loader
 from django.contrib import messages
 from django.core.exceptions import ValidationError, PermissionDenied
+from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -929,3 +930,13 @@ def backup(request):
     context = {'text':"\n".join(ls)}
     return render(request, 'griddl/backup.htm', context)
 
+def emailTest(request):
+    if not request.user.is_superuser:
+        return HttpResponse('<h1>Not Found</h1><p>The requested URL /emailTest was not found on this server.</p>')
+    send_mail(
+        'Subject here',
+        'Here is the message.',
+        'adam@hyperdeck.io',
+        ['adam.chmelynski@gmail.com'],
+        fail_silently=False,
+    )
