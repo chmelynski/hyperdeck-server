@@ -126,11 +126,14 @@ Code.prototype._refreshDatgui = function() {
 	
 	var comp = this;
 	
+	var modeOptions = ['default','canvas','htmlgen'];
+	//var modeOptions = ['default','canvas','htmlgen','pdf'];
+	
 	var gui = new dat.GUI({autoPlace:false, width:"100%"});
 	if (comp._type == 'js')
 	{
 		gui.add(comp, 'Run');
-		gui.add(comp, 'mode', ['default','canvas','htmlgen']).onChange(function(value) { comp._markDirty(); });
+		gui.add(comp, 'mode', modeOptions).onChange(function(value) { comp._markDirty(); });
 		gui.add(comp, 'runOnBlur').onChange(function(value) { comp._markDirty(); });
 		gui.add(comp, 'runOnLoad').onChange(function(value) { comp._markDirty(); });
 	}
@@ -159,9 +162,10 @@ Code.prototype._onblur = function() {
 	var comp = this;
 	if (comp._runOnBlur) { comp._exec(); }
 };
-Code.prototype._afterLoad = function() {
+Code.prototype._afterLoad = function(callback) {
 	var comp = this;
 	comp._addOutputElements();
+	callback(comp);
 };
 Code.prototype._afterAllLoaded = function() {
 	var comp = this;
@@ -197,6 +201,13 @@ Code.prototype._exec = function() {
 		else if (comp._mode == 'htmlgen')
 		{
 			$('#' + comp._name).html((new Function('args', comp._text))());
+		}
+		else if (comp._mode == 'pdf')
+		{
+			var ctx = new Hyperdeck.Canvas({});
+			ctx.NewSection(4, 4, 1);
+			$('#' + comp._name).html('')[0].appendChild(ctx.currentSection.div);
+			(new Function('ctx', comp._text))(ctx);
 		}
 		else
 		{

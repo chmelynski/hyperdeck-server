@@ -228,7 +228,15 @@ Data.prototype._refreshDatgui = function() {
 	displayOptionDict.object = ['json','yaml','gui','readonly','summary'];
 	
 	var displayOptions = displayOptionDict[comp._form];
-	if (Hyperdeck.Preferences.Experimental && Hyperdeck.Preferences.Experimental.enableGrid) { displayOptions.push('grid'); }
+	if (Hyperdeck.Preferences.Experimental && Hyperdeck.Preferences.Experimental.enableGrid)
+	{
+		if (displayOptions.indexOf('tsv') > -1)
+		{
+			displayOptions.push('grid');
+			//displayOptions.push('tabulator');
+		}
+	}
+	
 	if (displayOptions.indexOf(comp._display) == -1) { comp._display = 'json'; }
 	
 	var gui = new dat.GUI({autoPlace:false, width:"100%"});
@@ -685,7 +693,7 @@ function DisplayAsTable(comp) {
 	l.push('</table>');
 	return l.join('');
 }
-	
+
 Data.prototype._pushUndo = function(size) {
 	
 	var comp = this;
@@ -1375,7 +1383,7 @@ function WriteSeparatedValues(delimiter) {
 
 var WriteObjToString = function(obj, delimiter) {
 	
-	if (obj === null || obj === undefined) { return ''; }
+	if (obj === null || obj === undefined) { return ((delimiter == null) ? 'null' : ''); }
 	
 	var type = Object.prototype.toString.call(obj);
 	

@@ -1,7 +1,7 @@
 
 var TheCanvas = (function() {
 	
-	if (typeof Hyperdeck == 'undefined') { var Hyperdeck = {}; }
+	//if (typeof Hyperdeck == 'undefined') { var Hyperdeck = {}; }
 	
 	// this is probably obsolete?
 	// when the export button is clicked, it:

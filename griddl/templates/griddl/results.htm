@@ -154,7 +154,7 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
               </li>
               <li>
                 <a onclick="Hyperdeck.AddComponent('txt');">
-                  Plain Text
+                  Plain text
                 </a>
               </li>
               <li>
@@ -164,10 +164,20 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
               </li>
               <li>
                 <a onclick="Hyperdeck.AddComponent('binary');">
-                  Binary File
+                  Binary file
                 </a>
               </li>
-              {% if user.username == 'adam' %}
+              {% if user.is_superuser %}
+              <li>
+                <a onclick="Hyperdeck.AddComponent('libraries');">
+                  External libraries
+                </a>
+              </li>
+              <li>
+                <a onclick="Hyperdeck.AddComponent('link');">
+                  Link to external Hyperdeck workbook
+                </a>
+              </li>
               <li>
                 <a onclick="Hyperdeck.AddComponent('repl');">
                   Javascript REPL
@@ -175,12 +185,7 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
               </li>
               <li>
                 <a onclick="Hyperdeck.AddComponent('snips');">
-                  Javascript Snippets
-                </a>
-              </li>
-              <li>
-                <a onclick="Hyperdeck.AddComponent('link');">
-                  Link
+                  Javascript snippets
                 </a>
               </li>
               {% endif %}
@@ -196,12 +201,12 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
             <ul class="dropdown-menu">
               <li>
                 <a onclick="Hyperdeck.Export()">
-                  Export Workbook
+                  Export workbook
                 </a>
               </li>
               <li>
                 <a onclick="Hyperdeck.ExportHtml()">
-                  Export Document as Html
+                  Export document as HTML
                 </a>
               </li>
               {% comment %}or user.account.plan.pk == 4 - but then we need to limit the licence to 1 user per account{% endcomment %}
@@ -219,19 +224,21 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
               </li>
               <li>
                 <a onclick="Hyperdeck.ShowAll()">
-                  Show All
+                  Show all
                 </a>
               </li>
               <li>
                 <a onclick="Hyperdeck.HideAll()">
-                  Hide All
+                  Hide all
                 </a>
               </li>
+              {% if user.is_superuser %}
               <li>
                 <a onclick="Hyperdeck.RestoreObj()">
-                  Restore Deleted
+                  Restore deleted
                 </a>
               </li>
+              {% endif %}
             </ul>
         </div>
         

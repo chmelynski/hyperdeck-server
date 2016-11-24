@@ -3,6 +3,7 @@
 <title>Hyperdeck Local</title>
 <link rel='stylesheet' type='text/css' href='css/codemirror-5.0.css' />
 <link rel='stylesheet' type='text/css' href='js/lib/fold/foldgutter.css' />
+<link rel='stylesheet' type='text/css' href='https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css'>
 <style>
 
 .main { margin : 1em ; margin-bottom : 3em }
@@ -20,7 +21,8 @@ canvas { border : 1px solid gray }
 </head>
 <body>
 <script src='js/lib/jquery-1.10.2.min.js'></script>
-<script src='js/lib/jquery-ui.sortable.min.js'></script>
+<script src='js/lib/jquery-ui.min.js'></script>
+<!-- <script src='js/lib/jquery-ui.sortable.min.js'></script> -->
 <script src='js/lib/codemirror-5.0.js'></script>
 <script src='js/lib/codemirror-5.0-javascript.js'></script>
 <script src='js/lib/codemirror-5.0-css.js'></script>
@@ -40,8 +42,8 @@ canvas { border : 1px solid gray }
 <script src='js/lib/js-yaml.min.js'></script>
 <script src='js/lib/jquery.csv.min.js'></script>
 
-<script src="js/lib/jszip.js"></script> <!-- older version, still supports sync -->
-<!-- <script src="js/lib/jszip.min.js"></script> --> <!-- version 3.0, mandates async -->
+<script src='js/lib/jszip.js'></script> <!-- older version, still supports sync -->
+<!-- <script src='js/lib/jszip.min.js'></script> --> <!-- version 3.0, mandates async -->
 
 <!--
 <script src='js/hyperdeck.min.js'></script>
@@ -52,12 +54,14 @@ canvas { border : 1px solid gray }
 <script src='js/components/data.js'></script>
 <script src='js/components/file.js'></script>
 <script src='js/components/repl.js'></script>
+<script src='js/components/libraries.js'></script>
 
 <script src='js/polyfills.js'></script>
 <script src='js/import.js'></script>
 
 <script src='js/widgets/box.js'></script>
 <script src='js/widgets/grid.js'></script>
+<script src='js/widgets/canvas.js'></script>
 
 <script>
 Hyperdeck.Preferences = {};
@@ -129,6 +133,7 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
 <option>zip</option>
 <option>repl</option>
 <option>snips</option>
+<option>libraries</option>
 </select>
 
 <div id='cells'></div>

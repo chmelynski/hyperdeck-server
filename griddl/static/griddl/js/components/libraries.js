@@ -1,205 +1,155 @@
 
 (function() {
 
-// note that removing a url or file does not actually remove the element from this.data.urls or this.data.files, it just sets the element to the empty string
-// therefore subsequent additions of urls or files will have indices assigned inclusive of "deleted" list elements
-// this is pretty unavoidable, because the script tags have id's corresponding to their index, and we don't want to go around changing id's when a lower-indexed element is deleted
-// we remove empty list entries before write so that everything is cleaned up for the next load
-
-var Libraries = function(json) {
-	
-	// maybe check to see if there's a Libraries already in Hyperdeck.Components.objs - if so, throw an alert or something - no need for duplicate Libraries
+var Libraries = function(json, type, name) {
 	
 	if (!json)
 	{
 		json = {};
-		json.type = 'libraries';
-		json.name = Hyperdeck.Components.UniqueName('libraries', 1);
+		json.type = type;
+		json.name = name;
 		json.visible = true;
 		json.data = {};
-		json.data.curated = {};
-		json.data.curated.mathjax = false;
-		json.data.curated.threejs = false;
-		json.data.curated.d3 = false;
-		json.data.curated.chartjs = false;
-		json.data.curated.numeric = false;
-		json.data.urls = [];
-		json.data.files = {};
+		json.data.urls = [''];
+		//json.data.files = []; // { filename : string , text : string }
 	}
 	
-	this.type = json.type;
-	this.name = json.name;
-	this.visible = json.visible;
+	this._type = json.type;
+	this._name = json.name;
+	this._visible = json.visible;
 	
-	this.div = null;
+	this._div = null;
+	this._outputDiv = null;
 	
-	this.data = json.data;
+	this._data = json.data;
 	
-	this.urlFolder = null;
-	this.fileFolder = null;
+	this._sentinel = null;
 	
-	this.urlmap = {};
-	this.urlmap.mathjax = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.6.1/mathjax.js?config=TeX-AMS_SVG.js';
-	this.urlmap.threejs = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r77/three.min.js';
-	this.urlmap.d3 = 'https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js';
-	this.urlmap.chartjs = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.1.4/Chart.min.js';
-	this.urlmap.numeric = 'https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js';
+	// https://cdnjs.cloudflare.com/ajax/libs/three.js/r77/three.min.js
+	// https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js
+	// https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.1.4/Chart.min.js
+	// https://cdnjs.cloudflare.com/ajax/libs/numeric/1.2.6/numeric.min.js
 };
-Libraries.prototype.add = function() {
+Libraries.prototype._add = function() { };
+Libraries.prototype._afterLoad = function(callback) {
 	
 	var comp = this;
 	
-	this.div.html('');
+	comp._outputDiv = $('<div id="' + comp._name + '"></div>').appendTo($('#output'));
 	
-	var gui = new dat.GUI({autoPlace:false, width:"100%"});
+	var numberToLoad = comp._data.urls.length;
+	var numberLoaded = 0;
 	
-	var curated = gui.addFolder('curated');
-	for (var key in this.data.curated)
-	{
-		var control = curated.add(this.data.curated, key);
+	// it is difficult to keep the url, script, icon, and row all together
+	// we've managed to do it purely with closures, but we needed to implement a sentinel-based doubly-linked list to hold the urls
+	// the key thing is the ability to call LinkedList.remove() - javascript arrays require an index, and tracking the index through deletions is too hard
+	comp._sentinel = new LinkedList();
+	
+	var rows = $('<div></div>').appendTo(comp._div);
+	
+	function AppendRow(url) {
 		
-		control.onFinishChange(function(value) {
-			
-			if (value)
-			{
-				$('body').append($('<script id="' + this.property + '" src="' + comp.urlmap[this.property] + '"></script>'));
-			}
-			else
-			{
-				$('#' + this.property).remove();
-			}
-		});
-	}
-	
-	// custom urls can be deleted just by deleting the string - maybe remove the control automatically on blur?
-	this.urlFolder = gui.addFolder('urls');
-	this.urlFolder.add(this, 'addUrl');
-	for (var i = 0; i < this.data.urls.length; i++)
-	{
-		var control = this.urlFolder.add(this.data.urls, i);
+		comp._markDirty();
 		
-		control.onFinishChange(function(value) {
-			
-			$('#url' + this.property).remove();
-			
-			if (value)
-			{
-				$('body').append($('<script id="url' + this.property + '" src="' + comp.data.urls[this.property] + '"></script>'));
-			}
-			else
-			{
-				this.remove();
-			}
+		var listElement = comp._sentinel._add(url);
+		
+		var row = $('<div style="margin:0.2em"></div>').appendTo(rows);
+		
+		$('<button class="btn btn-default btn-sm"><i class="fa fa-lg fa-trash-o"></i></button>').appendTo(row).on('click', function() {
+			comp._markDirty();
+			listElement._remove();
+			row.remove();
 		});
+		
+		$('<input class="input-sm" style="width:80%;margin:0.2em" value="'+url+'"></input>').appendTo(row).on('change', function() {
+			comp._markDirty();
+			icon.removeClass('fa-check').removeClass('fa-times').addClass('fa-hourglass').css('color', 'orange');
+			//script.attr('src', url); // this triggers on load
+			listElement._data = this.value;
+			LoadScript(this.value);
+		});
+		
+		var icon = $('<span class="fa fa-hourglass" style="color:orange"></span>').appendTo(row);
+		
+		function LoadScript(url) {
+			
+			if (url.length == 0)
+			{
+				numberLoaded++;
+				if (numberLoaded == numberToLoad) { numberToLoad = 0; callback(comp); }
+				return;
+			}
+			
+			$.getScript(url).done(function(script, textStatus) {
+				icon.removeClass('fa-hourglass').addClass('fa-check').css('color', 'green');
+			}).fail(function(jqxhr, settings, exception) {
+				icon.removeClass('fa-hourglass').addClass('fa-times').css('color', 'red');
+				console.log('Error: "' + url + '" failed to load');
+			}).always(function() {
+				numberLoaded++;
+				if (numberLoaded == numberToLoad) { numberToLoad = 0; callback(comp); }
+			});
+		}
+		
+		LoadScript(url);
 	}
 	
-	// we could delete if string is deleted or i guess we need a delete button for these - so we need one folder per file and a delete button on each
-	this.fileFolder = gui.addFolder('files');
-	this.fileFolder.add(this, 'addFile');
-	for (var key in this.data.files)
-	{
-		this.doAddFile(this.data.files[key], key);
-	}
+	comp._data.urls.forEach(function(url) { AppendRow(url); });
 	
-	this.div[0].appendChild(gui.domElement);
+	var plusButtonDiv = $('<div style="margin:0.2em"></div>').appendTo(comp._div);
+	$('<button class="btn btn-default btn-sm"><i class="fa fa-plus"></i></button>')
+		.appendTo(plusButtonDiv).on('click', function() { AppendRow(''); });
+	
+	//for (var key in comp._data.files) { comp._doAddFile(comp._data.files[key], key); }
+	//for (var key in comp._data.files) { comp._outputDiv.append($('<script></script>').text(comp._data.files[key])); }
 };
-Libraries.prototype.addUrl = function() {
+Libraries.prototype._write = function() {
 	
 	var comp = this;
 	
-	this.data.urls.push('');
-	var control = this.urlFolder.add(this.data.urls, this.data.urls.length - 1);
-	
-	control.onFinishChange(function(value) {
-		
-		$('#url' + this.property).remove();
-		
-		if (value)
-		{
-			$('body').append($('<script id="url' + this.property + '" src="' + comp.data.urls[this.property] + '"></script>'));
-		}
-		else
-		{
-			this.remove();
-		}
-	});
+	var json = {};
+	json.type = comp._type;
+	json.name = comp._name;
+	json.visible = comp._visible;
+	json.data = {};
+	json.data.urls = comp._sentinel._enumerate();
+	return json;
 };
-Libraries.prototype.addFile = function() {
+
+// this stuff to be put on ice until urls work
+Libraries.prototype._addFile = function() {
 	
 	var comp = this;
 	
 	var filename = null;
 	
-	var fileChooser = $(document.createElement('input'));
-	fileChooser.attr('type', 'file');
-	
-	fileChooser.on('change', function() {
+	var fileChooser = $('<input type="file"><input>').on('change', function() {
 		
 		var fileReader = new FileReader();
 		
 		fileReader.onload = function(event)
 		{
 			var text = event.target.result;
-			var id = Hyperdeck.Components.UniqueElementId();
-			comp.doAddFile(text, filename, id);
-			$('body').append($('<script id="' + id + '"></script>').text(text)); // jQuery encodes the text
+			//var id = Hyperdeck.Components.UniqueElementId();
+			//comp._doAddFile(text, filename, id);
+			comp._outputDiv.append($('<script></script>').text(text));
 		};
 		
-		if (fileChooser[0].files.length > 0)
+		if (this.files.length > 0)
 		{
-			var f = fileChooser[0].files[0];
+			var f = this.files[0];
 			filename = f.name; // scrub filename of non-alphanum characters?
 			fileReader.readAsText(f);
 		}
-	});
-	
-	fileChooser.click();
+	}).click();
 };
-Libraries.prototype.afterLoad = function() {
-	
-	// we need to remember the ids somehow so as to remove them properly
-	// although honestly, removing the script tag doesn't actually do anything.  the names stay in the namespace
-	
-	for (var key in this.data.curated)
-	{
-		if (this.data.curated[key])
-		{
-			var id = Hyperdeck.Components.UniqueElementId();
-			$('body').append($('<script id="' + id + '" src="' + this.urlmap[key] + '"></script>'));
-		}
-	}
-	
-	for (var i = 0; i < this.data.urls.length; i++)
-	{
-		var id = Hyperdeck.Components.UniqueElementId();
-		$('body').append($('<script id="' + id + '" src="' + this.data.urls[i] + '"></script>'));
-	}
-	
-	for (var key in this.data.files)
-	{
-		var id = Hyperdeck.Components.UniqueElementId();
-		$('body').append($('<script id="' + id + '"></script>').text(this.data.files[key])); // jQuery encodes the text
-	}
-};
-Libraries.prototype.write = function() {
-	
-	this.data.urls = this.data.urls.filter(x => x.length > 0);
-	
-	var json = {};
-	json.type = this.type;
-	json.name = this.name;
-	json.visible = this.visible;
-	json.data = this.data;
-	return json;
-};
-
-Libraries.prototype.doAddFile = function(text, filename, id) {
+Libraries.prototype._doAddFile = function(text, filename, id) {
 	
 	var comp = this;
 	
-	this.data.files[filename] = text;
+	comp._data.files[filename] = text;
 	
-	var folder = this.fileFolder.addFolder(filename);
+	var folder = comp._fileFolder.addFolder(filename);
 	
 	var fnobj = {};
 	fnobj.download = function() { 
@@ -209,13 +159,10 @@ Libraries.prototype.doAddFile = function(text, filename, id) {
 		a.click();
 	};
 	fnobj.delete = function() {
-		delete comp.data.files[filename];
+		delete comp._data.files[filename];
 		$('#' + id).remove();
 		
-		comp.add(); // this destroys id info which was generated when the script tag was created and is stored here as a closure
-		
-		//folder.remove(); // this doesn't work - we could investigate how to remove a dat.gui folder
-		
+		comp._add(); // this destroys id info which was generated when the script tag was created and is stored here as a closure
 		// but for now, just remove the buttons
 		//this.downloadButton.remove();
 		//this.deleteButton.remove();
@@ -223,6 +170,47 @@ Libraries.prototype.doAddFile = function(text, filename, id) {
 	
 	fnobj.downloadButton = folder.add(fnobj, 'download');
 	fnobj.deleteButton = folder.add(fnobj, 'delete');
+};
+
+var LinkedList = function() {
+	this._data = null;
+	this._prev = this;
+	this._next = this;
+};
+LinkedList.prototype._add = function(data) {
+	
+	// this must be called on the sentinel
+	
+	var elt = new LinkedList();
+	elt._data = data;
+	elt._next = this;
+	elt._prev = this._prev;
+	
+	if (this._next === this) { this._next = elt; } else { this._prev._next = elt; }
+	this._prev = elt;
+	
+	return elt;
+};
+LinkedList.prototype._remove = function() {
+	
+	// this cannot be called on the sentinel
+	this._prev._next = this._next;
+	this._next._prev = this._prev;
+};
+LinkedList.prototype._enumerate = function() {
+	
+	// this must be called on the sentinel
+	
+	var list = [];
+	var elt = this._next;
+	
+	while (elt !== this)
+	{
+		list.push(elt._data);
+		elt = elt._next;
+	}
+	
+	return list;
 };
 
 Hyperdeck.Components.libraries = Libraries;

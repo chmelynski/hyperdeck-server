@@ -90,8 +90,16 @@ var Main = function(text) {
 	$('#cells').html('');
 	
 	comps = [];
+	toLoad = jsons.length;
 	jsons.forEach(function(json) { NewComponent(json, json.type); }); // NewComponent calls _afterLoad
-	comps.forEach(function(comp) { if (comp._afterAllLoaded) { comp._afterAllLoaded(); } });
+	
+	// this will be true under the following conditions:
+	// 1. if no components require async processing
+	// 2. if all the AfterLoadCallbacks fire before all the NewComponent calls complete,
+	//    (loaded == toLoad) will be reached during a NewComponent call
+	if (loaded == toLoad) { AfterAllLoaded(); }
+	
+	//comps.forEach(function(comp) { if (comp._afterAllLoaded) { comp._afterAllLoaded(); } });
 	
 	MakeSortable();
 	MarkClean();
@@ -108,10 +116,6 @@ var Main = function(text) {
 			}
 		}
 	});
-	
-	// we already have Code._afterAllLoaded() -> Code.exec() -> MathJax.Hub.Typeset()
-	// but that does not seem to be doing the trick 
-	if (MathJax) { MathJax.Hub.Typeset(); }
 };
 var NewComponent = function(json, type, name) {
 	
@@ -123,8 +127,36 @@ var NewComponent = function(json, type, name) {
 	comp._div.css('border', '1px solid gray');
 	comp._div.css('background-color', 'rgb(230,230,230)');
 	comp._add();
-	if (comp._afterLoad) { comp._afterLoad(); }
+	if (comp._afterLoad) { comp._afterLoad(AfterLoadCallback); } else { loaded++; }
 };
+
+/*
+
+Main calls NewComponent, which calls comp._afterLoad if it exists, and reference counts, sending AfterLoadCallback(comp) as a callback
+AfterLoadCallback checks the reference count and calls AfterAllLoaded if it works
+in most components, afterLoad calls addOutputElements, then makes its ajax calls
+
+*/
+var toLoad = 0;
+var loaded = 0;
+var AfterLoadCallback = function(comp) {
+	
+	loaded++;
+	
+	if (loaded == toLoad)
+	{
+		AfterAllLoaded();
+	}
+};
+var AfterAllLoaded = function() {
+	comps.forEach(function(comp) { if (comp._afterAllLoaded) { comp._afterAllLoaded(); } });
+	toLoad = 0; // this means that subsequent NewComponent calls will not trigger this
+	
+	// MathJax.isReady needs to be set before we call MathJax.Hub.Typeset
+	// i don't know when that happens, but it's not set when we arrive here
+	if (MathJax) { setTimeout(function() { MathJax.Hub.Typeset(); }, 2000); }
+};
+
 var AddComponent = function(type, useLocalCreateComponentDiv) {
 	if (useLocalCreateComponentDiv) { createComponentDivToUse = LocalCreateComponentDiv; }
 	NewComponent(null, type, UniqueName(type, 1));
@@ -228,15 +260,14 @@ var MakeSortable = function() {
 		});
 		
 		$('#output').html('');
-		
-		comps.forEach(function(comp) { if (comp._afterLoad) { comp._afterLoad(); } });
-		comps.forEach(function(comp) { if (comp._afterAllLoaded) { comp._afterAllLoaded(); } });
+		comps.forEach(function(comp) { if (comp._addOutputElements) { comp._addOutputElements(); } });
+		AfterAllLoaded();
 	}});
 };
 
 var LocalCreateComponentDiv = function(parent, comp) {
 	var div = $('<div></div>').appendTo(parent);
-	var headerDiv = $('<div></div>').appendTo(div);
+	var headerDiv = $('<div style="margin:0.3em"></div>').appendTo(div);
 	var clientDiv = $('<div id="' + comp._name + 'Component" class="' + (comp._visible ? '' : 'griddl-component-body-hidden') + '"></div>').appendTo(div);
 	headerDiv.append($('<img src="" class="reorder-handle"></img>').css('cursor', 'move'));
 	headerDiv.append($('<label>' + comp._type + '</label>'));
@@ -424,11 +455,12 @@ var Export = function() {
 };
 var ExportHtml = function() {
 	var filename = $('#workbookName').text();
-	var text = $('#output').html();
+	var text = '<html><head></head><body>' + $('#output').html() + '</body></html>';
 	
 	var downloadLink = document.createElement('a');
-	downloadLink.href = window.URL.createObjectURL(new Blob([text], {type : 'text/plain'}));
-	downloadLink.download = filename + '.htm';
+	downloadLink.target = '_blank';
+	downloadLink.href = window.URL.createObjectURL(new Blob([text], {type : 'text/html'}));
+	//downloadLink.download = filename + '.htm';
 	downloadLink.click();
 };
 
@@ -528,19 +560,19 @@ var ConfirmDelete = function (event) {
 var Show2 = function(comp) {
 	comp._markDirty();
 	comp._add();
-	comp._div.parent().find('i.fa-plus').removeClass('fa-plus').addClass('fa-minus');
+	comp._div.parent().find('.griddl-component-head').find('i.fa-plus').removeClass('fa-plus').addClass('fa-minus');
 	comp._visible = true;
 };
 var Hide2 = function(comp) {
 	comp._markDirty();
 	comp._div.html('');
-	comp._div.parent().find('i.fa-minus').removeClass('fa-minus').addClass('fa-plus');
+	comp._div.parent().find('.griddl-component-head').find('i.fa-minus').removeClass('fa-minus').addClass('fa-plus');
 	comp._visible = false;
 };
 var Show = function(comp) {
 	comp._markDirty();
 	comp._div.removeClass('griddl-component-body-hidden');
-	comp._div.parent().find('i.fa-plus').removeClass('fa-plus').addClass('fa-minus');
+	comp._div.parent().find('.griddl-component-head').find('i.fa-plus').removeClass('fa-plus').addClass('fa-minus');
 	comp._visible = true;
 	
 	// this fixes this bug: when a component containing a codemirror was initially hidden, and then we maximized, the text would not appear
@@ -549,7 +581,7 @@ var Show = function(comp) {
 var Hide = function(comp) {
 	comp._markDirty();
 	comp._div.addClass('griddl-component-body-hidden');
-	comp._div.parent().find('i.fa-minus').removeClass('fa-minus').addClass('fa-plus');
+	comp._div.parent().find('.griddl-component-head').find('i.fa-minus').removeClass('fa-minus').addClass('fa-plus');
 	comp._visible = false;
 };
 

@@ -1,7 +1,7 @@
 
 (function() {
 
-var Font = function(json) {
+var Font = function(json, type, name) {
 	
 	// a font component should display a selection of text rendered using that font
 	// ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789
@@ -11,45 +11,46 @@ var Font = function(json) {
 	if (!json)
 	{
 		json = {};
-		json.type = 'font';
-		json.name = Hyperdeck.Components.UniqueName('font', 1);
+		json.type = type;
+		json.name = name;
 		json.visible = true;
 		json.data = null;
 	}
 	
-	this.type = json.type;
-	this.name = json.name;
-	this.visible = json.visible;
+	this._type = json.type;
+	this._name = json.name;
+	this._visible = json.visible;
 	
-	this.div = null;
+	this._div = null;
 	
-	this.ext = null;
-	this.b64 = null;
-	this.uint8array = null;
-	this.font = null;
+	this._ext = null;
+	this._b64 = null;
+	this._uint8array = null;
+	this._font = null;
 	
-	this.uploadDownload = true;
+	this._uploadDownload = true;
 	
-	this.canvas = null;
+	this._canvas = null;
 	
-	this.load(json.data);
+	this._load(json.data);
 };
-Font.prototype.datauri = function() {
-	return this.b64;
+Font.prototype._setExt = function(ext) { var comp = this; comp._ext = ext; };
+Font.prototype._setArrayBuffer = function(arrayBuffer) {
+	
+	var comp = this;
+	
+	comp._uint8array = new Uint8Array(arrayBuffer); // this probably isn't necessary - do we even use the uint8array anywhere?
+	comp._b64 = 'data:font/otf;base64,' + Uint8ArrayToBase64String(comp._uint8array); // this *is* necessary, though, because we need the b64 to write to file
+	comp._font = opentype.parse(arrayBuffer);
+	
+	Hyperdeck.Canvas.fontDict[comp._name] = comp._font;
+	Hyperdeck.Canvas.fontNameToUint8Array[comp._name] = comp._uint8array;
+	
+	comp._refresh();
 };
-Font.prototype.setExt = function(ext) { this.ext = ext; };
-Font.prototype.setArrayBuffer = function(arrayBuffer) {
+Font.prototype._load = function(b64) {
 	
-	this.uint8array = new Uint8Array(arrayBuffer); // this probably isn't necessary - do we even use the uint8array anywhere?
-	this.b64 = 'data:font/otf;base64,' + Uint8ArrayToBase64String(this.uint8array); // this *is* necessary, though, because we need the b64 to write to file
-	this.font = opentype.parse(arrayBuffer);
-	
-	Hyperdeck.Canvas.fontDict[this.name] = this.font;
-	Hyperdeck.Canvas.fontNameToUint8Array[this.name] = this.uint8array;
-	
-	this.refresh();
-};
-Font.prototype.load = function(b64) {
+	var comp = this;
 	
 	// new -> constructor -> load -> setData
 	// init -> constructor -> load -> setData
@@ -57,52 +58,54 @@ Font.prototype.load = function(b64) {
 	
 	if (!b64) { return; } // a newly-created Font object has no default
 	
-	this.b64 = b64;
+	comp._b64 = b64;
 	
 	// data:font/ttf;base64, or data:font/otf;base64,
-	var slashIndex = this.b64.indexOf('/');
-	var semicolonIndex = this.b64.indexOf(';');
-	var commaIndex = this.b64.indexOf(',');
-	var prefix = this.b64.substr(0, commaIndex);
+	var slashIndex = comp._b64.indexOf('/');
+	var semicolonIndex = comp._b64.indexOf(';');
+	var commaIndex = comp._b64.indexOf(',');
+	var prefix = comp._b64.substr(0, commaIndex);
 	var type = prefix.substring(slashIndex + 1, semicolonIndex);
-	var data = this.b64.substr(commaIndex);
+	var data = comp._b64.substr(commaIndex);
 	
-	this.ext = '.' + type;
+	comp._ext = '.' + type;
 	
-	this.uint8array = Base64StringToUint8Array(data);
-	this.font = opentype.parse(this.uint8array.buffer);
+	comp._uint8array = Base64StringToUint8Array(data);
+	comp._font = opentype.parse(comp._uint8array.buffer);
 	
-	Hyperdeck.Canvas.fontDict[this.name] = this.font;
-	Hyperdeck.Canvas.fontNameToUint8Array[this.name] = this.uint8array;
+	Hyperdeck.Canvas.fontDict[comp._name] = comp._font;
+	Hyperdeck.Canvas.fontNameToUint8Array[comp._name] = comp._uint8array;
 };
-Font.prototype.refresh = function() {
+Font.prototype._refresh = function() {
 	
-	if (this.font)
+	var comp = this;
+	
+	if (comp._font)
 	{
 		var size = 24;
-		var ctx = this.canvas.getContext('2d');
-		this.font.draw(ctx, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 20, 30, size);
-		this.font.draw(ctx, 'abcdefghijklmnopqrstuvwxyz', 20, 60, size);
-		this.font.draw(ctx, '01234567890', 20, 90, size);
-		//this.font.draw(ctx, '!@#$%^&*()', 20, 120, size);
+		var ctx = comp._canvas.getContext('2d');
+		comp._font.draw(ctx, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 20, 30, size);
+		comp._font.draw(ctx, 'abcdefghijklmnopqrstuvwxyz', 20, 60, size);
+		comp._font.draw(ctx, '01234567890', 20, 90, size);
+		//comp._font.draw(ctx, '!@#$%^&*()', 20, 120, size);
 	}
 };
-Font.prototype.write = function() {
-	//return '@' + this.type + ' ' + this.name + ' ' + this.display + '\n' + this.b64 + '\n@end\n';
+Font.prototype._write = function() {
+	
+	var comp = this;
 	
 	var json = {};
-	
-	json.type = this.type;
-	json.name = this.name;
-	json.visible = this.visible;
-	
-	json.data = this.b64;
-	
+	json.type = comp._type;
+	json.name = comp._name;
+	json.visible = comp._visible;
+	json.data = comp._b64;
 	return json;
 };
-Font.prototype.add = function() {
+Font.prototype._add = function() {
 	
-	this.div = CreateComponentDiv($('#cells'), this);
+	var comp = this;
+	
+	comp._div = CreateComponentDiv($('#cells'), comp);
 	
 	var canvas = $(document.createElement('canvas'));
 	//canvas.css('width', '30em');
@@ -112,17 +115,17 @@ Font.prototype.add = function() {
 	//canvas.css('width', '320px');
 	//canvas.css('height', '160px');
 	//canvas.css('border', '1px solid gray');
-	//this.div.append(canvas);
+	//comp._div.append(canvas);
 	
 	var canvas = document.createElement('canvas');
 	canvas.width = $('#cells').width() - 30; // 14px *2 for margins, 1px *2 for border
 	canvas.height = 160 * 1.4;
 	canvas.style.border = '1px solid gray';
-	this.div[0].appendChild(canvas);
+	comp._div[0].appendChild(canvas);
 	
-	this.canvas = canvas;
+	comp._canvas = canvas;
 	
-	this.refresh();
+	comp._refresh();
 };
 
 Hyperdeck.Components.font = Font;
