@@ -456,6 +456,7 @@ def saveas(request):
             wb.text = request.POST.get('text')
             wb.size = len(wb.text)
             wb.public = False  # for now, don't copy public status
+            wb.parent = None
             wb.pk = None
             if wb.size > MAX_WORKBOOK_SIZE:
                 raise MaxWorkbookSizeError()
