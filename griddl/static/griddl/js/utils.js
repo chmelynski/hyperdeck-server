@@ -2,7 +2,7 @@ $.extend({
   alert: function(message, type) {
     var type = typeof type !== 'undefined' ? type : 'danger';
     template = "<div class='alert alert-{type}'><button class='close' data-dismiss='alert'>&times;</button><p>{msg}</p></div>";
-    $('.header').append(template.replace(/\{type\}/, type).replace(/\{msg\}/, message));
+    return $(template.replace(/\{type\}/, type).replace(/\{msg\}/, message)).appendTo('.header');
   }
 });
 
