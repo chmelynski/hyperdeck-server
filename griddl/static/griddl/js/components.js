@@ -651,6 +651,10 @@ $(document).ready(function() {
     parent.postMessage({'action': 'nav', 'uri': event.currentTarget.pathname}, playground);
   });
 
+  $("#s3Button").on('click', function(event) {
+    parent.postMessage({'action': 's3_upload', text: SaveToText(true)}, playground);
+  });
+
   $('#saveMenuButton').on('click', function(event) {
 	if (ciphertext !== null) { $.alert('Must decrypt before saving.', 'danger'); return; }
     save().done(function(success) {

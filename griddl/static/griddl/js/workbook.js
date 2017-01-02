@@ -47,6 +47,9 @@ function receiveMessage(event) {
       case 'link':
         window.open(data.href, '_blank');
         break;
+      case 's3_upload':
+        getSignedRequest(data.text, window.location.pathname);
+        break;
       default:
         jslog('problem in playground: ', data);
     }
@@ -99,27 +102,24 @@ function save_passthru(payload) {
          );
 }
 
-
 function getSignedRequest(text, filename) {
-	
   // filename needs to have a 'workbooks/' prefix
-  
+  if (filename.indexOf('workbooks/' !== 0)) {
+    filename = filename.replace(/\//g, ".");  // was hoping the error was to do with s3 directory structure
+    filename = 'workbooks/' + filename;
+  }
 	var xhr = new XMLHttpRequest();
 	xhr.open('GET', '/sign_s3?file_name=' + filename + '&file_type=text/plain');
 	
 	xhr.onreadystatechange = function() {
 		
-		if (xhr.readyState === 4)
-		{
-			if (xhr.status === 200)
-			{
+		if (xhr.readyState === 4) {
+			if (xhr.status === 200) {
 				console.log(xhr.responseText);
 				var response = JSON.parse(xhr.responseText);
-        			var blob = new Blob([text], {type:'text/plain'});
+        var blob = new Blob([text], {type:'text/plain'});
 				uploadFile(blob, response);
-			}
-			else
-			{
+			} else {
 				console.log(xhr.responseText);
 			}
 		}
@@ -127,6 +127,7 @@ function getSignedRequest(text, filename) {
 	
 	xhr.send();
 }
+
 function uploadFile(blob, s3Data) {
 	
 	// presigned_post = s3.generate_presigned_post(
@@ -149,10 +150,11 @@ function uploadFile(blob, s3Data) {
 	xhr.open('POST', s3Data.url);
 	
 	var postData = new FormData();
-	for (key in s3Data.data) { postData.append(key, s3Data.data[key]); }
+  fields = s3Data.data.fields;
+	for (key in fields) { postData.append(key, fields[key]); }
 	postData.append('file', blob);
 	
-	xhr.onreadystatechange = function() {
+  xhr.onreadystatechange = function() {
 		
 		if (xhr.readyState === 4)
 		{

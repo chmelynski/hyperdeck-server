@@ -722,6 +722,7 @@ def versions(request, userid, path, slug):
         logger.error(traceback.format_exc())
         return HttpResponse('Not found')
 
+
 def workbook(request, userid, path, slug):
     try:
         family = resolve_ancestry(userid, '/'.join([path, slug]))
@@ -747,6 +748,7 @@ def workbook(request, userid, path, slug):
     context["userid"] = userid
     context["protocol"] = PROTOCOL
     context["sandbox"] = SUBDOMAINS['sandbox']
+    context["block_inline"] = True  # stops GA loading inline and breaking CSP
     tpl = loader.get_template('griddl/workbook.htm').render(context, request)
     response = HttpResponse(tpl, content_type='text/html')
     csp = "script-src 'self' https://code.jquery.com/"
@@ -848,7 +850,7 @@ def sign_s3(request):
     return JsonResponse({
       'data': presigned_post,
       #'url': 'https://%s.s3.amazonaws.com/%s' % (S3_BUCKET, file_name)
-      'url': 'https://s3.amazonaws.com/%s/%s' % (S3_BUCKET, file_name)
+      'url': 'https://s3.amazonaws.com/%s/' % (S3_BUCKET)
     })
 
 
