@@ -19,8 +19,8 @@ var Code = function(json, type, name) {
 	this._visible = json.visible;
 	
 	this._div = null;
-	this._datguiDiv = null;
-	this._codemirrorDiv = null;
+	this._controlDiv = null;
+	this._editorDiv = null;
 	this._codemirror = null;
 	
 	this._display = (json.display === undefined) ? 'codemirror' : json.display; // 'codemirror','readonly','summary'
@@ -67,14 +67,14 @@ Code.prototype._add = function() {
 	var comp = this;
 	
 	comp._div.html('');
-	comp._datguiDiv = $('<div></div>').appendTo(comp._div);
-	comp._codemirrorDiv = $('<div></div>').appendTo(comp._div);
+	comp._controlDiv = $('<div class="code-control"></div>').appendTo(comp._div);
+	comp._editorDiv = $('<div class="code-editor"></div>').appendTo(comp._div);
 	
 	comp._refreshDatgui();
 	
 	if (comp._display == 'codemirror')
 	{
-		var textarea = $('<textarea></textarea>').appendTo(comp._codemirrorDiv);
+		var textarea = $('<textarea></textarea>').appendTo(comp._editorDiv);
 		
 		var options = {};
 		options.smartIndent = true;
@@ -107,15 +107,15 @@ Code.prototype._add = function() {
 		
 		comp._codemirror.getDoc().setValue(comp._text);
 		
-		//comp._errorSpan = $('<span style="color:red"></span>').appendTo(comp._codemirrorDiv);
+		//comp._errorSpan = $('<span style="color:red"></span>').appendTo(comp._editorDiv);
 	}
 	else if (comp._display == 'pre' || comp._display == 'readonly')
 	{
-		$('<pre></pre>').text(comp._text).appendTo(comp._codemirrorDiv);
+		$('<pre class="code-display"></pre>').text(comp._text).appendTo(comp._editorDiv);
 	}
 	else if (comp._display == 'stats' || comp._display == 'summary')
 	{
-		$('<pre></pre>').text(comp._text.length + ' chars').appendTo(comp._codemirrorDiv);
+		$('<pre class="code-summary"></pre>').text(comp._text.length + ' chars').appendTo(comp._editorDiv);
 	}
 	else
 	{
@@ -126,23 +126,71 @@ Code.prototype._refreshDatgui = function() {
 	
 	var comp = this;
 	
-	var modeOptions = ['default','canvas','htmlgen'];
-	//var modeOptions = ['default','canvas','htmlgen','pdf'];
-	
-	var gui = new dat.GUI({autoPlace:false, width:"100%"});
 	if (comp._type == 'js')
 	{
-		gui.add(comp, 'Run');
-		gui.add(comp, 'mode', modeOptions).onChange(function(value) { comp._markDirty(); });
-		gui.add(comp, 'runOnBlur').onChange(function(value) { comp._markDirty(); });
-		gui.add(comp, 'runOnLoad').onChange(function(value) { comp._markDirty(); });
+		comp._controlDiv.html('');
+		$('<button type="button" data-toggle="tooltip" data-placement="bottom" title="" data-original-title="Run Code" class="btn btn-default btn-sm"><i class="fa fa-play" style="color:green"></i></button>')
+			.appendTo(comp._controlDiv).on('click', function() { comp._exec(); });
+		
+		$('<span>Mode:</span>').appendTo(comp._controlDiv);
+		$('<select>' + 
+		  '<option' + ((comp._mode == 'default') ? ' selected' : '') + '>default</option>' + 
+		  '<option' + ((comp._mode == 'canvas') ? ' selected' : '') + '>canvas</option>' + 
+		  '<option' + ((comp._mode == 'htmlgen') ? ' selected' : '') + '>htmlgen</option></select>')
+			.appendTo(comp._controlDiv).on('change', function() { comp._mode = this.value; comp._markDirty(); });
+		
+		$('<span>View:</span>').appendTo(comp._controlDiv);
+		$('<select>' + 
+		  '<option' + ((comp._display == 'codemirror') ? ' selected' : '') + '>codemirror</option>' + 
+		  '<option' + ((comp._display == 'readonly') ? ' selected' : '') + '>readonly</option>' + 
+		  '<option' + ((comp._display == 'summary') ? ' selected' : '') + '>summary</option></select>')
+			.appendTo(comp._controlDiv).on('change', function() { comp._display = this.value; comp._markDirty(); comp._add(); });
+		
+		$('<span>Run on: blur</span>').appendTo(comp._controlDiv);
+		$('<input type="checkbox"' + (comp._runOnBlur ? ' checked' : '') + '></input>').appendTo(comp._controlDiv)
+			.on('change', function() { comp._runOnBlur = this.checked; comp._markDirty(); });
+		
+		$('<span>load</span>').appendTo(comp._controlDiv);
+		$('<input type="checkbox"' + (comp._runOnLoad ? ' checked' : '') + '></input>').appendTo(comp._controlDiv)
+			.on('change', function() { comp._runOnLoad = this.checked; comp._markDirty(); });
+		
+		$('<button type="button" data-toggle="tooltip" data-placement="bottom" title="Download" data-original-title="Download" class="btn btn-default btn-sm"><i class="fa fa-download"></i></button>')
+			.appendTo(comp._controlDiv).on('click', function() { comp.Download(); }).tooltip();;
+		$('<button type="button" data-toggle="tooltip" data-placement="bottom" title="Upload" data-original-title="Upload" class="btn btn-default btn-sm"><i class="fa fa-upload"></i></button>')
+			.appendTo(comp._controlDiv).on('click', function() { comp.Upload(); }).tooltip();;
+		
+		//var gui = new dat.GUI({autoPlace:false, width:"100%"});
+		//gui.add(comp, 'mode', ['default','canvas','htmlgen']).onChange(function(value) { comp._markDirty(); });
+		//var displayControl = gui.add(comp, 'display', ['codemirror','readonly','summary']);
+		//displayControl.onChange(function(value) { comp._markDirty(); comp._add(); });
+		//gui.add(comp, 'runOnBlur').onChange(function(value) { comp._markDirty(); });
+		//gui.add(comp, 'runOnLoad').onChange(function(value) { comp._markDirty(); });
+		//comp._controlDiv.append($(gui.domElement));
 	}
-	var displayControl = gui.add(comp, 'display', ['codemirror','readonly','summary']);
-	displayControl.onChange(function(value) { comp._markDirty(); comp._add(); });
-	gui.add(comp, 'Upload');
-	gui.add(comp, 'Download');
-	
-	comp._datguiDiv.html('').append($(gui.domElement));
+	else
+	{
+		comp._controlDiv.html('');
+		
+		$('<span>View:</span>').appendTo(comp._controlDiv);
+		$('<select style="margin-right:0.5em">' + 
+		  '<option' + ((comp._display == 'codemirror') ? ' selected' : '') + '>codemirror</option>' + 
+		  '<option' + ((comp._display == 'readonly') ? ' selected' : '') + '>readonly</option>' + 
+		  '<option' + ((comp._display == 'summary') ? ' selected' : '') + '>summary</option></select>')
+			.appendTo(comp._controlDiv).on('change', function() { comp._display = this.value; comp._markDirty(); comp._add(); });
+		
+		$('<button type="button" data-toggle="tooltip" data-placement="bottom" title="Download" data-original-title="Download" class="btn btn-default btn-sm"><i class="fa fa-download"></i></button>')
+			.appendTo(comp._controlDiv).on('click', function() { comp.Download(); }).tooltip();
+		$('<button type="button" data-toggle="tooltip" data-placement="bottom" title="Upload" data-original-title="Upload" class="btn btn-default btn-sm"><i class="fa fa-upload"></i></button>')
+			.appendTo(comp._controlDiv).on('click', function() { comp.Upload(); }).tooltip();
+		
+		//comp._controlDiv.html('');
+		//var gui = new dat.GUI({autoPlace:false, width:"100%"});
+		//var displayControl = gui.add(comp, 'display', ['codemirror','readonly','summary']);
+		//displayControl.onChange(function(value) { comp._markDirty(); comp._add(); });
+		//gui.add(comp, 'Upload');
+		//gui.add(comp, 'Download');
+		//comp._controlDiv.append($(gui.domElement));
+	}
 };
 Code.prototype._addOutputElements = function() {
 	
@@ -171,7 +219,7 @@ Code.prototype._afterAllLoaded = function() {
 	var comp = this;
 	if (comp._runOnLoad) { comp._exec(); }
 };
-Code.prototype._exec = function() {
+Code.prototype._exec = function(thisArg) {
 	
 	var comp = this;
 	
@@ -189,25 +237,23 @@ Code.prototype._exec = function() {
 	{
 		if (comp._mode == 'default')
 		{
-			(new Function('args', comp._text))();
+			var fn = new Function(comp._text);
+			var result = fn.call(thisArg);
+			return result;
 		}
 		else if (comp._mode == 'canvas')
 		{
 			var canvas = document.createElement('canvas');
 			var ctx = canvas.getContext('2d');
 			$('#' + comp._name).html('')[0].appendChild(canvas);
-			(new Function('ctx', comp._text))(ctx);
+			var fn = new Function('ctx', comp._text);
+			fn.call(ctx, ctx); // so that both ctx and this refer to the drawing context
 		}
 		else if (comp._mode == 'htmlgen')
 		{
-			$('#' + comp._name).html((new Function('args', comp._text))());
-		}
-		else if (comp._mode == 'pdf')
-		{
-			var ctx = new Hyperdeck.Canvas({});
-			ctx.NewSection(4, 4, 1);
-			$('#' + comp._name).html('')[0].appendChild(ctx.currentSection.div);
-			(new Function('ctx', comp._text))(ctx);
+			var fn = new Function(comp._text);
+			var result = fn.call(thisArg);
+			$('#' + comp._name).html(result);
 		}
 		else
 		{

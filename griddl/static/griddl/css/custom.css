@@ -146,3 +146,13 @@ table.data-component-display th { background-color : white ; border : 1px solid 
 table.data-component-display td { background-color : white ; border : 1px solid rgb(170,170,170) ; padding : 0.3em }
 table.data-component-display td:nth-child(1) { background-color : rgb(230,230,230) }
 
+div.code-control { margin: 2px; font-size: small; }
+div.code-control span { margin: 0 2px 0 4px; }
+div.code-control input { margin: 0 2px; }
+div.code-control input[type=checkbox] { vertical-align: sub; }
+div.code-control button { margin: 0 2px; }
+div.code-editor { }
+pre.code-display { }
+pre.code-summary { }
+
+

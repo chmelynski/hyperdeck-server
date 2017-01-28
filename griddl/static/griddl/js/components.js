@@ -734,7 +734,7 @@ var Hyperdeck = {};
 var Components = Hyperdeck.Components = {};
 Hyperdeck.Get = function(name, options) { var comp = FetchComponent(name); return comp._get(options); };
 Hyperdeck.Set = function(name, data, options) { var comp = FetchComponent(name); comp._set(data, options); };
-Hyperdeck.Run = function(name) { var comp = FetchComponent(name); comp._exec(); };
+Hyperdeck.Run = function(name, thisArg) { var comp = FetchComponent(name); return comp._exec(thisArg); };
 //Hyperdeck.New = function(json) { NewComponent(new Components[json.type]()); };
 //Hyperdeck.Rem = function(name) { DeleteComponent(FetchComponent(name)); };
 Hyperdeck.Export = Export;
