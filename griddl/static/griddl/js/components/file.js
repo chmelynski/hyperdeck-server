@@ -46,6 +46,7 @@ var File = function(json, type, name) {
 	
 	DataUrlToUint8Array(this, json.data);
 	
+	// don't need these after getting rid of dat.gui
 	Object.defineProperty(this, 'upload', { get : function() { return this._upload; } });
 	Object.defineProperty(this, 'download', { get : function() { return this._download; } });
 };
@@ -55,11 +56,16 @@ File.prototype._add = function() {
 	
 	comp._div.html('');
 	
-	var gui = new dat.GUI({autoPlace:false, width:"100%"});
-	//comp._filenameControl = gui.add(comp, 'filename');
-	gui.add(comp, 'upload');
-	gui.add(comp, 'download');
-	comp._div[0].appendChild(gui.domElement);
+	//var gui = new dat.GUI({autoPlace:false, width:"100%"});
+	//gui.add(comp, 'upload');
+	//gui.add(comp, 'download');
+	//comp._div[0].appendChild(gui.domElement);
+	
+	var controlsDiv = $('<div class="file-control"></div>').appendTo(comp._div);
+	$('<button type="button" data-toggle="tooltip" data-placement="bottom" title="Download" data-original-title="Download" class="btn btn-default btn-sm"><i class="fa fa-download"></i></button>')
+		.appendTo(controlsDiv).on('click', function() { comp._download(); }).tooltip();
+	$('<button type="button" data-toggle="tooltip" data-placement="bottom" title="Upload" data-original-title="Upload" class="btn btn-default btn-sm"><i class="fa fa-upload"></i></button>')
+		.appendTo(controlsDiv).on('click', function() { comp._upload(); }).tooltip();
 	
 	if (comp._type == 'binary')
 	{

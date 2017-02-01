@@ -83,9 +83,9 @@ Data.prototype._add = function() {
 	var comp = this;
 	
 	comp._div.html('');
-	comp._datguiDiv = $('<div></div>').appendTo(comp._div);
+	comp._datguiDiv = $('<div class="data-control"></div>').appendTo(comp._div);
 	comp._errorSpan = $('<span style="color:red"></span>').appendTo(comp._div);
-	comp._contentDiv = $('<div></div>').appendTo(comp._div);
+	comp._contentDiv = $('<div class="data-editor"></div>').appendTo(comp._div);
 	
 	comp._refreshDatgui();
 	
@@ -239,7 +239,7 @@ Data.prototype._refreshDatgui = function() {
 	
 	if (displayOptions.indexOf(comp._display) == -1) { comp._display = 'json'; }
 	
-	var gui = new dat.GUI({autoPlace:false, width:"100%"});
+	/* var gui = new dat.GUI({autoPlace:false, width:"100%"});
 	var displayControl = gui.add(comp, 'display', displayOptions);
 	displayControl.onChange(function(value) { comp._markDirty(); comp._undo.pushOnAdd = false; comp._add(); comp._undo.pushOnAdd = true; });
 	var uploadFolder = gui.addFolder('upload');
@@ -259,8 +259,24 @@ Data.prototype._refreshDatgui = function() {
 	//var tools = gui.addFolder('tools');
 	//tools.add(comp, 'Undo');
 	//tools.add(comp, 'Redo');
+	comp._datguiDiv.append($(gui.domElement)); */
 	
-	comp._datguiDiv.append($(gui.domElement));
+	function Option(str) {
+		return '<option' + ((comp._display == str) ? ' selected' : '') + '>' + str + '</option>';
+	}
+	
+	$('<span>View:</span>').appendTo(comp._datguiDiv);
+	$('<select>' + displayOptions.map(Option).join('') + '</select>')
+		.appendTo(comp._datguiDiv).on('change', function() { comp._display = this.value; comp._markDirty(); comp._add(); });
+
+	$('<span>On change:</span>').appendTo(comp._datguiDiv);
+	$('<input type="text" placeholder="Hyperdeck.Run(\'js1\')"></input>').attr('value', comp._afterChange).appendTo(comp._datguiDiv)
+		.on('change', function() { comp._afterChange = this.value; comp._markDirty(); });
+
+	$('<button type="button" data-toggle="tooltip" data-placement="bottom" title="Download" data-original-title="Download" class="btn btn-default btn-sm"><i class="fa fa-download"></i></button>')
+		.appendTo(comp._datguiDiv).on('click', function() { comp._download(); }).tooltip();
+	$('<button type="button" data-toggle="tooltip" data-placement="bottom" title="Upload" data-original-title="Upload" class="btn btn-default btn-sm"><i class="fa fa-upload"></i></button>')
+		.appendTo(comp._datguiDiv).on('click', function() { comp._upload(); }).tooltip();
 };
 
 Data.prototype._showError = function(e) {
@@ -875,6 +891,101 @@ Data.prototype.downloadJSON = function() { Download.apply(this, [WriteJson.apply
 Data.prototype.downloadYAML = function() { Download.apply(this, [WriteYaml.apply(this), '.yaml']); };
 Data.prototype.downloadTSV = function() { Download.apply(this, [WriteTsv.apply(this), '.tsv']); };
 Data.prototype.downloadCSV = function() { Download.apply(this, [WriteCsv.apply(this), '.csv']); };
+	
+Data.prototype._upload = function() {
+	
+	var comp = this;
+	
+	var format = null;
+	
+	var fileChooser = $(document.createElement('input'));
+	fileChooser.attr('type', 'file');
+	
+	fileChooser.on('change', function() {
+		
+		var fileReader = new FileReader();
+		
+		fileReader.onload = function(event)
+		{
+			if (format == 'json')
+			{
+				ReadJson.call(comp, event.target.result);
+			}
+			else if (format == 'yaml')
+			{
+				ReadYaml.call(comp, event.target.result);
+			}
+			else if (format == 'csv')
+			{
+				ReadCsv.call(comp, event.target.result);
+			}
+			else if (format == 'tsv')
+			{
+				ReadTsv.call(comp, event.target.result);
+			}
+			else
+			{
+				throw new Error();
+			}
+			
+			comp._add();
+		};
+		
+		if (fileChooser[0].files.length > 0)
+		{
+			var f = fileChooser[0].files[0];
+			
+			var ext = f.name.substr(f.name.lastIndexOf('.')+1);
+			
+			// if there's an ext, read that format.  otherwise just assume current format
+			if (ext == 'json' || ext == 'yaml' || ext == 'csv' || ext == 'tsv')
+			{
+				format = ext;
+			}
+			else
+			{
+				if (comp._display == 'json' || comp._display == 'yaml' || comp._display == 'csv' || comp._display == 'tsv')
+				{
+					format = comp._display;
+				}
+				else
+				{
+					throw new Error('Please upload a file with extension .json, .yaml, .tsv, or .csv');
+				}
+			}
+			
+			fileReader.readAsText(f);
+		}
+	});
+	
+	fileChooser.click();
+};
+Data.prototype._download = function() {
+	
+	var comp = this;
+	
+	if (comp._display == 'json')
+	{
+		comp.downloadJSON();
+	}
+	else if (comp._display == 'yaml')
+	{
+		comp.downloadYAML();
+	}
+	else if (comp._display == 'csv' || comp._display == 'grid')
+	{
+		comp.downloadCSV();
+	}
+	else if (comp._display == 'tsv')
+	{
+		comp.downloadTSV();
+	}
+	else
+	{
+		comp.downloadJSON();
+	}
+};
+
 
 function Upload(fn, display) {
 	

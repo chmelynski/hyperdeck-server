@@ -155,9 +155,9 @@ Code.prototype._refreshDatgui = function() {
 			.on('change', function() { comp._runOnLoad = this.checked; comp._markDirty(); });
 		
 		$('<button type="button" data-toggle="tooltip" data-placement="bottom" title="Download" data-original-title="Download" class="btn btn-default btn-sm"><i class="fa fa-download"></i></button>')
-			.appendTo(comp._controlDiv).on('click', function() { comp.Download(); }).tooltip();;
+			.appendTo(comp._controlDiv).on('click', function() { comp.Download(); }).tooltip();
 		$('<button type="button" data-toggle="tooltip" data-placement="bottom" title="Upload" data-original-title="Upload" class="btn btn-default btn-sm"><i class="fa fa-upload"></i></button>')
-			.appendTo(comp._controlDiv).on('click', function() { comp.Upload(); }).tooltip();;
+			.appendTo(comp._controlDiv).on('click', function() { comp.Upload(); }).tooltip();
 		
 		//var gui = new dat.GUI({autoPlace:false, width:"100%"});
 		//gui.add(comp, 'mode', ['default','canvas','htmlgen']).onChange(function(value) { comp._markDirty(); });

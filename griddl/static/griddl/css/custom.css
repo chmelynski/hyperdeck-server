@@ -155,4 +155,16 @@ div.code-editor { }
 pre.code-display { }
 pre.code-summary { }
 
+div.data-control { margin: 2px; font-size: small; }
+div.data-control span { margin: 0 2px 0 4px; }
+div.data-control input { margin: 0 2px; }
+div.data-control button { margin: 0 2px; }
+div.data-editor { }
+pre.data-display { }
+pre.data-summary { }
+
+div.file-control { margin: 2px; font-size: small; }
+div.file-control button { margin: 0 2px; }
+
+
 
