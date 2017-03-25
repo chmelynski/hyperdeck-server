@@ -41,6 +41,8 @@
   
   <script type='text/javascript' src="{% static 'griddl/js/utils.js' %}"></script>
   
+  <script>var exports = {};</script>
+  
   {% javascript 'hyperdeck' %}
   
   {% if user.is_superuser %}
@@ -48,17 +50,26 @@
   {% endif %}
   
   {% if user.username == 'adam' %}
-    <script type='text/javascript' src="{% static 'griddl/js/widgets/box.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/widgets/controls.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/widgets/geometry.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/widgets/grid.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/widgets/twig.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/widgets/tablegui.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/widgets/canvas.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/lib/opentype.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/defaultFonts.js' %}"></script>
-    <script type='text/javascript' src="{% static 'griddl/js/music.js' %}"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r80/three.min.js"></script>
+  
+    <script src="https://dl.dropboxusercontent.com/u/3825162/box.js"></script>
+  
+    <script src="https://dl.dropboxusercontent.com/u/3825162/general.js"></script>
+    <script src="https://dl.dropboxusercontent.com/u/3825162/bitmap.js"></script>
+    <script src="https://dl.dropboxusercontent.com/u/3825162/svg.js"></script>
+    <script src="https://dl.dropboxusercontent.com/u/3825162/pdf.js"></script>
+  
+    <script src="https://dl.dropboxusercontent.com/u/3825162/opentype-0.6.9.js"></script>
+    <script src="https://dl.dropboxusercontent.com/u/3825162/typeset.js"></script>
+    <script src="https://dl.dropboxusercontent.com/u/3825162/typeset.en.js"></script>
+    <script src="https://dl.dropboxusercontent.com/u/3825162/defaultFonts.js"></script>
+  
+    <script src="https://dl.dropboxusercontent.com/u/3825162/geometry.js"></script>
+    <script src="https://dl.dropboxusercontent.com/u/3825162/twig.js"></script>
+    <script src="https://dl.dropboxusercontent.com/u/3825162/tablegui.js"></script>
+    <script src="https://dl.dropboxusercontent.com/u/3825162/controls.js"></script>
+  
+    <script src="https://dl.dropboxusercontent.com/u/3825162/document.js"></script>
+
   {% endif %}
   
   {# these are for PDF documents  #}
@@ -162,6 +173,13 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
                   Image
                 </a>
               </li>
+              {% if user.username == 'adam' %}
+              <li>
+                <a onclick="Hyperdeck.AddComponent('document');">
+                  PDF Document
+                </a>
+              </li>
+              {% endif %}
               <li>
                 <a onclick="Hyperdeck.AddComponent('binary');">
                   Binary file

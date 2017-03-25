@@ -163,6 +163,8 @@ div.data-editor { }
 pre.data-display { }
 pre.data-summary { }
 
+.data-editor canvas:focus { outline: none; }
+
 div.file-control { margin: 2px; font-size: small; }
 div.file-control button { margin: 0 2px; }
 

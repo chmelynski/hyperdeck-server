@@ -1,1959 +1,2675 @@
-
+// design notes
+"use strict";
+// HiddenList<T> is a doubly linked list that allows for hidden cols to be "pinched off" without being discarded outright
+// should Hyperdeck.Get returned filtered data? - perhaps set Data._data temporarily when the filter is applied - or perhaps, applyFilter: boolean a Hyperdeck.Get option
+// internal/external cut/copy/paste should respect the filter - it works on visible cells only
+// styles are displayed as a style object, e.g. {"font": "10pt Courier New", bold:true}
+// style formulas support named styles, as well as anything else that produces a style object
+// =Styles['default']
+// =Styles['default'].extend('bold', true)
 var Hyperdeck;
-
-(function(module) {
-
-var Box = (Hyperdeck ? Hyperdeck.Box : window.Box);
-
-// sort and filter are implemented with functions, defined in column headers (for sort) and the grid header (for filter)
-// =filter('this.foo == 23 && this.bar == "baz"') -> we just pass in a predicate to be called on each row
-// =sort(1, true, function(a, b) { return -1; }); -> the first argument is the sort order, the second is sort ascending, the third is the +1/-1 function
-
-// we need to get Table to support [].  and then it returns a CellRow which also supports []
-
-// we need a BigTable for big data - where we don't create Cells, we work mostly with Columns (and optional SummaryRows)
-
-// F3 = display selection as tsv
-// F4 = display selection as csv
-// F5 = display selection as json
-// F6 = display selection as yaml
-
-// Alt+Up => Insert Rows Above
-// Alt+Down => Insert Rows Below
-// Alt+Left => Insert Cols Left
-// Alt+Right => Insert Cols Right
-// Alt+Shift+Up => Delete Rows
-// Alt+Shift+Down => Delete Rows
-// Alt+Shift+Left => Delete Cols
-// Alt+Shift+Right => Delete Cols
-
-// wait, we create a separate CellArray object to serve as this in the function application
-
-// foo should resolve within the row - this is possible because CellRow is part of the prototype chain
-
-// prototype chain of the this that the cell formula executes on:
-// CellInstance -> CellRow -> CellArray -> Environment
-// the entire purpose of this series of objects is to provide namespaces in which to execute formula functions
-// therefore, we can't just pollute it with names
-
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/defineProperty
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Working_with_Objects
-
-
-
-var Environment = function() {
-	
-	// this 
-};
-var CellArray = function(grid) {
-	
-	for (var i = 0; i < grid.data.length; i++)
-	{
-		this[i] = new CellRow(grid, i);
-		//Object.defineProperty(this, i, { get : function() {} });
-	}
-	//this.grid = null;
-};
-var CellRow = function(grid, i) {
-	
-	var cellrow = this;
-	
-	grid.headers.forEach(function(header, j) {
-		Object.defineProperty(cellrow, header, {
-			get : function() {
-				return grid.getValue(i, j);
-			}
-		});
-	});
-};
-var CellInstance = function() {
-	
-	
-};
-
-var CellColumn = function() {
-	
-};
-
-// cell.fn.apply(cell.grid, [cell.row, cell.col]);
-// we pass in the grid as 'this', so that we can use expressions like "this[0].foo" in the formulas
-// the formula should be parsed into a function(i, j) - it takes row and col indices
-// then we can write "this[i].foo" in the formulas
-
-// you can add special purpose rows
-// sum, average
-
-// sortFormula, filterFormula - might make more sense for these to be done in a more traditional interface - order is important
-
-var Grid = function(ctx, dataComponent) {
-	
-	var params = null;
-	
-	if (dataComponent.gridParams == null)
-	{
-		params = {
-			"display": "values",
-			"rowSizes": null,
-			"colSizes": null,
-			"xOffset": 0,
-			"yOffset": 0,
-			"box": {
-				"hAlign": "left",
-				"vAlign": "top",
-				"xAnchor": "left",
-				"yAnchor": "top",
-				"x": 1,
-				"y": 1
-			}
-		};
-	}
-	else
-	{
-		params = dataComponent.gridParams;
-	}
-	
-	this.defaultCellStroke = 'rgb(208,215,229)'; // rgb(158,182,206)
-	this.defaultHeaderStroke = 'rgb(158,182,206)';
-	this.selectedCellStroke = 'rgb(242,149,54)';
-	this.selectedHeaderStroke = 'rgb(242,149,54)';
-	this.defaultCellFill = 'rgb(255,255,255)';
-	this.defaultHeaderFill = 'rgb(208,215,229)';
-	this.selectedCellFill = 'rgb(210,210,240)';
-	this.selectedHeaderFill = 'rgb(255,213,141)';
-	
-	this.display = params.display; // values, formulas, formatStrings, style, font, fill, hAlign, vAlign, backgroundColor, border
-	
-	this.headers = dataComponent.headers;
-	this._data = dataComponent.data;
-	
-	Object.defineProperty(this, 'data', { 
-		get : function() {
-			return this._data;
-		},
-		set : function(value) {
-			this._data = value;
-			//if (!Griddl.dirty) { Griddl.Components.MarkDirty(); }
-			// redo everything
-		}
-	});
-	
-	this.nRows = this._data.length + 1;
-	this.nCols = this.headers.length + 1;
-	//this.nCols = this.data.map(x => x.length).reduce(function(a, b) { return Math.max(a, b); });
-	this.rowsWithSelection = InitArray(this.nRows, false); // this is just for displaying a different color in the headers
-	this.colsWithSelection = InitArray(this.nCols, false);
-	this.rowSizes = params.rowSizes ? params.rowSizes : InitArray(this.nRows, 20); // int[], includes headers
-	this.colSizes = params.colSizes ? params.colSizes : InitArray(this.nCols, 64); // int[], includes headers
-	this.xs = null; // int[], fencepost with colSizes
-	this.ys = null; // int[], fencepost with rowSizes
-	this.xOffset = params.xOffset; // controlled by scrollbars
-	this.yOffset = params.yOffset;
-	
-	this.cells = InitCells(this.nRows, this.nCols);
-	this.cellArray = new CellArray(this);
-	
-	this.cells[0][0].string = '';
-	
-	for (var i = 1; i < this.nRows; i++)
-	{
-		this.cells[i][0].string = (i - 1).toString();
-	}
-	
-	for (var j = 1; j < this.nCols; j++)
-	{
-		this.cells[0][j].string = this.headers[j-1];
-	}
-	
-	for (var i = 1; i < this.nRows; i++)
-	{
-		for (var j = 1; j < this.nCols; j++)
-		{
-			var data = this._data[i-1][this.headers[j-1]];
-			
-			if (typeof(data) == 'string' && data.length > 0 && data[0] == '=')
-			{
-				this.cells[i][j].formula = data;
-			}
-			else
-			{
-				this.cells[i][j].value = data;
-			}
-		}
-	}
-	
-	this.ctx = ctx;
-	this.section = null;
-	
-	// the mechanics of row and col resizing work best if the grid's anchor is mandated to be tp/lf, but users might want centering
-	this.box = new Box(this, false);
-	this.box.x = params.box.x;
-	this.box.y = params.box.y;
-	this.box.hAlign = params.box.hAlign;
-	this.box.vAlign = params.box.vAlign;
-	this.box.hg = this.rowSizes.reduce(function(a, b) { return a + b; });
-	this.box.wd = this.colSizes.reduce(function(a, b) { return a + b; });
-	
-	
-	this.focusSelected = null; // Selection : {mode:'Select',color:'rgb(0,0,0)',shimmer:false,minCol:null,maxCol:null,minRow:null,maxRow:null}
-	this.selected = null; // [ Selection ]
-	this.cursor = {row:null,col:null}; // { row : int , col : int }
-	this.anchor = {row:null,col:null}; // { row : int , col : int }
-	
-	this.input = document.createElement('input');
-	this.input.type = 'text';
-	this.input.style.position = 'relative';
-	this.input.style.display = 'none';
-	//this.input = $('<input type="text" style="position:relative;display:none"></input>');
-	
-	this.menu = null;
-	this.hScrollbar = null;
-	this.vScrollbar = null;
-	
-	this.position();
-	this.format();
-};
-
-Grid.prototype.position = function() {
-	
-	// this should be called after a change to rowSizes or colSizes
-	this.box.wd = this.colSizes.reduce(function(a, b) { return a + b; });
-	this.box.hg = this.rowSizes.reduce(function(a, b) { return a + b; });
-	this.box.align();
-};
-Grid.prototype.format = function() {
-	
-	for (var i = 1; i < this.nRows; i++)
-	{
-		for (var j = 1; j < this.nCols; j++)
-		{
-			var cell = this.cells[i][j];
-			cell.formatObject = ParseFormatString(cell.formatString);
-			cell.string = Format(cell.value, cell.formatObject);
-		}
-	}
-};
-Grid.prototype.draw = function() {
-	
-	var table = this;
-	var ctx = this.ctx;
-	
-	// starting with the left, top, rowSizes, and colSizes, recalculate xs, ys, and the other box vars
-	var x = this.box.lf;
-	var y = this.box.tp;
-	this.xs = [ x ];
-	this.ys = [ y ];
-	for (var j = 0; j < this.nCols; j++) { x += this.colSizes[j]; this.xs.push(x); }
-	for (var i = 0; i < this.nRows; i++) { y += this.rowSizes[i]; this.ys.push(y); }
-	
-	// draw cell fills and text - we'll draw strokes and the selection box later on
-	for (var i = 0; i < this.nRows; i++)
-	{
-		for (var j = 0; j < this.nCols; j++)
-		{
-			var cell = this.cells[i][j];
-			
-			var lf = this.xs[j + 0];
-			var rt = this.xs[j + 1];
-			var tp = this.ys[i + 0];
-			var bt = this.ys[i + 1];
-			var wd = rt - lf;
-			var hg = bt - tp;
-			var cx = (lf + rt) / 2;
-			var cy = (tp + bt) / 2;
-			
-			if (i == 0 && j == 0)
-			{
-				this.ctx.fillStyle = this.defaultHeaderFill;
-			}
-			else if (i == 0)
-			{
-				if (this.colsWithSelection[j-1])
-				{
-					this.ctx.fillStyle = this.selectedHeaderFill;
-				}
-				else
-				{
-					this.ctx.fillStyle = this.defaultHeaderFill;
-				}
-			}
-			else if (j == 0)
-			{
-				if (this.rowsWithSelection[i-1])
-				{
-					this.ctx.fillStyle = this.selectedHeaderFill;
-				}
-				else
-				{
-					this.ctx.fillStyle = this.defaultHeaderFill;
-				}
-			}
-			else
-			{
-				if (cell.selected && (i != this.cursor.row || j != this.cursor.col))
-				{
-					this.ctx.fillStyle = this.selectedCellFill; // what if there is a set background color?
-				}
-				else
-				{
-					if (cell.backgroundColor)
-					{
-						this.ctx.fillStyle = cell.backgroundColor;
-					}
-					else
-					{
-						this.ctx.fillStyle = this.defaultCellFill;
-					}
-				}
-			}
-			
-			this.ctx.fillRect(lf, tp, wd, hg);
-			
-			
-			var hAlign = cell.hAlign;
-			var vAlign = cell.vAlign;
-			
-			var x = null;
-			var y = null;
-			
-			if (hAlign == 'left')
-			{
-				x = lf + cell.hMargin;
-			}
-			else if (hAlign == 'center')
-			{
-				x = cx;
-			}
-			else if (hAlign == 'right')
-			{
-				x = rt - cell.hMargin;
-			}
-			else
-			{
-				throw new Error();
-			}
-			
-			if (vAlign == 'top')
-			{
-				y = tp + cell.vMargin;
-			}
-			else if (vAlign == 'center')
-			{
-				y = cy;
-			}
-			else if (vAlign == 'bottom')
-			{
-				y = bt - cell.vMargin;
-			}
-			else
-			{
-				throw new Error();
-			}
-			
-			this.ctx.fillStyle = cell.textColor;
-			this.ctx.font = cell.font;
-			this.ctx.textAlign = hAlign;
-			this.ctx.textBaseline = ((vAlign == 'center') ? 'middle' : vAlign);
-			var text = cell.string;
-			this.ctx.fillText(text, x, y);
-			
-			// heck, maybe cells *should* draw their own borders
-		}
-	}
-	
-	var labelCellStroke = 'rgb(0,0,0)';
-	var normalStroke = 'rgb(0,0,0)';
-	var selectedStroke = 'rgb(0,0,0)';
-	
-	var x0 = this.xs[0];
-	var x1 = this.xs[1];
-	var y0 = this.ys[0];
-	var y1 = this.ys[1];
-	var lf = this.box.lf;
-	var rt = this.box.rt;
-	var tp = this.box.tp;
-	var bt = this.box.bt;
-	
-	ctx.lineWidth = 1;
-	
-	// first draw normal strokes
-	
-	for (var i = 0; i < this.ys.length; i++)
-	{
-		var y = this.ys[i];
-		
-		// long strokes
-		ctx.strokeStyle = i < 2 ? labelCellStroke : normalStroke;
-		ctx.drawLine(lf - 0.5, y - 0.5, rt, y - 0.5);
-		
-		// short label cell strokes
-		ctx.strokeStyle = labelCellStroke;
-		ctx.drawLine(x0 - 0.5, y - 0.5, x1, y - 0.5);
-	}
-	
-	for (var i = 0; i < this.xs.length; i++)
-	{
-		var x = this.xs[i];
-		
-		// long strokes
-		ctx.strokeStyle = i < 2 ? labelCellStroke : normalStroke;
-		ctx.drawLine(x - 0.5, tp - 0.5, x - 0.5, bt);
-		
-		// short label cell strokes
-		ctx.strokeStyle = labelCellStroke;
-		ctx.drawLine(x - 0.5, y0 - 0.5, x - 0.5, y1);
-	}
-	
-	// then draw selected strokes
-	if (this.selected)
-	{
-		// first draw the short orange strokes on the row and col header cells, 
-		if (this.selected.minRow > 0) // so that the selection indicator is not drawn on the title cell when a col label is selected
-		{
-			ctx.strokeStyle = selectedStroke;
-			
-			for (var i = this.selected.minRow; i <= this.selected.maxRow + 1; i++)
-			{
-				var y = this.ys[i];
-				ctx.drawLine(x0 - 0.5, y - 0.5, x1, y - 0.5); // short horizontal strokes
-			}
-			
-			var sy0 = this.ys[this.selected.minRow];
-			var sy1 = this.ys[this.selected.maxRow + 1];
-			
-			ctx.drawLine(x0 - 0.5, sy0 - 0.5, x0 - 0.5, sy1); // long vertical strokes
-			ctx.drawLine(x1 - 0.5, sy0 - 0.5, x1 - 0.5, sy1);
-		}
-		
-		if (this.selected.minCol > 0) // so that the selection indicator is not drawn on the title cell when a row label is selected
-		{
-			ctx.strokeStyle = selectedStroke;
-			
-			for (var i = this.selected.minCol; i <= this.selected.maxCol + 1; i++)
-			{
-				var x = this.xs[i];
-				ctx.drawLine(x - 0.5, y0 - 0.5, x - 0.5, y1); // short vertical strokes
-			}
-			
-			var sx0 = this.xs[this.selected.minCol];
-			var sx1 = this.xs[this.selected.maxCol + 1];
-			
-			ctx.drawLine(sx0 - 0.5, y0 - 0.5, sx1, y0 - 0.5); // long horizontal strokes
-			ctx.drawLine(sx0 - 0.5, y1 - 0.5, sx1, y1 - 0.5);
-		}
-		
-		// now draw the thick black selection box
-		for (var i = 0; i < this.selected.length; i++)
-		{
-			var mode = this.selected[i].mode;
-			
-			var lf = this.xs[this.selected[i].minCol];
-			var rt = this.xs[this.selected[i].maxCol + 1];
-			var tp = this.ys[this.selected[i].minRow];
-			var bt = this.ys[this.selected[i].maxRow + 1];
-			var wd = rt - lf;
-			var hg = bt - tp;
-			
-			if (mode == 'Select')
-			{
-				ctx.fillStyle = 'rgb(0,0,0)';
-				ctx.fillRect(lf - 2, tp - 2, wd + 1, 3); // tp
-				ctx.fillRect(rt - 2, tp - 2, 3, hg - 2); // rt
-				ctx.fillRect(lf - 2, bt - 2, wd - 2, 3); // bt
-				ctx.fillRect(lf - 2, tp - 2, 3, hg + 1); // lf
-				ctx.fillRect(rt - 3, bt - 3, 5, 5); // handle square
-			}
-			else if (mode == 'Point')
-			{
-				// Point - if highlighted, draw a second outline 1px interior to the first outline
-				
-				ctx.strokeStyle = this.selected[i].color;
-				ctx.drawLine(lf, tp, rt, tp);
-				ctx.drawLine(rt, tp, rt, bt);
-				ctx.drawLine(lf, bt, rt, bt);
-				ctx.drawLine(lf, tp, lf, bt);
-				
-				ctx.fillStyle = this.selected[i].color;
-				//ctx.fillRect(rt - 3, bt - 3, 5, 5); // handle square
-			}
-			else
-			{
-				throw new Error();
-			}
-		}
-	}
-};
-Grid.prototype.pointToRowCol = function(x, y) {
-	
-	// compare the mouse pos against the gridlines to get a row,col pair
-	
-	var row = null;
-	var col = null;
-	
-	// binary search could be used for large grids
-	for (var i = 0; i < this.ys.length - 1; i++) { if (this.ys[i] <= y && y <= this.ys[i + 1]) { row = i; } }
-	for (var j = 0; j < this.xs.length - 1; j++) { if (this.xs[j] <= x && x <= this.xs[j + 1]) { col = j; } }
-	
-	if (row === null || col === null) { throw new Error(); }
-	
-	return { row : row , col : col };
-};
-Grid.prototype.onhover = function() {
-	
-	this.box.onhover();
-	
-	//var grid = this;
-	//this.ctx.canvas.onmousemove = function(e) { grid.onmousemove(e); }
-};
-Grid.prototype.dehover = function() {
-	this.ctx.canvas.style.cursor = 'default';
-	this.ctx.canvas.onmousedown = null;
-	this.ctx.canvas.onmousemove = null;
-	
-	var table = this;
-	this.ctx.canvas.onmousemove = function(e) { table.onmousemove(e); };
-	this.ctx.canvas.onmousedown = function(e) { table.clearSelection(); };
-	//this.section.onhover(); // until superseded by this line in box.dehover or whatever, somewhere in box
-};
-Grid.prototype.onmousemove = function(e) {
-	
-	var m = this.getCoords(e);
-	
-	var grid = this;
-	
-	var xMin = this.xs[0];
-	var xMax = this.xs[this.xs.length - 1];
-	var yMin = this.ys[0];
-	var yMax = this.ys[this.ys.length - 1];
-	
-	if (m.x < xMin || m.x > xMax || m.y < yMin || m.y > yMax) { this.dehover(); return; } // to be superseded by box
-	
-	var x0 = this.xs[0];
-	var x1 = this.xs[1];
-	var y0 = this.ys[0];
-	var y1 = this.ys[1];
-	
-	// move grid - handle is top and left borders of the title cell
-	if ((y0 - 1 <= m.y && m.y <= y0 + 1 && x0 <= m.x && m.x < x1) || (x0 - 1 <= m.x && m.x <= x0 + 1 && y0 <= m.y && m.y < y1))
-	{
-		this.ctx.canvas.style.cursor = 'move';
-		return;
-	}
-	
-	// reorder rows/cols - top and left borders of grid, excepting the title cell
-	if ((y0 - 1 <= m.y && m.y <= y0 + 1 && x1 <= m.x && m.x <= xMax) || (x0 - 1 <= m.x && m.x <= x0 + 1 && y1 <= m.y && m.y <= yMax))
-	{
-		this.ctx.canvas.style.cursor = 'hand';
-		return;
-	}
-	
-	// row resize
-	if (x0 < m.x && m.x < x1)
-	{
-		for (var i = 0; i < this.nRows; i++)
-		{
-			var y = this.ys[i + 1];
-			
-			if (y - 1 <= m.y && m.y <= y + 1)
-			{
-				this.ctx.canvas.style.cursor = 'row-resize';
-				var prevY = this.ys[i];
-				var rowResizeIndex = i;
-				
-				this.ctx.canvas.onmousedown = function(e) {
-					
-					grid.ctx.canvas.onmousemove = function(e) {
-						var curr = grid.getCoords(e);
-						grid.rowSizes[rowResizeIndex] = Math.max(curr.y - prevY, 2);
-						grid.position();
-						grid.section.draw();
-					};
-					grid.ctx.canvas.onmouseup = function(e) {
-						
-						grid.ctx.canvas.onmousemove = function(e) { grid.onmousemove(e); };
-						grid.ctx.canvas.onmousedown = null;
-						grid.ctx.canvas.onmouseup = null;
-					};
-				};
-				
-				return;
-			}
-		}
-	}
-	
-	// col resize
-	if (y0 < m.y && m.y < y1)
-	{
-		for (var j = 0; j < this.nCols; j++)
-		{
-			var x = this.xs[j + 1];
-			
-			if (x - 1 <= m.x && m.x <= x + 1)
-			{
-				this.ctx.canvas.style.cursor = 'col-resize';
-				var prevX = this.xs[j];
-				var colResizeIndex = j;
-				
-				this.ctx.canvas.onmousedown = function(e) {
-					
-					grid.ctx.canvas.onmousemove = function(e) {
-						var curr = grid.getCoords(e);
-						grid.colSizes[colResizeIndex] = Math.max(curr.x - prevX, 2);
-						grid.position();
-						grid.section.draw();
-					};
-					grid.ctx.canvas.onmouseup = function(e) {
-						
-						grid.ctx.canvas.onmousemove = function(e) { grid.onmousemove(e); };
-						grid.ctx.canvas.onmousedown = null;
-						grid.ctx.canvas.onmouseup = null;
-					};
-				};
-				
-				return;
-			}
-		}
-	}
-	
-	var hovered = grid.pointToRowCol(m.x, m.y);
-	
-	this.ctx.canvas.style.cursor = 'cell';
-	
-	this.ctx.canvas.onmousedown = function(mouseDownEvent) {
-		
-		var a = grid.getCoords(mouseDownEvent);
-		
-		var target = grid.pointToRowCol(a.x, a.y);
-		
-		if (target.row == 0 && target.col == 0) { return; } // cannot select top-left cell
-		
-		grid.anchor.row = target.row;
-		grid.anchor.col = target.col;
-		grid.cursor.row = target.row;
-		grid.cursor.col = target.col;
-		
-		grid.selected = []; // don't clear existing selections if Ctrl is down
-		var selected = {};
-		selected.mode = 'Select';
-		selected.color = 'rgb(0,0,0)';
-		selected.shimmer = false;
-		grid.focusSelected = selected;
-		grid.selected.push(selected);
-		
-		grid.selectCell();
-		
-		if (mouseDownEvent.button == 0)
-		{
-			grid.ctx.canvas.onmousemove = function(mouseMoveEvent) {
-				
-				var m = grid.getCoords(mouseMoveEvent);
-				
-				if (m.x < grid.xs[1] || m.x > grid.xs[grid.xs.length - 1]|| m.y < grid.ys[1] || m.y > grid.ys[grid.ys.length - 1]) { return; }
-				
-				// select range of cells
-				var pointedRowCol = grid.pointToRowCol(m.x, m.y);
-				if (grid.cursor.row != pointedRowCol.row || grid.cursor.col != pointedRowCol.col)
-				{
-					grid.cursor = pointedRowCol;
-					grid.selectRange();
-				}
-			};
-			grid.ctx.canvas.onmouseup = function(mouseUpEvent) {
-				grid.setKeyHandles();
-				grid.ctx.canvas.onmousemove = function(mouseMoveEvent) { grid.onmousemove(mouseMoveEvent); };
-				grid.ctx.canvas.onmouseup = null;
-			};
-		}
-		else if (mouseDownEvent.button == 2)
-		{
-			//mouseDownEvent.preventDefault();
-			//mouseDownEvent.stopPropagation();
-			//mouseDownEvent.stopImmediatePropagation();
-			
-			grid.menu = new Menu();
-			grid.menu.parent = grid;
-			grid.menu.box.lf = a.x;
-			grid.menu.box.tp = a.y;
-			grid.menu.fns.push(grid.insertRowAbove);
-			grid.menu.fns.push(grid.insertRowBelow);
-			grid.menu.fns.push(grid.insertColLeft);
-			grid.menu.fns.push(grid.insertColRight);
-			grid.menu.fns.push(grid.deleteRow);
-			grid.menu.fns.push(grid.deleteCol);
-			grid.menu.labels.push('insertRowAbove');
-			grid.menu.labels.push('insertRowBelow');
-			grid.menu.labels.push('insertColLeft');
-			grid.menu.labels.push('insertColRight');
-			grid.menu.labels.push('deleteRow');
-			grid.menu.labels.push('deleteCol');
-			grid.menu.setDimensions();
-			grid.menu.draw();
-			grid.menu.onhover();
-			
-			grid.ctx.canvas.oncontextmenu = function(contextMenuEvent) {
-				contextMenuEvent.preventDefault();
-				contextMenuEvent.stopPropagation();
-				contextMenuEvent.stopImmediatePropagation();
-			};
-		}
-		else
-		{
-			
-		}
-	};
-	
-	// i added these handlers in an attempt to stop the context menu from appearing, but it required oncontextmenu instead
-	//this.ctx.canvas.onmouseup = function(e)
-	//{
-	//	e.preventDefault();
-	//	e.stopPropagation();
-	//	e.stopImmediatePropagation();
-	//};
-	//
-	//this.ctx.canvas.onmouseclick = function(e)
-	//{
-	//	e.preventDefault();
-	//	e.stopPropagation();
-	//	e.stopImmediatePropagation();
-	//};
-};
-
-function KeyToChar(key, shift) {
-	
-	var from48To57 = [')','!','@','#','$','%','^','&','*','('];
-	var from186To192 = [[';',':'],['=','+'],[',','<'],['-','_'],['.','>'],['/','?'],['`','~']];
-	var from219To222 = [['[','{'],['\\','|'],[']','}'],['\'','"']];
-	
-	var c = null;
-	
-	if (48 <= key && key <= 57)
-	{
-		c = (shift ? from48To57[key-48] : String.fromCharCode(key));
-	}
-	else if (65 <= key && key <= 90)
-	{
-		c = (shift ? String.fromCharCode(key) : String.fromCharCode(key+32));
-	}
-	else if (186 <= key && key <= 192)
-	{
-		c = from186To192[key-186][shift?1:0];
-	}
-	else if (219 <= key && key <= 222)
-	{
-		c = from219To222[key-219][shift?1:0];
-	}
-	
-	return c;
+var $;
+var sprintf;
+var Set;
+/* class Scrollbar {
+    
+    // the grid takes up the entire canvas - scrollbars are placed on the sides of the canvas
+    //
+    // we keep track of a visible window onto the grid - cell coordinates and whatnot need not be changed
+    // the window sets a ctx.translate (but keep header cells half-fixed)
+    // check for each row and cell to make sure it is in bounds before drawing
+    
+    ctx: CanvasRenderingContext2D;
+    parent: Grid;
+    orientation: string; // enum
+    
+    width: number;
+    height: number;
+    
+    box: Box;
+    handle: Box;
+    
+    hovered: boolean;
+    
+    constructor(ctx, parent, orientation) {
+        
+        this.ctx = ctx;
+        this.parent = parent;
+        this.orientation = orientation;
+        
+        this.width = 10;
+        this.height = 20;
+        
+        this.box = new Box();
+        this.handle = new Box();
+        
+        if (this.orientation == 'v')
+        {
+            this.box.reconcile({lf:this.ctx.canvas.width-this.width,tp:0,wd:this.width,hg:this.ctx.canvas.height});
+            this.handle.reconcile({lf:this.ctx.canvas.width-this.width,tp:0,wd:this.width,hg:this.height});
+        }
+        else if (this.orientation == 'h')
+        {
+            
+        }
+    }
+    draw(): void {
+        
+        var scrollbar = this;
+        var ctx = scrollbar.ctx;
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.strokeStyle = 'rgb(128,128,128)'; // rgb(158,182,206)
+        ctx.fillStyle = (scrollbar.hovered ? 'rgb(100,100,100)' : 'rgb(128,128,128)');
+        ctx.strokeRect(scrollbar.box.lf-0.5, scrollbar.box.tp, scrollbar.box.wd, scrollbar.box.hg);
+        ctx.fillRect(scrollbar.handle.lf, scrollbar.handle.tp, scrollbar.handle.wd, scrollbar.handle.hg);
+        ctx.restore();
+    }
+    onhover(): void {
+        
+        var scrollbar: Scrollbar = this;
+        var ctx: CanvasRenderingContext2D = scrollbar.ctx;
+        
+        ctx.canvas.onmousedown = function(downEvent) {
+            
+            var ay = downEvent.offsetY;
+            
+            ctx.canvas.onmousemove = function(moveEvent) {
+                
+                var my = moveEvent.offsetY;
+                var dy = my - ay;
+                ay = my;
+                
+                //scrollbar.handle.move(0, dy);
+                //scrollbar.parent.window.move(0, dy);
+                
+                scrollbar.parent.draw();
+            };
+            ctx.canvas.onmouseup = function(upEvent) {
+                ctx.canvas.onmousemove = null;
+                ctx.canvas.onmouseup = null;
+            };
+        };
+    }
 }
 
-Grid.prototype.setKeyHandles = function() {
-	
-	var grid = this;
-	
-	var shift = false;
-	var ctrl = false;
-	var alt = false;
-	
-	grid.ctx.canvas.focus();
-	grid.ctx.canvas.onkeyup = function(e) {
-		
-		var key = e.keyCode;
-		
-		if (key == 16) // shift
-		{
-			shift = false;
-		}
-		else if (key == 17) // ctrl
-		{
-			ctrl = false;
-		}
-		else if (key == 18) // alt
-		{
-			alt = false;
-		}
-	};
-	grid.ctx.canvas.onkeydown = function(e) {
-		
-		e.preventDefault();
-		e.stopPropagation();
-		
-		var key = e.keyCode;
-		//console.log(key);
-		//document.getElementById('debug').innerText = key.toString();
-		
-		var min = 1; // set this to 0 to allow selection of row/col headers
-		
-		if (key == 16) // shift
-		{
-			shift = true;
-		}
-		else if (key == 17) // ctrl
-		{
-			ctrl = true;
-		}
-		else if (key == 18) // alt
-		{
-			alt = true;
-		}
-		else if (key == 46) // del
-		{
-			// delete selection
-		}
-		else if (key == 27) // esc
-		{
-			grid.selected = [];
-			grid.focusSelected = null;
-			grid.cursor.row = null;
-			grid.cursor.col = null;
-			grid.anchor.row = null;
-			grid.anchor.col = null;
-			grid.cacheSelectedCells();
-			grid.section.draw();
-			grid.ctx.canvas.onkeydown = null;
-		}
-		else if (key == 32) // space
-		{
-			if (e.ctrlKey && e.shiftKey) // select whole grid - this is different from Excel
-			{
-				grid.focusSelected.minRow = min;
-				grid.focusSelected.maxRow = grid.nRows - 1;
-				grid.focusSelected.minCol = min;
-				grid.focusSelected.maxCol = grid.nCols - 1;
-				grid.section.draw(); // note that this does not go through selectRange(), which is unaesthetic
-				// although it's because we don't know what actually happens to the anchor or cursor here - the cursor can end up in the middle of a selected range
-			}
-			else if (e.shiftKey) // select whole row
-			{
-				grid.focusSelected.minCol = min;
-				grid.focusSelected.maxCol = grid.nCols - 1;
-				grid.section.draw();
-			}
-			else if (e.ctrlKey) // select whole col
-			{
-				grid.focusSelected.minRow = min;
-				grid.focusSelected.maxRow = grid.nRows - 1;
-				grid.section.draw();
-			}
-			else
-			{
-				grid.beginEdit();
-			}
-		}
-		else if (key == 37 || key == 38 || key == 39 || key == 40) // arrow
-		{
-			if (e.altKey) // insert/delete rows/cols
-			{
-				if (e.shiftKey) // delete rows/cols
-				{
-					if (key == 37 || key == 39) // left and right are identical for deletion
-					{
-						grid.deleteCols();
-					}
-					else if (key == 38 || key == 40) // up and down are identical for deletion
-					{
-						grid.deleteRows();
-					}
-				}
-				else
-				{
-					if (key == 37) // left
-					{
-						grid.insertColsLeft();
-					}
-					else if (key == 38) // up
-					{
-						grid.insertRowsAbove();
-					}
-					else if (key == 39) // right
-					{
-						grid.insertColsRight();
-					}
-					else if (key == 40) // down
-					{
-						grid.insertRowsBelow();
-					}
-				}
-			}
-			else
-			{
-				if (key == 37) // left
-				{
-					if (e.ctrlKey)
-					{
-						grid.cursor.col = min;
-					}
-					else
-					{
-						if (grid.cursor.col > min) { grid.cursor.col--; }
-					}
-				}
-				else if (key == 38) // up
-				{
-					if (e.ctrlKey)
-					{
-						grid.cursor.row = min;
-					}
-					else
-					{
-						if (grid.cursor.row > min) { grid.cursor.row--; }
-					}
-				}
-				else if (key == 39) // right
-				{
-					if (e.ctrlKey)
-					{
-						grid.cursor.col = grid.nCols - 1;
-					}
-					else
-					{
-						if (grid.cursor.col < grid.nCols - 1) { grid.cursor.col++; }
-					}
-				}
-				else if (key == 40) // down
-				{
-					if (e.ctrlKey)
-					{
-						grid.cursor.row = grid.nRows - 1;
-					}
-					else
-					{
-						if (grid.cursor.row < grid.nRows - 1) { grid.cursor.row++; }
-					}
-				}
-				
-				if (e.shiftKey)
-				{
-					grid.selectRange();
-				}
-				else
-				{
-					grid.selectCell();
-				}
-			}
-		}
-		else if (key == 113) // F2 = edit
-		{
-			grid.beginEdit();
-		}
-		else if (key == 114) // F3 = display as tsv
-		{
-			grid.beginEditArray('tsv');
-		}
-		else if (key == 115) // F4 = display as csv
-		{
-			grid.beginEditArray('csv');
-		}
-		else if (key == 116) // F5 = display as json
-		{
-			grid.beginEditArray('json');
-		}
-		else if (key == 117) // F6 = display as yaml
-		{
-			grid.beginEditArray('yaml');
-		}
-		else if ((48 <= key && key <= 57) || (65 <= key && key <= 90) || (186 <= key && key <= 192) || (219 <= key && key <= 222))
-		{
-			var c = KeyToChar(key, shift);
-			grid.beginEdit(c);
-		}
-		else
-		{
-			//debugger;
-		}
-	};
-};
-Grid.prototype.beginEdit = function(c) {
-	
-	this.input.value = (c ? c : this.cells[this.cursor.row][this.cursor.col].formula); // formulas, or whatever is displayed
-	this.input.style.display = 'block';
-	this.input.style.top = (this.ys[this.cursor.row] - this.ctx.canvas.height).toString() + 'px';
-	this.input.style.left = (this.xs[this.cursor.col]).toString() + 'px';
-	this.input.style.height = (this.rowSizes[this.cursor.row] - 1).toString() + 'px';
-	this.input.style.width = (this.colSizes[this.cursor.col] - 1).toString() + 'px';
-	this.input.focus();
-	
-	this.setEditHandlers();
-};
-Grid.prototype.setEditHandlers = function() {
-	
-	var grid = this;
-	
-	this.input.onkeydown = function(e) {
-		
-		var key = e.keyCode;
-		
-		if (key == 27) // esc
-		{
-			grid.rejectEdit();
-		}
-		else if (key == 13) // return
-		{
-			grid.acceptEdit();
-		}
-	};
-};
-Grid.prototype.rejectEdit = function() {
-	this.clearEdit();
-};
-Grid.prototype.acceptEdit = function() {
-	
-	var str = this.input.value;
-	
-	var i = this.cursor.row;
-	var j = this.cursor.col;
-	
-	// under different modes, we could set this.formats, styles, etc
-	
-	if (i == 0 && j == 0)
-	{
-		// do nothing
-	}
-	else if (j == 0)
-	{
-		// do nothing
-	}
-	else if (i == 0)
-	{
-		// under different modes, set filter, sort, etc.
-		
-		var cell = this.cells[i][j];
-		
-		if (this.headers[j-1] == str) { return; }
-		if (this.headers.indexOf(str) > -1) { return; } // collision, bail
-		
-		cell.string = str;
-		
-		// change field
-		var oldfield = this.headers[j-1];
-		this.headers[j-1] = str;
-		
-		for (var k = 0; k < this._data.length; k++)
-		{
-			var obj = this._data[k];
-			obj[str] = obj[oldfield];
-			delete obj[oldfield];
-		}
-		
-		// change formulas that reference the old field name?
-	}
-	else
-	{
-		var fn = null;
-		var value = null;
-		
-		if (str.length > 0 && str[0] == '=')
-		{
-			var formula = str.substr(1);
-			fn = new Function('i', 'return ' + formula);
-		}
-		else
-		{
-			value = ParseStringToObj(str);
-		}
-		
-		for (var i = this.focusSelected.minRow; i <= this.focusSelected.maxRow; i++)
-		{
-			for (var j = this.focusSelected.minCol; j <= this.focusSelected.maxCol; j++)
-			{
-				var cell = this.cells[i][j];
-				
-				if (fn !== null)
-				{
-					cell.formula = str;
-					var result = fn.apply(this.cellArray, [i-1]);
-					cell.value = result;
-					this._data[i-1][this.headers[j-1]] = cell.value; // for now, formulas are volatile
-				}
-				else
-				{
-					cell.value = value;
-					this._data[i-1][this.headers[j-1]] = cell.value; // set the underlying
-				}
-				
-				cell.string = Format(cell.value, cell.formatObject);
-			}
-		}
-	}
-	
-	this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
-	this.draw();
-	
-	this.clearEdit();
-};
-Grid.prototype.clearEdit = function() {
-	
-	this.input.value = '';
-	this.input.style.display = 'none';
-	this.setKeyHandles();
-};
-
-Grid.prototype.beginEditArray = function(format) {
-	
-	var lf = this.xs[this.focusSelected.minCol];
-	var rt = this.xs[this.focusSelected.maxCol+1];
-	var tp = this.ys[this.focusSelected.minRow];
-	var bt = this.ys[this.focusSelected.maxRow+1];
-	
-	this.textarea.value = ''; // WriteFormat(this.getSelectionData(), format);
-	this.textarea.style.display = 'block';
-	this.textarea.style.top = (tp - this.ctx.canvas.height).toString() + 'px';
-	this.textarea.style.left = lf.toString() + 'px';
-	this.textarea.style.height = (bt - tp).toString() + 'px';
-	this.textarea.style.width = (rt - lf).toString() + 'px';
-	this.textarea.focus();
-	
-	var grid = this;
-	
-	this.textarea.onkeydown = function(e) {
-		
-		var key = e.keyCode;
-		
-		if (key == 27) // esc
-		{
-			grid.textarea.value = '';
-			grid.textarea.style.display = 'none';
-			grid.setKeyHandles();
-		}
-		else if (key == 13) // return - accepting the edit on return is not great, because people will use return while editing
-		{
-			// parse format, stretch or shrink grid if appropriate, otherwise reject edit if dimensions are not correct
-			// then set individual cells
-			
-			var newdata = ParseFormat(grid.textarea.value, format);
-			
-			for (var r = grid.focusSelected.minRow; r <= grid.focusSelected.maxRow; r++)
-			{
-				for (var c = grid.focusSelected.minCol; c <= grid.focusSelected.maxCol; c++)
-				{
-					// left off here
-					if (str.length > 0 && str[0] == '=')
-					{
-						cell.formula = str;
-						
-						var formula = str.substr(1);
-						var fn = new Function('i', 'return ' + formula);
-						var result = fn.apply(this.cellArray, [i-1]);
-						cell.value = result;
-					}
-					else
-					{
-						cell.value = ParseStringToObj(str);
-					}
-					
-					cell.string = Format(cell.value, cell.formatObject);
-				}
-			}
-			
-			grid.ctx.clearRect(0, 0, grid.ctx.canvas.width, grid.ctx.canvas.height);
-			grid.draw();
-			
-			grid.textarea.value = '';
-			grid.textarea.style.display = 'none';
-			grid.setKeyHandles();
-		}
-	};
-};
-
-Grid.prototype.getValue = function(dataRow, dataCol) {
-	
-	// inspect calculation flag, calculate if necessary, etc.
-	
-	return this.cells[dataRow+1][dataCol+1].value;
-};
-
-Grid.prototype.selectCell = function() {
-	
-	this.anchor.row = this.cursor.row;
-	this.anchor.col = this.cursor.col;
-	
-	this.focusSelected.minRow = this.cursor.row;
-	this.focusSelected.maxRow = this.cursor.row;
-	this.focusSelected.minCol = this.cursor.col;
-	this.focusSelected.maxCol = this.cursor.col;
-	
-	this.cacheSelectedCells();
-	this.section.draw();
-};
-Grid.prototype.selectRange = function() {
-	
-	this.focusSelected.minRow = Math.min(this.anchor.row, this.cursor.row);
-	this.focusSelected.maxRow = Math.max(this.anchor.row, this.cursor.row);
-	this.focusSelected.minCol = Math.min(this.anchor.col, this.cursor.col);
-	this.focusSelected.maxCol = Math.max(this.anchor.col, this.cursor.col);
-	
-	this.cacheSelectedCells();
-	this.section.draw();
-};
-Grid.prototype.clearSelection = function() {
-	
-	this.input.style.display = 'none';
-	
-	this.selected = [];
-	this.cursor = {row:null,col:null};
-	this.anchor = {row:null,col:null};
-	
-	this.cacheSelectedCells();
-	this.section.draw();
-};
-Grid.prototype.cacheSelectedCells = function() {
-	
-	for (var i = 0; i < this.cells.length; i++)
-	{
-		for (var j = 0; j < this.cells[i].length; j++)
-		{
-			this.cells[i][j].selected = false;
-		}
-	}
-	
-	for (var i = 0; i < this.rowsWithSelection.length; i++) { this.rowsWithSelection[i] = false; }
-	for (var j = 0; j < this.colsWithSelection.length; j++) { this.colsWithSelection[j] = false; }
-	
-	for (var i = 0; i < this.selected.length; i++)
-	{
-		var s = this.selected[i];
-		
-		for (var r = s.minRow; r <= s.maxRow; r++)
-		{
-			this.rowsWithSelection[r-1] = true;
-			
-			for (var c = s.minCol; c <= s.maxCol; c++)
-			{
-				this.cells[r][c].selected = true;
-				this.colsWithSelection[c-1] = true;
-			}
-		}
-	}
-};
-Grid.prototype.getSelectedCells = function() {
-	
-	var cells = [];
-	
-	for (var k = 0; k < this.selected.length; k++)
-	{
-		if (this.selected[k].mode == "Select")
-		{
-			var selection = this.selected[k];
-			
-			// the j,i order here is deliberate - so that the returned list is clustered by column
-			for (var j = selection.minCol; j <= selection.maxCol; j++)
-			{
-				for (var i = selection.minRow; i <= selection.maxRow; i++)
-				{
-					cells.push(this.cells[i][j]);
-				}
-			}
-		}
-	}
-	
-	return cells;
-};
-
-Grid.prototype.insertRowsAbove = function() { this.insertRows(true); };
-Grid.prototype.insertRowsBelow = function() { this.insertRows(false); };
-Grid.prototype.insertRows = function(bAbove) {
-	
-	var k = bAbove ? this.focusSelected.minRow : (this.focusSelected.maxRow+1);
-	var n = this.focusSelected.maxRow - this.focusSelected.minRow + 1;
-	
-	this.nRows += n;
-	
-	for (var i = 0; i < n; i++)
-	{
-		var newrow = [];
-		var newdata = {};
-		
-		for (var j = 0; j < this.nCols; j++)
-		{
-			var cell = new Cell();
-			cell.string = '';
-			newrow.push(cell);
-			
-			if (j >= 1)
-			{
-				newdata[this.headers[j-1]] = null;
-			}
-		}
-		
-		this.rowsWithSelection.splice(k+i, 0, false);
-		this.rowSizes.splice(k+i, 0, 20);
-		this.cells.splice(k+i, 0, newrow);
-		this._data.splice(k+i-1, 0, newdata);
-	}
-	
-	for (var i = 1; i < this.cells.length; i++)
-	{
-		this.cells[i][0].string = (i-1).toString();
-	}
-	
-	if (bAbove)
-	{
-		this.anchor.row += n;
-		this.cursor.row += n;
-		this.selectRange();
-	}
-	
-	this.position();
-	this.section.draw();
-};
-Grid.prototype.insertColsLeft = function() { this.insertCols(true); };
-Grid.prototype.insertColsRight = function() { this.insertCols(false); };
-Grid.prototype.insertCols = function(bLeft) {
-	
-	var k = bLeft ? this.focusSelected.minCol : (this.focusSelected.maxCol+1);
-	var n = this.focusSelected.maxCol - this.focusSelected.minCol + 1;
-	
-	this.nCols += n;
-	
-	for (var i = 0; i < n; i++)
-	{
-		// if we're in classic-excel mode, we want to remap the A,B,C headers and change formulas
-		var suffix = 0;
-		var header = 'field' + suffix.toString();
-		
-		while (this.headers.indexOf(header) > -1)
-		{
-			suffix++;
-			header = 'field' + suffix.toString();
-		}
-		
-		this.headers.splice(k+i-1, 0, header);
-		
-		this.colsWithSelection.splice(k+i, 0, false);
-		this.colSizes.splice(k+i, 0, 64);
-		
-		for (var j = 0; j < this.nRows; j++)
-		{
-			var cell = new Cell();
-			
-			if (j == 0)
-			{
-				cell.string = header;
-			}
-			else
-			{
-				cell.string = '';
-				this._data[j-1][header] = null;
-			}
-			
-			this.cells[j].splice(k+i, 0, cell);
-		}
-	}
-	
-	if (bLeft)
-	{
-		this.anchor.col += n;
-		this.cursor.col += n;
-		this.selectRange();
-	}
-	
-	this.position();
-	this.section.draw();
-};
-Grid.prototype.deleteRows = function() {
-	
-	// what happens if we delete all the rows?
-	
-	var k = this.focusSelected.minRow;
-	var n = this.focusSelected.maxRow - this.focusSelected.minRow + 1;
-	
-	this.nRows -= n;
-	
-	this.rowsWithSelection.splice(k, n);
-	this.rowSizes.splice(k, n);
-	this.cells.splice(k, n);
-	var deleted = this._data.splice(k-1, n);
-	
-	for (var i = 1; i < this.cells.length; i++)
-	{
-		this.cells[i][0].string = (i-1).toString();
-	}
-	
-	// this is where Shift+Alt+Up vs Shift+Alt+Down could have varying effect - on where the cursor ends up
-	this.anchor.row = k - 1;
-	this.cursor.row = k - 1;
-	this.selectRange();
-	
-	this.position();
-	this.section.draw();
-};
-Grid.prototype.deleteCols = function() {
-	
-	var k = this.focusSelected.minCol;
-	var n = this.focusSelected.maxCol - this.focusSelected.minCol + 1;
-	
-	this.nCols -= n;
-	
-	this.colsWithSelection.splice(k, n);
-	this.colSizes.splice(k, n);
-	
-	for (var i = 0; i < this.nRows; i++)
-	{
-		if (i > 0)
-		{
-			for (var j = 0; j < n; j++)
-			{
-				delete this._data[i-1][this.headers[k-1+j]];
-			}
-		}
-		
-		this.cells[i].splice(k, n);
-	}
-	
-	this.headers.splice(k, n);
-	
-	// this is where Shift+Alt+Left vs Shift+Alt+Right could have varying effect - on where the cursor ends up
-	this.anchor.col = k - 1;
-	this.cursor.col = k - 1;
-	this.selectRange();
-	
-	this.position();
-	this.section.draw();
-};
-
-Grid.prototype.getCoords = function(e) {
-	
-	var mult = this.ctx.cubitsPerPixel ? this.ctx.cubitsPerPixel : 1;
-	var x = e.offsetX * mult;
-	var y = e.offsetY * mult;
-	return {x:x,y:y};
-};
-
-function InitCells(nRows, nCols) {
-	
-	var matrix = [];
-	
-	for (var i = 0; i < nRows; i++)
-	{
-		var row = [];
-		
-		for (var j = 0; j < nCols; j++)
-		{
-			var cell = new Cell();
-			row.push(cell);
-		}
-		
-		matrix.push(row);
-	}
-	
-	return matrix;
-};
-function InitMatrix(nRows, nCols, initValue) {
-	
-	var matrix = [];
-	
-	for (var i = 0; i < nRows; i++)
-	{
-		var row = [];
-		
-		for (var j = 0; j < nCols; j++)
-		{
-			row.push(initValue);
-		}
-		
-		matrix.push(row);
-	}
-	
-	return matrix;
-}
-function InitArray(n, initValue) {
-	
-	var array = [];
-	
-	for (var i = 0; i < n; i++)
-	{
-		array.push(initValue);
-	}
-	
-	return array;
-}
-
-function ParseHeaderList(matrix, headers) {
-	
-	var data = [];
-	
-	for (var i = 0; i < matrix.length; i++)
-	{
-		var obj = {};
-		
-		for (var k = 0; k < headers.length; k++)
-		{
-			obj[headers[k]] = matrix[i][k];
-		}
-		
-		data.push(obj);
-	}
-	
-	return data;
-}
-
-function ParseFormatString(formatString) {
-	
-	var formatObject = null;
-	
-	formatObject = formatString; // for the moment
-	
-	return formatObject;
-}
+*/
+var Row = (function () {
+    function Row(index, object) {
+        this._index = index;
+        this._object = object;
+    }
+    return Row;
+}());
+var Col = (function () {
+    function Col(grid, json, index) {
+        var col = this;
+        col._grid = grid;
+        col._index = index;
+        col._header = json.header;
+        col._visible = json.visible;
+        col._width = json.width;
+        col._calculated = true;
+        col._visited = false;
+        col._srcs = new Set();
+        col._dsts = new Set();
+        col._setFormula(json.formula);
+        col._setFormat(json.format);
+        col._setStyle(json.style);
+    }
+    Col.prototype._calculate = function () {
+        var col = this;
+        if (col._formulaObject === null) {
+            col._calculated = true;
+            col._visited = false;
+            return;
+        }
+        if (col._visited) {
+            throw new Error('circular reference at column "' + col._header + '"');
+        }
+        col._visited = true;
+        // calculate uncalculated srcs first
+        col._srcs.forEach(function (src) { if (!src._calculated) {
+            src._calculate();
+        } });
+        for (var i = 0; i < col._grid._dataComponent._data.length; i++) {
+            var result = col._formulaObject.call(col._grid._dataComponent._data, i);
+            col._grid._dataComponent._data[i][col._header] = result;
+        }
+        col._calculated = true;
+        col._visited = false;
+    };
+    Col.prototype._setFormula = function (formula) {
+        var col = this;
+        formula = formula.trim();
+        if (formula[0] == '=') {
+            formula = formula.substr(1);
+        }
+        col._formula = formula;
+        if (formula == '') {
+            col._formulaObject = null;
+            col._srcs.forEach(function (src) { src._dsts.delete(col); });
+            col._srcs = new Set();
+            col._markUncalculated();
+            return;
+        }
+        try {
+            col._formulaObject = new Function('i', 'return ' + formula);
+            // for now, we're going to assume the formula stays within the row
+            var dependencies = [];
+            var referenceRegex = /this\[([^\]]+)\]\.([A-Za-z][A-Za-z0-9]*)/g; // e.g. this[i].foo
+            var match = referenceRegex.exec(formula);
+            while (match !== null) {
+                dependencies.push(match[2]); // the group that matches the .field
+                match = referenceRegex.exec(formula);
+            }
+            var cols = col._grid._cols._enumerate();
+            for (var i = 0; i < dependencies.length; i++) {
+                for (var k = 0; k < cols.length; k++) {
+                    if (dependencies[i] == cols[k]._header) {
+                        col._srcs.add(cols[k]);
+                        cols[k]._dsts.add(col);
+                    }
+                }
+            }
+            col._markUncalculated();
+        }
+        catch (e) {
+            col._formulaObject = null;
+            col._srcs.forEach(function (src) { src._dsts.delete(col); });
+            col._srcs = new Set();
+            col._markUncalculated();
+        }
+        col._grid._dataComponent._markDirty();
+    };
+    Col.prototype._setFormat = function (format) {
+        var col = this;
+        col._format = ((format == '') ? null : format);
+        col._grid._dataComponent._markDirty();
+    };
+    Col.prototype._setStyle = function (style) {
+        var col = this;
+        col._style = style;
+        try {
+            col._styleObject = new Style(JSON.parse(style));
+        }
+        catch (e) {
+            col._styleObject = new Style();
+        }
+        col._grid._dataComponent._markDirty();
+    };
+    Col.prototype._markUncalculated = function () {
+        var col = this;
+        if (col._calculated) {
+            col._calculated = false;
+            col._dsts.forEach(function (dst) { dst._markUncalculated(); });
+        }
+    };
+    Col.prototype._write = function () {
+        var col = this;
+        return {
+            header: col._header,
+            visible: col._visible,
+            width: col._width,
+            formula: col._formula,
+            format: col._format,
+            style: col._style
+        };
+    };
+    return Col;
+}());
+var Style = (function () {
+    // border: we need syntax to deal with TLRB, color, lineWidth, type (solid, dotted, dashed, etc)
+    // either syntax or more tables, which i'm reluctant to do b/c it would be a lot of tables
+    // maybe CSS is the best inspiration for syntax here, since CSS itself uses syntax
+    // border-top: 1px solid gray
+    function Style(json) {
+        var style = this;
+        if (json == null) {
+            json = {};
+        }
+        style._font = json.font ? json.font : '11pt Calibri';
+        style._textColor = json.textColor ? json.textColor : 'rgb(0,0,0)';
+        style._hAlign = json.hAlign ? json.hAlign : 'center';
+        style._vAlign = json.vAlign ? json.vAlign : 'center';
+        style._backgroundColor = json.backgroundColor ? json.backgroundColor : null;
+        style._border = json.border ? json.border : null;
+        style._hMargin = json.hMargin ? json.hMargin : 5;
+        style._vMargin = json.vMargin ? json.vMargin : 4;
+    }
+    Style.prototype.write = function () {
+        var style = this;
+        return {
+            font: style._font,
+            textColor: style._textColor,
+            hAlign: style._hAlign,
+            vAlign: style._vAlign,
+            backgroundColor: style._backgroundColor,
+            border: style._border,
+            hMargin: style._hMargin,
+            vMargin: style._vMargin
+        };
+    };
+    return Style;
+}());
+var GridLinkedList = (function () {
+    function GridLinkedList() {
+        this._prev = this;
+        this._next = this;
+    }
+    GridLinkedList.prototype._add = function (data) {
+        // this must be called on the sentinel
+        var elt = new GridLinkedList();
+        elt._data = data;
+        elt._next = this;
+        elt._prev = this._prev;
+        this._prev._next = elt;
+        this._prev = elt;
+        return elt;
+    };
+    GridLinkedList.prototype._remove = function () {
+        // this cannot be called on the sentinel
+        this._prev._next = this._next;
+        this._next._prev = this._prev;
+    };
+    GridLinkedList.prototype._enumerate = function () {
+        // this must be called on the sentinel
+        var list = [];
+        var elt = this._next;
+        while (elt !== this) {
+            list.push(elt._data);
+            elt = elt._next;
+        }
+        return list;
+    };
+    return GridLinkedList;
+}());
+var HiddenList = (function () {
+    function HiddenList() {
+        this._prev = this;
+        this._next = this;
+        this._visibleNext = this;
+        this._visiblePrev = this;
+    }
+    HiddenList.prototype._add = function (data, visible) {
+        var elt = new HiddenList();
+        elt._data = data;
+        elt._next = this;
+        elt._prev = this._prev;
+        this._prev._next = elt;
+        this._prev = elt;
+        if (visible) {
+            elt._visibleNext = this;
+            elt._visiblePrev = this._visiblePrev;
+            this._visiblePrev._visibleNext = elt;
+            this._visiblePrev = elt;
+        }
+        else {
+            elt._visibleNext = null;
+            elt._visiblePrev = null;
+        }
+        return elt;
+    };
+    HiddenList.prototype._remove = function () {
+        // this cannot be called on the sentinel
+        this._prev._next = this._next;
+        this._next._prev = this._prev;
+    };
+    HiddenList.prototype._enumerate = function () {
+        // this must be called on the sentinel
+        var list = [];
+        var elt = this._next;
+        while (elt !== this) {
+            list.push(elt._data);
+            elt = elt._next;
+        }
+        return list;
+    };
+    HiddenList.prototype._hideUntil = function (that) {
+        this._visibleNext = that;
+        that._visiblePrev = this;
+    };
+    HiddenList.prototype._showUntil = function (that) {
+        this._visibleNext = this._next;
+        that._visiblePrev = that._prev;
+    };
+    return HiddenList;
+}());
+var Grid = (function () {
+    function Grid(dataComponent, div) {
+        var grid = this;
+        grid._rowHeight = 20;
+        grid._rowHeaderWidth = 64;
+        grid._defaultCellStroke = 'rgb(208,215,229)'; // rgb(158,182,206)
+        grid._defaultHeaderStroke = 'rgb(158,182,206)';
+        grid._selectedCellStroke = 'rgb(242,149,54)';
+        grid._selectedHeaderStroke = 'rgb(242,149,54)';
+        grid._defaultCellFill = 'rgb(255,255,255)';
+        grid._defaultHeaderFill = 'rgb(208,215,229)';
+        grid._selectedCellFill = 'rgb(210,210,240)';
+        grid._selectedHeaderFill = 'rgb(255,213,141)';
+        grid._shift = false;
+        grid._ctrl = false;
+        grid._alt = false;
+        grid._div = div;
+        grid._displayDiv = document.createElement('div');
+        grid._div[0].appendChild(grid._displayDiv);
+        grid._displayGridUi();
+        grid._dataComponent = dataComponent;
+        var gridJson = dataComponent.gridParams;
+        if (!gridJson) {
+            gridJson = {};
+        }
+        if (!gridJson.columns) {
+            gridJson.columns = dataComponent._headers.map(function (header) { return { header: header, visible: true, width: 64, formula: '', format: null, style: null }; });
+        }
+        if (!gridJson.filter) {
+            gridJson.filter = '';
+        }
+        if (!gridJson.sort) {
+            gridJson.sort = '';
+        }
+        if (!gridJson.multisort) {
+            gridJson.multisort = [];
+        }
+        grid._columnParams = gridJson.columns;
+        Object.defineProperty(this, 'data', {
+            get: function () {
+                return grid._dataComponent._data;
+            },
+            set: function (value) {
+                grid._dataComponent._data = value;
+                if (grid._dataComponent._markDirty) {
+                    grid._dataComponent._markDirty();
+                }
+                grid._resetData();
+            }
+        });
+        grid._editMode = 'value';
+        //grid._hScrollbar = null; // new Scrollbar(this.ctx, this, 'h')
+        //grid._vScrollbar = new Scrollbar(this.ctx, this, 'v');
+        grid._filter = gridJson.filter;
+        grid._sort = gridJson.sort;
+        grid._multisort = new GridLinkedList();
+        grid._multisortIndicatorDict = {};
+        for (var i = 0; i < gridJson.multisort.length; i++) {
+            grid._multisort._add(gridJson.multisort[i]);
+        }
+        grid._styles = [new Style()];
+        grid._resetData();
+    }
+    Grid.prototype._resetData = function () {
+        var grid = this;
+        grid._rows = new HiddenList();
+        grid._cols = new HiddenList();
+        for (var i = 0; i < grid._dataComponent._data.length; i++) {
+            grid._rows._add(new Row(i, grid._dataComponent._data[i]), true);
+        }
+        // check columnParams against data._headers - add or delete cols as necessary
+        for (var i = 0; i < grid._dataComponent._headers.length; i++) {
+            var header = grid._dataComponent._headers[i];
+            var colParams = null;
+            for (var k = 0; k < grid._columnParams.length; k++) {
+                if (grid._columnParams[k].header == header) {
+                    colParams = grid._columnParams[k];
+                    break;
+                }
+            }
+            if (colParams === null) {
+                colParams = { header: header, visible: true, width: 64, formula: '', format: null, style: null };
+            }
+            grid._cols._add(new Col(grid, colParams, i), colParams.visible);
+        }
+        grid._selected = null;
+        grid._cursor = { _row: null, _col: null };
+        grid._anchor = { _row: null, _col: null };
+        // volatile scroll variables
+        grid._scroll = { _minRow: grid._rows._visibleNext, _minCol: grid._cols._visibleNext, _maxRow: null, _maxCol: null };
+        grid._xOffset = 0;
+        grid._yOffset = 0;
+        grid._calcMaxRowFromMinRow();
+        grid._calcMaxColFromMinCol();
+        grid._calculate();
+        if (grid._multisort._next !== grid._multisort) {
+            grid._setMultisort();
+        }
+        if (grid._filter !== null) {
+            grid._setFilter(grid._filter);
+        }
+        grid._setMouseHandles();
+        grid._setKeyHandles();
+        grid._ctx.canvas.focus();
+        grid._draw();
+    };
+    Grid.prototype._write = function () {
+        var grid = this;
+        return {
+            filter: grid._filter,
+            sort: grid._sort,
+            multisort: grid._multisort._enumerate().map(function (sortParams) { return { header: sortParams._header, ascending: sortParams._ascending }; }),
+            columns: grid._cols._enumerate().map(function (col) { return col._write(); })
+        };
+    };
+    Grid.prototype._displayGridUi = function () {
+        var grid = this;
+        var div = $(grid._displayDiv).html('');
+        var canvas = document.createElement('canvas');
+        //canvas.width = div.clientWidth; // perhaps set a onresize handler on grid._div/grid._displayDiv to resize the canvas as well
+        //canvas.height = div.clientHeight;
+        canvas.width = 1000;
+        canvas.height = 525;
+        canvas.tabIndex = 0;
+        grid._input = document.createElement('input');
+        grid._input.type = 'text';
+        grid._input.style.position = 'relative';
+        grid._input.style.display = 'none';
+        grid._textarea = document.createElement('textarea');
+        grid._textarea.style.position = 'relative';
+        grid._textarea.style.display = 'none';
+        div.append(canvas);
+        div.append(grid._input);
+        div.append(grid._textarea);
+        grid._ctx = canvas.getContext('2d');
+        grid._lf = 10;
+        grid._tp = 10;
+        grid._rt = canvas.width - 10;
+        grid._bt = canvas.height - 10;
+    };
+    Grid.prototype._draw = function () {
+        var grid = this;
+        var ctx = grid._ctx;
+        ctx.clearRect(0, 0, grid._ctx.canvas.width, grid._ctx.canvas.height); // or lf, tp, rt - lf, bt - tp
+        grid._xs = [];
+        grid._ys = [];
+        grid._visibleRows = [];
+        grid._visibleCols = [];
+        //Fundamentally, the point is to accept a small window in comparison to the size of the grid
+        //Instead of assuming we have a whole view, we understand the implications of offsets and hidden rows/cols
+        //So we start at the offsets, and just draw until we go past grid._rt/grid._bt
+        // fill xs, cols
+        var colElt = grid._scroll._minCol;
+        var x = grid._lf;
+        grid._xs.push(x);
+        x += grid._rowHeaderWidth;
+        grid._visibleCols.push(null);
+        grid._xs.push(x);
+        x -= grid._xOffset; // a one-time correction
+        while (x < grid._rt) {
+            grid._visibleCols.push(colElt);
+            x += colElt._data._width;
+            grid._xs.push(x);
+            colElt = colElt._visibleNext;
+            if (colElt == grid._cols) {
+                break;
+            }
+        }
+        // fill ys, rows
+        var rowElt = grid._scroll._minRow;
+        var y = grid._tp;
+        grid._ys.push(y);
+        y += grid._rowHeight;
+        grid._visibleRows.push(null);
+        grid._ys.push(y);
+        y -= grid._yOffset; // a one-time correction
+        while (y < grid._bt) {
+            grid._visibleRows.push(rowElt);
+            y += grid._rowHeight;
+            grid._ys.push(y);
+            rowElt = rowElt._visibleNext;
+            if (rowElt == grid._rows) {
+                break;
+            }
+        }
+        var sel = grid._selected;
+        // fill top left corner cell
+        ctx.fillStyle = grid._defaultHeaderFill;
+        ctx.fillRect(grid._xs[0], grid._ys[0], grid._xs[1] - grid._xs[0], grid._ys[1] - grid._ys[0]);
+        // draw row header fills and text
+        for (var i = 1; i < grid._visibleRows.length; i++) {
+            var row = grid._visibleRows[i]._data;
+            var string = row._index.toString();
+            var rowIsSelected = ((sel === null || row === null || sel._minRow === null) ? false : (sel._minRow._data._index <= row._index && row._index <= sel._maxRow._data._index));
+            var lf = grid._xs[0];
+            var rt = grid._xs[1];
+            var tp = grid._ys[i + 0];
+            var bt = grid._ys[i + 1];
+            var wd = rt - lf;
+            var hg = bt - tp;
+            var cx = (lf + rt) / 2;
+            var cy = (tp + bt) / 2;
+            // fill
+            ctx.fillStyle = (rowIsSelected ? grid._selectedHeaderFill : grid._defaultHeaderFill);
+            ctx.fillRect(lf, tp, wd, hg);
+            // clipping path to prevent text overflow
+            ctx.save();
+            ctx.beginPath();
+            var clipLf = lf;
+            var clipTp = tp;
+            var clipWd = wd;
+            var clipHg = hg;
+            if (i == 1) {
+                clipTp = bt - grid._rowHeight;
+            }
+            if (i == grid._visibleRows.length - 1) {
+                clipHg = grid._rowHeight;
+            }
+            ctx.rect(clipLf, clipTp, clipWd, clipHg);
+            ctx.clip();
+            ctx.fillStyle = 'black';
+            ctx.font = '11pt Calibri';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(string, cx, cy);
+            ctx.restore(); // clear clipping path
+        }
+        // draw col header fills and text
+        for (var j = 1; j < grid._visibleCols.length; j++) {
+            var col = grid._visibleCols[j]._data;
+            var string = col._header;
+            var colIsSelected = ((sel === null || col === null || sel._minCol === null) ? false : (sel._minCol._data._index <= col._index && col._index <= sel._maxCol._data._index));
+            var lf = grid._xs[j + 0];
+            var rt = grid._xs[j + 1];
+            var tp = grid._ys[0];
+            var bt = grid._ys[1];
+            var wd = rt - lf;
+            var hg = bt - tp;
+            var cx = (lf + rt) / 2;
+            var cy = (tp + bt) / 2;
+            // fill
+            ctx.fillStyle = (colIsSelected ? grid._selectedHeaderFill : grid._defaultHeaderFill);
+            ctx.fillRect(lf, tp, wd, hg);
+            // clipping path to prevent text overflow
+            ctx.save();
+            ctx.beginPath();
+            var clipLf = lf;
+            var clipTp = tp;
+            var clipWd = wd;
+            var clipHg = hg;
+            if (j == 1) {
+                clipLf = rt - col._width;
+            }
+            if (j == grid._visibleCols.length - 1) {
+                clipWd = col._width;
+            }
+            ctx.rect(clipLf, clipTp, clipWd, clipHg);
+            ctx.clip();
+            ctx.fillStyle = 'black';
+            ctx.font = '11pt Calibri';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(string, cx, cy);
+            if (grid._multisortIndicatorDict[string]) {
+                var n = grid._multisortIndicatorDict[string];
+                var str = Math.abs(n).toString();
+                ctx.font = '8pt Calibri';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(str, rt - 9, bt - 4);
+                var rtm = 5.5;
+                var btm = 3;
+                var len = 10;
+                var flt = 2;
+                ctx.beginPath();
+                ctx.moveTo(rt - rtm, bt - btm + 0.5);
+                ctx.lineTo(rt - rtm, bt - btm - len - 0.5);
+                if (n < 0) {
+                    ctx.moveTo(rt - rtm, bt - btm - len);
+                    ctx.lineTo(rt - rtm + flt, bt - btm - len + flt);
+                    ctx.moveTo(rt - rtm, bt - btm - len);
+                    ctx.lineTo(rt - rtm - flt, bt - btm - len + flt);
+                }
+                else {
+                    ctx.moveTo(rt - rtm, bt - btm);
+                    ctx.lineTo(rt - rtm + flt, bt - btm - flt);
+                    ctx.moveTo(rt - rtm, bt - btm);
+                    ctx.lineTo(rt - rtm - flt, bt - btm - flt);
+                }
+                ctx.stroke();
+            }
+            ctx.restore(); // clear clipping path
+        }
+        // draw data cell fills and text - we'll draw strokes and the selection box later on
+        for (var j = 1; j < grid._visibleCols.length; j++) {
+            var col = grid._visibleCols[j]._data;
+            var style = col._styleObject;
+            for (var i = 1; i < grid._visibleRows.length; i++) {
+                var row = grid._visibleRows[i]._data;
+                var value = row._object[col._header];
+                var string = Format(value, col._format);
+                var rowIsSelected = ((sel === null || row === null || sel._minRow === null) ? false : (sel._minRow._data._index <= row._index && row._index <= sel._maxRow._data._index));
+                var colIsSelected = ((sel === null || col === null || sel._minCol === null) ? false : (sel._minCol._data._index <= col._index && col._index <= sel._maxCol._data._index));
+                if (rowIsSelected && colIsSelected && (row != grid._cursor._row._data || col != grid._cursor._col._data)) {
+                    ctx.fillStyle = grid._selectedCellFill; // what if there is a set background color?
+                }
+                else {
+                    if (style._backgroundColor) {
+                        ctx.fillStyle = style._backgroundColor;
+                    }
+                    else {
+                        ctx.fillStyle = grid._defaultCellFill;
+                    }
+                }
+                var lf = grid._xs[j + 0];
+                var rt = grid._xs[j + 1];
+                var tp = grid._ys[i + 0];
+                var bt = grid._ys[i + 1];
+                var wd = rt - lf;
+                var hg = bt - tp;
+                var cx = (lf + rt) / 2;
+                var cy = (tp + bt) / 2;
+                // clipping path to prevent text overflow
+                ctx.save();
+                ctx.beginPath();
+                var clipLf = lf;
+                var clipTp = tp;
+                var clipWd = wd;
+                var clipHg = hg;
+                // the first and last data rows/cols have a clipping rect that is different from the visible rect
+                if (i == 1) {
+                    clipTp = bt - grid._rowHeight;
+                }
+                if (i == grid._visibleRows.length - 1) {
+                    clipHg = grid._rowHeight;
+                }
+                if (j == 1) {
+                    clipLf = rt - col._width;
+                }
+                if (j == grid._visibleCols.length - 1) {
+                    clipWd = col._width;
+                }
+                ctx.rect(clipLf, clipTp, clipWd, clipHg);
+                ctx.clip();
+                ctx.fillRect(lf, tp, wd, hg);
+                var hAlign = style._hAlign;
+                var vAlign = style._vAlign;
+                var x = null;
+                var y = null;
+                if (hAlign == 'left') {
+                    x = lf + style._hMargin;
+                }
+                else if (hAlign == 'center') {
+                    x = cx;
+                }
+                else if (hAlign == 'right') {
+                    x = rt - style._hMargin;
+                }
+                else {
+                    throw new Error();
+                }
+                if (vAlign == 'top') {
+                    y = tp + style._vMargin;
+                }
+                else if (vAlign == 'center') {
+                    y = cy;
+                }
+                else if (vAlign == 'bottom') {
+                    y = bt - style._vMargin;
+                }
+                else {
+                    throw new Error();
+                }
+                ctx.fillStyle = style._textColor;
+                ctx.font = style._font;
+                ctx.textAlign = hAlign;
+                ctx.textBaseline = ((vAlign == 'center') ? 'middle' : vAlign);
+                ctx.fillText(string, x, y);
+                ctx.restore(); // clear clipping path
+            }
+        }
+        var labelCellStroke = 'rgb(0,0,0)';
+        var normalStroke = 'rgb(0,0,0)';
+        var selectedStroke = 'rgb(0,0,0)';
+        ctx.lineWidth = 1;
+        var x0 = grid._xs[0];
+        var x1 = grid._xs[1];
+        var y0 = grid._ys[0];
+        var y1 = grid._ys[1];
+        var xn = grid._xs[grid._xs.length - 1];
+        var yn = grid._ys[grid._ys.length - 1];
+        // draw normal strokes - horizontal
+        for (var i = 0; i < grid._ys.length; i++) {
+            var y = grid._ys[i];
+            // long strokes
+            ctx.strokeStyle = i < 2 ? labelCellStroke : normalStroke;
+            ctx.beginPath();
+            ctx.moveTo(x0 - 0.5, y - 0.5);
+            ctx.lineTo(xn, y - 0.5);
+            ctx.stroke();
+            // short label cell strokes
+            ctx.strokeStyle = labelCellStroke;
+            ctx.beginPath();
+            ctx.moveTo(x0 - 0.5, y - 0.5);
+            ctx.lineTo(x1, y - 0.5);
+            ctx.stroke();
+        }
+        // draw normal strokes - vertical
+        for (var i = 0; i < grid._xs.length; i++) {
+            var x = grid._xs[i];
+            if (i >= 2 && i < grid._xs.length - 1 && grid._visibleCols[i - 1]._next != grid._visibleCols[i]) {
+                ctx.lineWidth = 3; // show presence of hidden cols
+            }
+            else {
+                ctx.lineWidth = 1;
+            }
+            // long strokes
+            ctx.strokeStyle = i < 2 ? labelCellStroke : normalStroke;
+            ctx.beginPath();
+            ctx.moveTo(x - 0.5, y0 - 0.5);
+            ctx.lineTo(x - 0.5, yn);
+            ctx.stroke();
+            // short label cell strokes
+            ctx.strokeStyle = labelCellStroke;
+            ctx.beginPath();
+            ctx.moveTo(x - 0.5, y0 - 0.5);
+            ctx.lineTo(x - 0.5, y1);
+            ctx.stroke();
+        }
+        // then draw selected strokes
+        if (grid._selected) {
+            var sel = grid._selected;
+            var sx0 = null;
+            var sx1 = null;
+            var sy0 = null;
+            var sy1 = null;
+            // xs[0]         xs[1]         xs[2]         xs[3]         xs[4]
+            //       cols[0]       cols[1]       cols[2]       cols[3] (actually visibleCols, and visibleCols[0] == null)
+            if (sel._minRow == null || sel._maxRow == null) {
+                sy0 = grid._ys[0];
+                sy1 = grid._ys[1];
+            }
+            else {
+                for (var i = 1; i < grid._visibleRows.length; i++) {
+                    if (grid._visibleRows[i] == sel._minRow) {
+                        sy0 = grid._ys[i + 0];
+                    }
+                    if (grid._visibleRows[i] == sel._maxRow) {
+                        sy1 = grid._ys[i + 1];
+                        break;
+                    }
+                }
+            }
+            if (sel._minCol == null || sel._maxCol == null) {
+                sx0 = grid._xs[0];
+                sx1 = grid._xs[1];
+            }
+            else {
+                for (var j = 1; j < grid._visibleCols.length; j++) {
+                    if (grid._visibleCols[j] == sel._minCol) {
+                        sx0 = grid._xs[j + 0];
+                    }
+                    if (grid._visibleCols[j] == sel._maxCol) {
+                        sx1 = grid._xs[j + 1];
+                        break;
+                    }
+                }
+            }
+            // first draw the short orange strokes on the row and col header cells, 
+            //if (sel._minRow > 0) // so that the selection indicator is not drawn on the title cell when a col label is selected
+            //{
+            //	ctx.strokeStyle = selectedStroke;
+            //	
+            //	for (var i = sel._minRow; i <= sel._maxRow + 1; i++)
+            //	{
+            //		var y = grid._ys[i];
+            //		drawLine(ctx, x0 - 0.5, y - 0.5, x1, y - 0.5); // short horizontal strokes
+            //	}
+            //	
+            //	drawLine(ctx, x0 - 0.5, sy0 - 0.5, x0 - 0.5, sy1); // long vertical strokes
+            //	drawLine(ctx, x1 - 0.5, sy0 - 0.5, x1 - 0.5, sy1);
+            //}
+            //if (sel._minCol > 0) // so that the selection indicator is not drawn on the title cell when a row label is selected
+            //{
+            //	ctx.strokeStyle = selectedStroke;
+            //	
+            //	for (var j = sel._minCol; j <= sel._maxCol + 1; j++)
+            //	{
+            //		var x = grid._xs[j];
+            //		drawLine(ctx, x - 0.5, y0 - 0.5, x - 0.5, y1); // short vertical strokes
+            //	}
+            //	
+            //	drawLine(ctx, sx0 - 0.5, y0 - 0.5, sx1, y0 - 0.5); // long horizontal strokes
+            //	drawLine(ctx, sx0 - 0.5, y1 - 0.5, sx1, y1 - 0.5);
+            //}
+            // now draw the thick black selection box
+            ctx.fillStyle = 'rgb(0,0,0)';
+            ctx.fillRect(sx0 - 2, sy0 - 2, sx1 - sx0 + 1, 3); // tp
+            ctx.fillRect(sx1 - 2, sy0 - 2, 3, sy1 - sy0 - 2); // rt
+            ctx.fillRect(sx0 - 2, sy1 - 2, sx1 - sx0 - 2, 3); // bt
+            ctx.fillRect(sx0 - 2, sy0 - 2, 3, sy1 - sy0 + 1); // lf
+            ctx.fillRect(sx1 - 3, sy1 - 3, 5, 5); // handle square
+        }
+        //if (grid._hScrollbar) { grid._hScrollbar.draw(); }
+        //if (grid._vScrollbar) { grid._vScrollbar.draw(); }
+    };
+    Grid.prototype._pointToRowCol = function (x, y) {
+        var grid = this;
+        // compare the mouse pos against the gridlines to get a row,col pair
+        var row = null;
+        var col = null;
+        // xs[0]         xs[1]         xs[2]         xs[3]         xs[4]
+        //       cols[0]       cols[1]       cols[2]       cols[3] (actually visibleCols, and cols[0] == null)
+        for (var i = 1; i < grid._ys.length; i++) {
+            if (y <= grid._ys[i]) {
+                row = grid._visibleRows[i - 1];
+                break;
+            }
+        }
+        for (var j = 1; j < grid._xs.length; j++) {
+            if (x <= grid._xs[j]) {
+                col = grid._visibleCols[j - 1];
+                break;
+            }
+        }
+        // so this returns row == null or col == null if a header is selected
+        return { _row: row, _col: col };
+    };
+    Grid.prototype._calculate = function () {
+        var grid = this;
+        grid._cols._enumerate().forEach(function (col) { if (!col._calculated) {
+            col._calculate();
+        } });
+    };
+    Grid.prototype._setMouseHandles = function () {
+        var grid = this;
+        var canvas = grid._ctx.canvas;
+        canvas.onmousewheel = function (wheelEvent) {
+            wheelEvent.preventDefault();
+            wheelEvent.stopPropagation();
+            var clicks = wheelEvent.wheelDelta / 120;
+            var cubitsPerRow = 1; // 20
+            // Shift+Scroll = 1 cell, Scroll = 10 cells, Ctrl+Scroll = 100 cells, Ctrl+Shift+Scroll = 1000 cells
+            // Shift+ above = Scroll horizontal?
+            // this requires some calculation
+            var multiplier = (grid._ctrl && grid._shift && grid._alt) ? 10000 : ((grid._ctrl && grid._shift) ? 1000 : (grid._ctrl ? 100 : (grid._shift ? 1 : 10)));
+            var offset = clicks * multiplier * cubitsPerRow;
+            grid._scrollBy(offset, true); // can't do !grid._shift, because we use shift to modulate the magnitude
+        };
+        canvas.onmousedown = null;
+        canvas.onmouseup = null;
+        canvas.onmousemove = function (mouseMoveEvent) {
+            var m = { x: mouseMoveEvent.offsetX, y: mouseMoveEvent.offsetY };
+            //if (grid._vScrollbar)
+            //{
+            //	if (grid._vScrollbar.handle.contains(m))
+            //	{
+            //		grid._vScrollbar.hovered = true;
+            //		grid._draw();
+            //		canvas.onmousedown = function(mouseDownEvent) {
+            //			var anchor: Point = { x : mouseDownEvent.offsetX , y : mouseDownEvent.offsetY };
+            //			canvas.onmouseup = function(mouseUpEvent) { grid._setMouseHandles(); };
+            //			canvas.onmousemove = function(mouseDragEvent) {
+            //				var cursor: Point = { x : mouseDragEvent.offsetX , y : mouseDragEvent.offsetY };
+            //				// drag it
+            //			};
+            //		};
+            //		
+            //		return;
+            //	}
+            //	
+            //	if (grid._vScrollbar.hovered) { grid._vScrollbar.hovered = false; grid._draw(); }
+            //}
+            var x0 = grid._xs[0];
+            var x1 = grid._xs[1];
+            var y0 = grid._ys[0];
+            var y1 = grid._ys[1];
+            var xn = grid._xs[grid._xs.length - 1];
+            var yn = grid._ys[grid._ys.length - 1];
+            //// move grid - handle is top and left borders of the title cell
+            //if ((y0 - 1 <= m.y && m.y <= y0 + 1 && x0 <= m.x && m.x < x1) || (x0 - 1 <= m.x && m.x <= x0 + 1 && y0 <= m.y && m.y < y1))
+            //{
+            //	canvas.style.cursor = 'move';
+            //	return;
+            //}
+            //
+            //// reorder rows/cols - top and left borders of grid, excepting the title cell
+            //if ((y0 - 1 <= m.y && m.y <= y0 + 1 && x1 <= m.x && m.x <= xn) || (x0 - 1 <= m.x && m.x <= x0 + 1 && y1 <= m.y && m.y <= yn))
+            //{
+            //	canvas.style.cursor = 'hand';
+            //	return;
+            //}
+            // row resize
+            if (x0 < m.x && m.x < x1) {
+                for (var i = 0; i < grid._ys.length - 1; i++) {
+                    var y = grid._ys[i + 1];
+                    if (y - 1 <= m.y && m.y <= y + 1) {
+                        canvas.style.cursor = 'row-resize';
+                        var prevY = grid._ys[i];
+                        canvas.onmousedown = function (mouseDownEvent) {
+                            var oldRowHeight = grid._rowHeight;
+                            canvas.onmouseup = function (mouseUpEvent) {
+                                grid._resizeRow(oldRowHeight, grid._rowHeight);
+                                grid._setMouseHandles();
+                            };
+                            canvas.onmousemove = function (mouseDragEvent) {
+                                var curr = { x: mouseDragEvent.offsetX, y: mouseDragEvent.offsetY };
+                                var newsize = Math.max(curr.y - prevY, 2);
+                                grid._rowHeight = newsize;
+                                grid._draw();
+                            };
+                        };
+                        return;
+                    }
+                }
+            }
+            // col resize
+            if (y0 < m.y && m.y < y1) {
+                for (var j = 1; j < grid._xs.length; j++) {
+                    var x = grid._xs[j];
+                    if (x - 1 <= m.x && m.x <= x + 1) {
+                        canvas.style.cursor = 'col-resize';
+                        var prevX = grid._xs[j - 1];
+                        var colToResize = j - 1;
+                        canvas.onmousedown = function (mouseDownEvent) {
+                            var oldColWidth = grid._visibleCols[colToResize]._data._width;
+                            var newColWidth = 0;
+                            canvas.onmouseup = function (mouseUpEvent) {
+                                grid._resizeCol(grid._visibleCols[colToResize]._data, oldColWidth, newColWidth);
+                                grid._setMouseHandles();
+                            };
+                            canvas.onmousemove = function (mouseDragEvent) {
+                                var curr = { x: mouseDragEvent.offsetX, y: mouseDragEvent.offsetY };
+                                newColWidth = Math.max(curr.x - prevX, 2);
+                                if (colToResize == 0) {
+                                    grid._rowHeaderWidth = newColWidth;
+                                }
+                                else {
+                                    for (var k = 1; k < grid._visibleCols.length; k++) {
+                                        if (k == colToResize) {
+                                            grid._visibleCols[k]._data._width = newColWidth;
+                                        }
+                                    }
+                                }
+                                grid._draw();
+                            };
+                        };
+                        return;
+                    }
+                }
+            }
+            // cells
+            if (x0 < m.x && m.x < xn && y0 < m.y && m.y < yn) {
+                canvas.style.cursor = 'cell';
+                canvas.onmousedown = function (mouseDownEvent) {
+                    var a = { x: mouseDownEvent.offsetX, y: mouseDownEvent.offsetY };
+                    var target = grid._pointToRowCol(a.x, a.y);
+                    if (target._row == null && target._col == null) {
+                        return;
+                    } // cannot select top-left cell
+                    grid._anchor._row = target._row;
+                    grid._anchor._col = target._col;
+                    grid._cursor._row = target._row;
+                    grid._cursor._col = target._col;
+                    grid._selected = { _minCol: null, _maxCol: null, _minRow: null, _maxRow: null };
+                    grid._selectCell();
+                    grid._setKeyHandles();
+                    if (mouseDownEvent.button == 0) {
+                        canvas.onmousemove = function (mouseDragEvent) {
+                            var d = { x: mouseDragEvent.offsetX, y: mouseDragEvent.offsetY };
+                            // scroll and continue selecting if we go into the border zones (headers or scrollbar areas, i guess)
+                            if (d.x < x1 || d.x > xn || d.y < y1 || d.y > yn) {
+                                return;
+                            }
+                            // select range of cells
+                            var pointedRowCol = grid._pointToRowCol(d.x, d.y);
+                            // in theory the pixel guard above should catch this, but we'll do another check here
+                            if (pointedRowCol._row === null || pointedRowCol._col === null) {
+                                return;
+                            }
+                            if (grid._cursor._row != pointedRowCol._row || grid._cursor._col != pointedRowCol._col) {
+                                grid._cursor = pointedRowCol;
+                                grid._selectRange();
+                            }
+                        };
+                        canvas.onmouseup = function (mouseUpEvent) {
+                            grid._setMouseHandles();
+                        };
+                    }
+                    else if (mouseDownEvent.button == 2) {
+                        // show context menu (which can be an overlaid div)
+                        canvas.oncontextmenu = function (contextMenuEvent) {
+                            contextMenuEvent.preventDefault();
+                            contextMenuEvent.stopPropagation();
+                            contextMenuEvent.stopImmediatePropagation();
+                        };
+                    }
+                    else {
+                    }
+                };
+                return;
+            }
+            canvas.style.cursor = 'default';
+            canvas.onmousedown = function (mouseDownEvent) { grid._clearSelection(); };
+        };
+    };
+    Grid.prototype._setKeyHandles = function () {
+        var grid = this;
+        var canvas = grid._ctx.canvas;
+        canvas.onkeyup = function (keyUpEvent) {
+            var key = keyUpEvent.keyCode;
+            if (key == 16) {
+                grid._shift = false;
+            }
+            else if (key == 17) {
+                grid._ctrl = false;
+            }
+            else if (key == 18) {
+                grid._alt = false;
+            }
+        };
+        canvas.onkeydown = function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var key = e.keyCode;
+            if (key == 16) {
+                grid._shift = true;
+            }
+            else if (key == 17) {
+                grid._ctrl = true;
+            }
+            else if (key == 18) {
+                grid._alt = true;
+            }
+            if (grid._selected == null) {
+                return;
+            }
+            if (key == 46) {
+                grid._setRange(null);
+                grid._draw();
+            }
+            else if (key == 27) {
+                grid._clearSelection();
+                grid._ctx.canvas.onkeydown = null;
+            }
+            else if (key == 33 || key == 34) {
+                var n = Math.floor((grid._bt - grid._tp) / grid._rowHeight - 1);
+                if (key == 33) {
+                    for (var i = 0; i < n; i++) {
+                        grid._cursor._row = grid._cursor._row._visiblePrev;
+                        if (grid._cursor._row == grid._rows) {
+                            grid._cursor._row = grid._rows._visibleNext;
+                            break;
+                        }
+                    }
+                }
+                else {
+                    for (var i = 0; i < n; i++) {
+                        grid._cursor._row = grid._cursor._row._visibleNext;
+                        if (grid._cursor._row == grid._rows) {
+                            grid._cursor._row = grid._rows._visiblePrev;
+                            break;
+                        }
+                    }
+                }
+                if (e.shiftKey) {
+                    grid._selectRange();
+                }
+                else {
+                    grid._selectCell();
+                }
+            }
+            else if (key == 32) {
+                // SelectRow, SelectCol, SelectWhole do not go through selectRange()
+                // because selectRange reads from cursor/anchor, but we're not actually changing the cursor/anchor here
+                // so the cursor can end up in the middle of a selected range
+                if (e.ctrlKey || e.shiftKey) {
+                    if (e.ctrlKey) {
+                        grid._selected._minRow = grid._rows._visibleNext;
+                        grid._selected._maxRow = grid._rows._visiblePrev;
+                    }
+                    if (e.shiftKey) {
+                        grid._selected._minCol = grid._cols._visibleNext;
+                        grid._selected._maxCol = grid._cols._visiblePrev;
+                    }
+                    grid._draw();
+                }
+                else {
+                    grid._beginEdit(null);
+                }
+            }
+            else if (key == 37 || key == 38 || key == 39 || key == 40) {
+                if (grid._selected._minRow == null && grid._selected._maxRow == null) {
+                    if (e.altKey) {
+                        if (key == 37) {
+                            grid._moveColsLeft();
+                        }
+                        else if (key == 38) {
+                            grid._hideCols();
+                        }
+                        else if (key == 39) {
+                            grid._moveColsRight();
+                        }
+                        else if (key == 40) {
+                            grid._showCols();
+                        }
+                    }
+                    else if (e.ctrlKey && e.shiftKey) {
+                        if (key == 38 || key == 40) {
+                            var header = grid._cursor._col._data._header;
+                            var ascending = (key == 38);
+                            // remove existing SortParams if there is a header collision
+                            var elt = grid._multisort._next;
+                            while (elt != grid._multisort) {
+                                if (elt._data._header == header) {
+                                    elt._remove();
+                                }
+                                elt = elt._next;
+                            }
+                            grid._multisort._add({ _header: header, _ascending: ascending });
+                            grid._setMultisort();
+                        }
+                    }
+                    else if (e.ctrlKey) {
+                        if (key == 37) {
+                        }
+                        else if (key == 39) {
+                        }
+                        else if (key == 38 || key == 40) {
+                            var header = grid._cursor._col._data._header;
+                            var ascending = (key == 38);
+                            grid._multisort = new GridLinkedList();
+                            grid._multisortIndicatorDict = {};
+                            grid._setSort({ _header: header, _ascending: ascending });
+                        }
+                    }
+                    else {
+                        if (key == 37 || key == 39) {
+                            if (key == 37) {
+                                if (grid._cursor._col._visiblePrev != grid._cols) {
+                                    grid._cursor._col = grid._cursor._col._visiblePrev;
+                                }
+                            }
+                            else if (key == 39) {
+                                if (grid._cursor._col._visibleNext != grid._cols) {
+                                    grid._cursor._col = grid._cursor._col._visibleNext;
+                                }
+                            }
+                            if (e.shiftKey) {
+                                grid._selectRange();
+                            }
+                            else {
+                                grid._selectCell();
+                            }
+                        }
+                        else if (key == 38) {
+                        }
+                        else if (key == 40) {
+                            if (e.shiftKey) {
+                            }
+                            else {
+                                grid._cursor._row = grid._rows._visibleNext;
+                                grid._selectCell();
+                            }
+                        }
+                    }
+                }
+                else if (grid._selected._minCol == null && grid._selected._maxCol == null) {
+                    if (e.altKey) {
+                        if (key == 37) {
+                            grid._hideRows();
+                        }
+                        else if (key == 38) {
+                            grid._moveRowsUp();
+                        }
+                        else if (key == 39) {
+                            grid._showRows();
+                        }
+                        else if (key == 40) {
+                            grid._moveRowsDown();
+                        }
+                    }
+                    else if (e.ctrlKey) {
+                        if (key == 37) {
+                        }
+                        else if (key == 38) {
+                        }
+                        else if (key == 39) {
+                        }
+                        else if (key == 40) {
+                        }
+                    }
+                    else {
+                        if (key == 38 || key == 40) {
+                            if (key == 38) {
+                                if (grid._cursor._row._visiblePrev != grid._rows) {
+                                    grid._cursor._row = grid._cursor._row._visiblePrev;
+                                }
+                            }
+                            else if (key == 40) {
+                                if (grid._cursor._row._visibleNext != grid._rows) {
+                                    grid._cursor._row = grid._cursor._row._visibleNext;
+                                }
+                            }
+                            if (e.shiftKey) {
+                                grid._selectRange();
+                            }
+                            else {
+                                grid._selectCell();
+                            }
+                        }
+                        else if (key == 37) {
+                        }
+                        else if (key == 39) {
+                            if (e.shiftKey) {
+                            }
+                            else {
+                                grid._cursor._col = grid._cols._visibleNext;
+                                grid._selectCell();
+                            }
+                        }
+                    }
+                }
+                else {
+                    if (e.altKey) {
+                        if (e.shiftKey) {
+                            if (key == 37 || key == 39) {
+                                grid._deleteCols();
+                            }
+                            else if (key == 38 || key == 40) {
+                                grid._deleteRows();
+                            }
+                        }
+                        else {
+                            if (key == 37) {
+                                grid._insertColsLeft();
+                            }
+                            else if (key == 38) {
+                                grid._insertRowsAbove();
+                            }
+                            else if (key == 39) {
+                                grid._insertColsRight();
+                            }
+                            else if (key == 40) {
+                                grid._insertRowsBelow();
+                            }
+                        }
+                    }
+                    else {
+                        if (key == 37) {
+                            if (e.ctrlKey) {
+                                // Ctrl breaks the wall to the header cells
+                                if (grid._cursor._col == grid._cols._visibleNext) {
+                                    grid._cursor._col = null;
+                                }
+                                else {
+                                    grid._cursor._col = grid._cols._visibleNext;
+                                }
+                            }
+                            else {
+                                if (grid._cursor._col._visiblePrev != grid._cols) {
+                                    grid._cursor._col = grid._cursor._col._visiblePrev;
+                                }
+                            }
+                        }
+                        else if (key == 38) {
+                            if (e.ctrlKey) {
+                                // Ctrl breaks the wall to the header cells
+                                if (grid._cursor._row == grid._rows._visibleNext) {
+                                    grid._cursor._row = null;
+                                }
+                                else {
+                                    grid._cursor._row = grid._rows._visibleNext;
+                                }
+                            }
+                            else {
+                                if (grid._cursor._row._visiblePrev != grid._rows) {
+                                    grid._cursor._row = grid._cursor._row._visiblePrev;
+                                }
+                            }
+                        }
+                        else if (key == 39) {
+                            if (e.ctrlKey) {
+                                grid._cursor._col = grid._cols._visiblePrev;
+                            }
+                            else {
+                                if (grid._cursor._col._visibleNext != grid._cols) {
+                                    grid._cursor._col = grid._cursor._col._visibleNext;
+                                }
+                            }
+                        }
+                        else if (key == 40) {
+                            if (e.ctrlKey) {
+                                grid._cursor._row = grid._rows._visiblePrev;
+                            }
+                            else {
+                                if (grid._cursor._row._visibleNext != grid._rows) {
+                                    grid._cursor._row = grid._cursor._row._visibleNext;
+                                }
+                            }
+                        }
+                        if (e.shiftKey) {
+                            grid._selectRange();
+                        }
+                        else {
+                            grid._selectCell();
+                        }
+                    }
+                }
+            }
+            else if (key == 113) {
+                grid._beginEdit(null);
+            }
+            else if (key == 114 || key == 115 || key == 116 || key == 117) {
+                grid._beginEditArray(['tsv', 'csv', 'json', 'yaml'][key - 114]);
+            }
+            else if ((48 <= key && key <= 57) || (65 <= key && key <= 90) || (186 <= key && key <= 192) || (219 <= key && key <= 222)) {
+                if (e.ctrlKey) {
+                    if (key == 67 || key == 88) {
+                        grid._copied = grid._copy(key == 88);
+                    }
+                    else if (key == 86) {
+                        grid._paste();
+                    }
+                    else if (key == 70) {
+                        grid._editMode = 'formula';
+                        grid._beginEdit(null);
+                    }
+                    else if (key == 82) {
+                        grid._editMode = 'format';
+                        grid._beginEdit(null);
+                    }
+                    else if (key == 83) {
+                        grid._editMode = 'style';
+                        grid._beginEdit(null);
+                    }
+                    else if (key == 76) {
+                        grid._editMode = 'filter';
+                        grid._beginEdit(null);
+                    }
+                }
+                else {
+                    var c = KeyToChar(key, grid._shift);
+                    grid._beginEdit(c);
+                }
+            }
+            else {
+            }
+        };
+    };
+    Grid.prototype._copy = function (cut) {
+        var grid = this;
+        return {
+            _minRow: grid._selected._minRow,
+            _maxRow: grid._selected._maxRow,
+            _minCol: grid._selected._minCol,
+            _maxCol: grid._selected._maxCol
+        };
+    };
+    Grid.prototype._paste = function () {
+        var grid = this;
+        if (grid._copied == null) {
+            return;
+        }
+        if (grid._cursor._row == grid._anchor._row && grid._cursor._col == grid._anchor._col) {
+            // copy values to cursor - loop over src, guard for row/col length overflows
+            // (this is not the time to add new rows/cols - we do that when pasting in external data via textarea)
+            var srcRow = grid._copied._minRow;
+            var dstRow = grid._cursor._row;
+            while (srcRow != grid._copied._maxRow._visibleNext) {
+                var srcCol = grid._copied._minCol;
+                var dstCol = grid._cursor._col;
+                while (srcCol != grid._copied._maxCol._visibleNext) {
+                    dstRow._data._object[dstCol._data._header] = srcRow._data._object[srcCol._data._header];
+                    srcCol = srcCol._visibleNext;
+                    dstCol = dstCol._visibleNext;
+                }
+                srcRow = srcRow._visibleNext;
+                dstRow = dstRow._visibleNext;
+            }
+        }
+        else {
+            // copy values to range - loop over dst, modulo the index into the src
+            var srcRow = grid._copied._minRow;
+            var dstRow = grid._selected._minRow;
+            while (dstRow != grid._selected._maxRow._visibleNext) {
+                var srcCol = grid._copied._minCol;
+                var dstCol = grid._selected._minCol;
+                while (dstCol != grid._selected._maxCol._visibleNext) {
+                    dstRow._data._object[dstCol._data._header] = srcRow._data._object[srcCol._data._header];
+                    srcCol = srcCol._visibleNext;
+                    dstCol = dstCol._visibleNext;
+                    if (srcCol == grid._copied._maxCol._visibleNext) {
+                        srcCol = grid._copied._minCol;
+                    } // toroidal wraparound
+                }
+                srcRow = srcRow._visibleNext;
+                dstRow = dstRow._visibleNext;
+                if (srcRow == grid._copied._maxRow._visibleNext) {
+                    srcRow = grid._copied._minRow;
+                } // toroidal wraparound
+            }
+        }
+        if (grid._copied._mode == 'cut') {
+            grid._setRangeGeneral(null, grid._copied);
+            grid._copied = null;
+        }
+        grid._calculate();
+        grid._dataComponent._runAfterChange();
+        grid._dataComponent._markDirty();
+        grid._draw();
+    };
+    Grid.prototype._scrollBy = function (offset, rows) {
+        var grid = this;
+        if (rows) {
+            var singular = '_minRow';
+            var plural = '_rows';
+        }
+        else {
+            var singular = '_minCol';
+            var plural = '_cols';
+        }
+        if (offset < 0) {
+            while (offset < 0) {
+                grid._scroll[singular] = grid._scroll[singular]._visibleNext;
+                if (grid._scroll[singular] == grid[plural]) {
+                    grid._scroll[singular] = grid[plural]._visiblePrev;
+                    break;
+                }
+                offset++;
+            }
+        }
+        else if (offset > 0) {
+            while (offset > 0) {
+                grid._scroll[singular] = grid._scroll[singular]._visiblePrev;
+                if (grid._scroll[singular] == grid[plural]) {
+                    grid._scroll[singular] = grid[plural]._visibleNext;
+                    break;
+                }
+                offset--;
+            }
+        }
+        ////var handleRange = grid._vScrollbar.box.hg - grid._vScrollbar.handle.hg;
+        ////var handleOffset = Math.floor(handleRange * (this.value / 100));
+        grid._draw();
+    };
+    Grid.prototype._resizeRow = function (oldsize, newsize) {
+        var grid = this;
+        //var event = { type: 'resizeRow', oldsize: oldsize, newsize: newsize };
+        grid._dataComponent._markDirty();
+    };
+    Grid.prototype._resizeCol = function (col, oldsize, newsize) {
+        var grid = this;
+        //var event = { type: 'resizeCol', header: col._header, oldsize: oldsize, newsize: newsize };
+        grid._dataComponent._markDirty();
+    };
+    Grid.prototype._beginEdit = function (c) {
+        var grid = this;
+        var current = '';
+        var row = grid._cursor._row;
+        var col = grid._cursor._col;
+        if (grid._editMode == 'value') {
+            if (row == null) {
+                current = col._data._header;
+            }
+            else {
+                current = grid._dataComponent._data[row._data._index][col._data._header].toString();
+            }
+        }
+        else if (grid._editMode == 'formula') {
+            current = col._data._formula;
+        }
+        else if (grid._editMode == 'format') {
+            current = col._data._format;
+        }
+        else if (grid._editMode == 'style') {
+            current = col._data._style;
+        }
+        else if (grid._editMode == 'filter') {
+            current = grid._filter;
+        }
+        var lf = 0;
+        var tp = 0;
+        var rt = 0;
+        var bt = 0;
+        for (var i = 0; i < grid._visibleRows.length; i++) {
+            if (grid._visibleRows[i] == grid._cursor._row) {
+                tp = grid._ys[i];
+            }
+        }
+        for (var j = 0; j < grid._visibleCols.length; j++) {
+            if (grid._visibleCols[j] == grid._cursor._col) {
+                lf = grid._xs[j];
+            }
+        }
+        grid._input.value = (c ? c : current);
+        grid._input.style.display = 'block';
+        grid._input.style.top = (tp - grid._ctx.canvas.height - 5).toString() + 'px';
+        grid._input.style.left = lf.toString() + 'px';
+        grid._input.style.width = (grid._cursor._col._data._width - 1).toString() + 'px';
+        grid._input.style.height = (grid._rowHeight - 1).toString() + 'px';
+        grid._input.focus();
+        grid._setEditHandlers();
+    };
+    Grid.prototype._beginEditArray = function (format) {
+        var grid = this;
+        // what if the selection starts off-screen?
+        // we should probably scroll to the top-left
+        /*
+        
+        var lf = grid._xs[grid._selected._minCol];
+        var rt = grid._xs[grid._selected._maxCol+1];
+        var tp = grid._ys[grid._selected._minRow];
+        var bt = grid._ys[grid._selected._maxRow+1];
+        
+        //var savedData = grid._dataComponent._data;
+        //grid._dataComponent._data = grid._getSelectionData();
+        //var text = grid._dataComponent._get({format:format});
+        //grid._dataComponent._data = savedData;
+        var data: string[][] = grid._getSelectionData();
+        var text: string = data.map(function(row) { return row.join('\t'); }).join('\n');
+        
+        grid._textarea.value = text;
+        grid._textarea.style.display = 'block';
+        grid._textarea.style.top = (tp - grid._ctx.canvas.height).toString() + 'px';
+        grid._textarea.style.left = lf.toString() + 'px';
+        grid._textarea.style.height = (bt - tp).toString() + 'px';
+        grid._textarea.style.width = (rt - lf).toString() + 'px';
+        grid._textarea.focus();
+        grid._textarea.select();
+        
+        function ClearEdit() {
+            grid._textarea.value = '';
+            grid._textarea.style.display = 'none';
+            grid._setKeyHandles(); // or just focus the canvas?
+        }
+        
+        grid._textarea.onkeydown = function(e: KeyboardEvent) {
+            
+            var key: number = e.keyCode;
+            
+            if (key == 27) // esc
+            {
+                ClearEdit();
+            }
+            else if (key == 13) // return - accepting the edit on return is not great, because people will use return while editing
+            {
+                var text = grid._textarea.value;
+                var matrix = text.trim().split('\n').map(function(line) { return line.split('\t'); });
+                
+                // parse format, stretch or shrink grid if appropriate, otherwise reject edit if dimensions are not correct
+                // then set individual cells
+                
+                // we need the Data component to parse format
+                
+                //var newdata: any = ParseFormat(grid._textarea.value, format);
+                
+                for (var i = 0; i < matrix.length; i++)
+                {
+                    for (var j = 0; j < matrix[i].length; j++)
+                    {
+                        var row = grid._selected._minRow + i;
+                        var col = grid._selected._minCol + j;
+                        
+                        if (row >= grid._nRows || col >= grid._nCols) { continue; } // or add rows/cols to fit?
+                        
+                        // this needs to be merged with the mainstream acceptEdit function
+                        
+                        var str = matrix[i][j];
+                        var cell = grid._cells[row][col];
+                        
+                        if (str.length > 0 && str[0] == '=')
+                        {
+                            //cell.formula = str;
+                            //
+                            //var formula: string = str.substr(1);
+                            //var fn = new Function('i', 'return ' + formula);
+                            //var result: any = fn.apply(grid._cellArray, [i-1]);
+                            //cell.value = result;
+                        }
+                        else
+                        {
+                            cell.value = ParseStringToObj(str);
+                        }
+                        
+                        cell.string = Format(cell.value, cell.formatObject);
+                        
+                        grid._dataComponent._data[row-1][grid._dataComponent._headers[col-1]] = cell.value;
+                    }
+                }
+                
+                grid._dataComponent._runAfterChange();
+                
+                grid._draw();
+                
+                ClearEdit();
+            }
+        };
+        
+        */
+    };
+    Grid.prototype._setEditHandlers = function () {
+        var grid = this;
+        grid._input.onkeydown = function (e) {
+            var key = e.keyCode;
+            if (key == 27) {
+                grid._rejectEdit();
+            }
+            else if (key == 13) {
+                grid._acceptEdit();
+            }
+        };
+    };
+    Grid.prototype._rejectEdit = function () {
+        var grid = this;
+        grid._clearEdit();
+    };
+    Grid.prototype._acceptEdit = function () {
+        var grid = this;
+        var str = grid._input.value;
+        var row = grid._cursor._row;
+        var col = grid._cursor._col;
+        if (row == null && col == null) {
+        }
+        else if (col == null) {
+        }
+        else if (row == null) {
+            if (col._data._header == str) {
+                return;
+            } // no change, no need to do anything
+            var headers = grid._cols._enumerate().map(function (col) { return col._header; });
+            if (headers.indexOf(str) > -1) {
+                return;
+            } // collision, bail
+            var oldfield = col._data._header;
+            col._data._header = str;
+            for (var i = 0; i < grid._dataComponent._data.length; i++) {
+                var obj = grid._dataComponent._data[i];
+                obj[str] = obj[oldfield];
+                delete obj[oldfield];
+            }
+            // change headers in the data component
+            for (var k = 0; k < grid._dataComponent._headers.length; k++) {
+                if (grid._dataComponent._headers[k] == oldfield) {
+                    grid._dataComponent._headers[k] = str;
+                }
+            }
+            // change multisort headers
+            var sortParams = grid._multisort._enumerate();
+            for (var k = 0; k < sortParams.length; k++) {
+                if (sortParams[k]._header == oldfield) {
+                    sortParams[k]._header = str;
+                }
+            }
+            grid._multisortIndicatorDict[str] = grid._multisortIndicatorDict[oldfield];
+            delete grid._multisortIndicatorDict[oldfield];
+            // change formulas that reference the old field name?
+            grid._calculate();
+            grid._dataComponent._runAfterChange();
+            grid._dataComponent._markDirty();
+        }
+        else {
+            if (grid._editMode == 'value') {
+                // set formula/value on all cells in selection
+                var value = ParseStringToObj(str);
+                grid._setRange(value);
+            }
+            else if (grid._editMode == 'formula') {
+                col._data._setFormula(str);
+                grid._calculate();
+                grid._dataComponent._runAfterChange();
+                grid._editMode = 'value';
+            }
+            else if (grid._editMode == 'format') {
+                col._data._setFormat(str);
+                grid._editMode = 'value';
+            }
+            else if (grid._editMode == 'style') {
+                col._data._setStyle(str);
+                grid._editMode = 'value';
+            }
+            else if (grid._editMode == 'filter') {
+                grid._setFilter(str);
+                grid._editMode = 'value';
+            }
+        }
+        grid._draw();
+        grid._clearEdit();
+    };
+    Grid.prototype._clearEdit = function () {
+        var grid = this;
+        grid._input.value = '';
+        grid._input.style.display = 'none';
+        grid._ctx.canvas.focus();
+        //grid._setKeyHandles();
+    };
+    Grid.prototype._getSelectionData = function () {
+        var grid = this;
+        var data = [];
+        var selection = grid._selected;
+        var row = selection._minRow;
+        var col = selection._minCol;
+        var datarow = [];
+        datarow.push(row._data._object[col._data._header].toString()); // format appropriately
+        while (col != selection._maxCol) {
+            col = col._visibleNext;
+            datarow.push(row._data._object[col._data._header].toString()); // format appropriately
+        }
+        while (row != selection._maxRow) {
+            row = row._visibleNext;
+            data.push(datarow);
+            datarow = [];
+            col = selection._minCol;
+            datarow.push(row._data._object[col._data._header].toString()); // format appropriately
+            while (col != selection._maxCol) {
+                col = col._visibleNext;
+                datarow.push(row._data._object[col._data._header].toString()); // format appropriately
+            }
+        }
+        return data;
+    };
+    Grid.prototype._selectCell = function () {
+        var grid = this;
+        grid._anchor._row = grid._cursor._row;
+        grid._anchor._col = grid._cursor._col;
+        grid._selected._minRow = grid._cursor._row;
+        grid._selected._maxRow = grid._cursor._row;
+        grid._selected._minCol = grid._cursor._col;
+        grid._selected._maxCol = grid._cursor._col;
+        grid._adjustScroll();
+        grid._draw();
+    };
+    Grid.prototype._selectRange = function () {
+        var grid = this;
+        grid._selected._minRow = ((grid._cursor._row === null) ? null : ((grid._cursor._row._data._index < grid._anchor._row._data._index) ? grid._cursor._row : grid._anchor._row));
+        grid._selected._maxRow = ((grid._cursor._row === null) ? null : ((grid._cursor._row._data._index > grid._anchor._row._data._index) ? grid._cursor._row : grid._anchor._row));
+        grid._selected._minCol = ((grid._cursor._col === null) ? null : ((grid._cursor._col._data._index < grid._anchor._col._data._index) ? grid._cursor._col : grid._anchor._col));
+        grid._selected._maxCol = ((grid._cursor._col === null) ? null : ((grid._cursor._col._data._index > grid._anchor._col._data._index) ? grid._cursor._col : grid._anchor._col));
+        grid._adjustScroll();
+        grid._draw();
+    };
+    Grid.prototype._clearSelection = function () {
+        var grid = this;
+        grid._input.style.display = 'none';
+        grid._selected = null;
+        grid._cursor._row = null;
+        grid._cursor._col = null;
+        grid._anchor._row = null;
+        grid._anchor._col = null;
+        grid._draw();
+    };
+    Grid.prototype._adjustScroll = function () {
+        var grid = this;
+        if (grid._cursor._row != null) {
+            if (grid._cursor._row._data._index < grid._scroll._minRow._data._index) {
+                grid._scroll._minRow = grid._cursor._row;
+                grid._calcMaxRowFromMinRow();
+                grid._yOffset = 0;
+            }
+            if (grid._cursor._row._data._index > grid._scroll._maxRow._data._index) {
+                grid._scroll._maxRow = grid._cursor._row;
+                grid._yOffset = grid._calcMinRowFromMaxRow();
+            }
+        }
+        if (grid._cursor._col != null) {
+            if (grid._cursor._col._data._index < grid._scroll._minCol._data._index) {
+                grid._scroll._minCol = grid._cursor._col;
+                grid._calcMaxColFromMinCol();
+                grid._xOffset = 0;
+            }
+            if (grid._cursor._col._data._index > grid._scroll._maxCol._data._index) {
+                grid._scroll._maxCol = grid._cursor._col;
+                grid._xOffset = grid._calcMinColFromMaxCol();
+            }
+        }
+    };
+    Grid.prototype._calcMaxRowFromMinRow = function () {
+        var grid = this;
+        var rowElt = grid._scroll._minRow;
+        var y = grid._tp + grid._rowHeight;
+        y += grid._rowHeight;
+        //y -= grid._yOffset; // a one-time correction
+        while (y < grid._bt) {
+            y += grid._rowHeight;
+            rowElt = rowElt._visibleNext;
+            if (rowElt == grid._rows) {
+                rowElt = rowElt._visiblePrev;
+                break;
+            }
+        }
+        grid._scroll._maxRow = rowElt;
+    };
+    Grid.prototype._calcMaxColFromMinCol = function () {
+        var grid = this;
+        var colElt = grid._scroll._minCol;
+        var x = grid._lf + grid._rowHeaderWidth;
+        x += colElt._data._width;
+        //x -= grid._xOffset; // a one-time correction
+        while (x < grid._rt) {
+            x += colElt._data._width;
+            colElt = colElt._visibleNext;
+            if (colElt == grid._cols) {
+                colElt = colElt._visiblePrev;
+                break;
+            }
+        }
+        grid._scroll._maxCol = colElt;
+    };
+    Grid.prototype._calcMinRowFromMaxRow = function () {
+        var grid = this;
+        var rowElt = grid._scroll._maxRow;
+        var y = grid._bt;
+        y -= grid._rowHeight;
+        //y += grid._yOffset; // a one-time correction
+        while (y > (grid._tp + grid._rowHeight)) {
+            y -= grid._rowHeight;
+            rowElt = rowElt._visiblePrev;
+            if (rowElt == grid._rows) {
+                rowElt = rowElt._visibleNext;
+                break;
+            }
+        }
+        grid._scroll._minRow = rowElt;
+        var yOffset = (grid._tp + grid._rowHeight) - y;
+        return yOffset;
+    };
+    Grid.prototype._calcMinColFromMaxCol = function () {
+        var grid = this;
+        var colElt = grid._scroll._maxCol;
+        var x = grid._rt;
+        x -= colElt._data._width;
+        //x += grid._xOffset; // a one-time correction
+        while (x > (grid._lf + grid._rowHeaderWidth)) {
+            x -= colElt._data._width;
+            colElt = colElt._visiblePrev;
+            if (colElt == grid._cols) {
+                colElt = colElt._visibleNext;
+                break;
+            }
+        }
+        grid._scroll._minCol = colElt;
+        var xOffset = (grid._lf + grid._rowHeaderWidth) - x;
+        return xOffset;
+    };
+    Grid.prototype._setRange = function (value) {
+        var grid = this;
+        grid._setRangeGeneral(value, grid._selected);
+    };
+    Grid.prototype._setRangeGeneral = function (value, sel) {
+        // this should replace selectRange above
+        var grid = this;
+        var rowElt = sel._minRow;
+        while (rowElt._visiblePrev != sel._maxRow) {
+            var colElt = sel._minCol;
+            while (colElt._visiblePrev != sel._maxCol) {
+                var index = rowElt._data._index;
+                var field = colElt._data._header;
+                grid._dataComponent._data[index][field] = value;
+                colElt = colElt._visibleNext;
+            }
+            rowElt = rowElt._visibleNext;
+        }
+        // mark affected columns as uncalculated, calculate, and trigger afterchange
+        EnumerateVisible(sel._minCol, sel._maxCol).map(function (col) { col._markUncalculated(); });
+        grid._calculate();
+        grid._dataComponent._runAfterChange();
+        grid._dataComponent._markDirty();
+    };
+    Grid.prototype._insertRowsAbove = function () { var grid = this; grid._insertRows(true); };
+    Grid.prototype._insertRowsBelow = function () { var grid = this; grid._insertRows(false); };
+    Grid.prototype._insertColsLeft = function () { var grid = this; grid._insertCols(true); };
+    Grid.prototype._insertColsRight = function () { var grid = this; grid._insertCols(false); };
+    Grid.prototype._moveRowsUp = function () { var grid = this; grid._moveRows(-1); };
+    Grid.prototype._moveRowsDown = function () { var grid = this; grid._moveRows(1); };
+    Grid.prototype._moveColsLeft = function () { var grid = this; grid._moveCols(-1); };
+    Grid.prototype._moveColsRight = function () { var grid = this; grid._moveCols(1); };
+    Grid.prototype._insertRows = function (bAbove) {
+        var grid = this;
+        var sel = grid._selected;
+        var n = CountVisible(sel._minRow, sel._maxRow);
+        var headers = grid._cols._enumerate().map(function (col) { return col._header; });
+        if (bAbove) {
+            var cursor = sel._minRow;
+            var prev = sel._minRow._prev;
+            var visiblePrev = sel._minRow._visiblePrev;
+            for (var i = 0; i < n; i++) {
+                var obj = {};
+                for (var k = 0; k < headers.length; k++) {
+                    obj[headers[k]] = null;
+                }
+                var row = new Row(-1, obj);
+                var elt = new HiddenList();
+                elt._data = row;
+                elt._next = cursor;
+                cursor._prev = elt;
+                elt._visibleNext = cursor;
+                cursor._visiblePrev = elt;
+                cursor = elt;
+            }
+            cursor._prev = prev;
+            prev._next = cursor;
+            cursor._visiblePrev = visiblePrev;
+            visiblePrev._visibleNext = cursor;
+            grid._reIndex(cursor, grid._rows);
+            grid._cursor._row = cursor;
+            grid._anchor._row = sel._minRow._prev;
+        }
+        else {
+            var cursor = sel._maxRow;
+            var next = sel._maxRow._next;
+            var visibleNext = sel._maxRow._visibleNext;
+            for (var i = 0; i < n; i++) {
+                var obj = {};
+                for (var k = 0; k < headers.length; k++) {
+                    obj[headers[k]] = null;
+                }
+                var row = new Row(-1, obj);
+                var elt = new HiddenList();
+                elt._data = row;
+                elt._prev = cursor;
+                cursor._next = elt;
+                elt._visiblePrev = cursor;
+                cursor._visibleNext = elt;
+                cursor = elt;
+            }
+            cursor._next = next;
+            next._prev = cursor;
+            cursor._visibleNext = visibleNext;
+            visibleNext._visiblePrev = cursor;
+            grid._reIndex(sel._maxRow._next, grid._rows);
+            grid._anchor._row = sel._maxRow._next;
+            grid._cursor._row = cursor;
+        }
+        grid._calcMaxRowFromMinRow();
+        grid._selectRange();
+        grid._dataComponent._data = grid._rows._enumerate().map(function (row) { return row._object; });
+        grid._cols._enumerate().forEach(function (col) { col._calculated = false; });
+        grid._calculate();
+        grid._dataComponent._runAfterChange();
+        grid._dataComponent._markDirty();
+    };
+    Grid.prototype._insertCols = function (bLeft) {
+        var grid = this;
+        var sel = grid._selected;
+        var n = CountVisible(sel._minCol, sel._maxCol);
+        var headers = grid._cols._enumerate().map(function (col) { return col._header; });
+        // generate new field names
+        var newheaders = [];
+        var suffix = 0;
+        for (var j = 0; j < n; j++) {
+            var header = 'field' + suffix.toString();
+            while (headers.indexOf(header) > -1) {
+                suffix++;
+                header = 'field' + suffix.toString();
+            }
+            newheaders.push(header);
+            suffix++;
+        }
+        // add the new fields to the objs
+        var rowElt = grid._rows._next;
+        while (rowElt != grid._rows) {
+            for (var k = 0; k < newheaders.length; k++) {
+                rowElt._data._object[newheaders[k]] = null;
+            }
+            rowElt = rowElt._next;
+        }
+        if (bLeft) {
+            var cursor = sel._minCol;
+            var prev = sel._minCol._prev;
+            var visiblePrev = sel._minCol._visiblePrev;
+            for (var i = 0; i < n; i++) {
+                var col = new Col(grid, { header: newheaders[i], visible: true, width: 64, formula: '', format: null, style: null }, -1);
+                var elt = new HiddenList();
+                elt._data = col;
+                elt._next = cursor;
+                cursor._prev = elt;
+                elt._visibleNext = cursor;
+                cursor._visiblePrev = elt;
+                cursor = elt;
+            }
+            cursor._prev = prev;
+            prev._next = cursor;
+            cursor._visiblePrev = visiblePrev;
+            visiblePrev._visibleNext = cursor;
+            grid._reIndex(cursor, grid._cols);
+            grid._cursor._col = cursor;
+            grid._anchor._col = sel._minCol._prev;
+        }
+        else {
+            var cursor = sel._maxCol;
+            var next = sel._maxCol._next;
+            var visibleNext = sel._maxCol._visibleNext;
+            for (var i = 0; i < n; i++) {
+                var col = new Col(grid, { header: newheaders[i], visible: true, width: 64, formula: '', format: null, style: null }, -1);
+                var elt = new HiddenList();
+                elt._data = col;
+                elt._prev = cursor;
+                cursor._next = elt;
+                elt._visiblePrev = cursor;
+                cursor._visibleNext = elt;
+                cursor = elt;
+            }
+            cursor._next = next;
+            next._prev = cursor;
+            cursor._visibleNext = visibleNext;
+            visibleNext._visiblePrev = cursor;
+            grid._reIndex(sel._maxCol._next, grid._cols);
+            grid._anchor._col = sel._maxCol._next;
+            grid._cursor._col = cursor;
+        }
+        grid._calcMaxColFromMinCol();
+        grid._selectRange();
+        grid._dataComponent._headers = grid._cols._enumerate().map(function (col) { return col._header; });
+        grid._calculate();
+        grid._dataComponent._runAfterChange();
+        grid._dataComponent._markDirty();
+    };
+    Grid.prototype._deleteRows = function () {
+        var grid = this;
+        var sel = grid._selected;
+        // disallow deletion of all visible rows
+        if (sel._minRow._visiblePrev == grid._rows && sel._maxRow._visibleNext == grid._rows) {
+            return;
+        }
+        // delete data - we're not going to do this now - just re-enumerate the objects on display change or Get
+        //var k = sel._minRow._data._index;
+        //var n = sel._maxRow._data._index - sel._minRow_data._index + 1;
+        //var deleted = grid._dataComponent._data._splice(k-1, n);
+        // splice linked list
+        sel._minRow._prev._next = sel._maxRow._next;
+        sel._maxRow._next._prev = sel._minRow._prev;
+        sel._minRow._visiblePrev._visibleNext = sel._maxRow._visibleNext;
+        sel._maxRow._visibleNext._visiblePrev = sel._minRow._visiblePrev;
+        var remaining = sel._minRow._visiblePrev;
+        if (remaining == grid._rows) {
+            remaining = remaining._visibleNext;
+        }
+        grid._reIndex(remaining, grid._rows);
+        grid._calcMaxRowFromMinRow();
+        // reposition cursor - could be prev or next depending on Shift+Alt+Up vs Shift+Alt+Down
+        grid._anchor._row = remaining;
+        grid._cursor._row = remaining;
+        grid._selectRange();
+        grid._dataComponent._data = grid._rows._enumerate().map(function (row) { return row._object; });
+        grid._cols._enumerate().forEach(function (col) { col._calculated = false; });
+        grid._calculate();
+        grid._dataComponent._runAfterChange();
+        grid._dataComponent._markDirty();
+    };
+    Grid.prototype._deleteCols = function () {
+        var grid = this;
+        var sel = grid._selected;
+        // disallow deletion of all visible cols
+        if (sel._minCol._visiblePrev == grid._cols && sel._maxCol._visibleNext == grid._cols) {
+            return;
+        }
+        var deletedCols = Enumerate(sel._minCol, sel._maxCol);
+        // delete data
+        var headers = deletedCols.map(function (col) { return col._header; });
+        var elt = grid._rows._next;
+        while (elt != grid._rows) {
+            for (var k = 0; k < headers.length; k++) {
+                delete elt._data._object[headers[k]];
+            }
+            elt = elt._next;
+        }
+        // tear down srcs/dsts
+        for (var i = 0; i < deletedCols.length; i++) {
+            var col = deletedCols[i];
+            col._srcs.forEach(function (src) { src.dsts.delete(col); });
+            col._dsts.forEach(function (dst) {
+                // okay, so what happens to a formula col when a dependency is deleted?
+                dst.srcs.delete(col);
+            });
+        }
+        // splice linked list
+        sel._minCol._prev._next = sel._maxCol._next;
+        sel._maxCol._next._prev = sel._minCol._prev;
+        sel._minCol._visiblePrev._visibleNext = sel._maxCol._visibleNext;
+        sel._maxCol._visibleNext._visiblePrev = sel._minCol._visiblePrev;
+        // determining where cursor will end up
+        var remaining = sel._minCol._visiblePrev;
+        if (remaining == grid._cols) {
+            remaining = remaining._visibleNext;
+        }
+        grid._reIndex(remaining, grid._cols);
+        grid._dataComponent._headers = grid._cols._enumerate().map(function (col) { return col._header; });
+        grid._cols._enumerate().forEach(function (col) { col._calculated = false; });
+        grid._calcMaxColFromMinCol();
+        // reposition cursor - could be prev or next depending on Shift+Alt+Left vs Shift+Alt+Right
+        grid._anchor._col = remaining;
+        grid._cursor._col = remaining;
+        grid._selectRange();
+        grid._calculate();
+        grid._dataComponent._runAfterChange();
+        grid._dataComponent._markDirty();
+    };
+    Grid.prototype._moveRows = function (k) {
+        var grid = this;
+        var sel = grid._selected;
+        var min = sel._minRow;
+        var max = sel._maxRow;
+        var sentinel = grid._rows;
+        // check for underflow and overflow
+        if (k < 0 && min._visiblePrev == sentinel) {
+            return;
+        }
+        if (k > 0 && max._visibleNext == sentinel) {
+            return;
+        }
+        if (k < 0) {
+            // move up/left: min = E, max = F
+            // hidden:    B   D     G  
+            // visible: A   C   E F   H
+            // ------------------------
+            // hidden:    B       D G  
+            // visible: A   E F C     H
+            var E = min;
+            var F = max;
+            var C = E._visiblePrev;
+            var D = E._prev;
+            var A = C._visiblePrev;
+            var B = C._prev;
+            var G = F._next;
+            var H = F._visibleNext;
+            E._prev = B;
+            B._next = E;
+            E._visiblePrev = A;
+            A._visibleNext = E;
+            F._next = C;
+            C._prev = F;
+            F._visibleNext = C;
+            C._visiblePrev = F;
+            C._visibleNext = H;
+            H._visiblePrev = C;
+            D._next = G;
+            G._prev = D;
+            grid._reIndex(B, sentinel);
+        }
+        else {
+            // move down/right: min = E, max = F
+            // hidden:    D     G   I  
+            // visible: C   E F   H   J
+            // ------------------------
+            // hidden:    D G       I  
+            // visible: C     H E F   J
+            var E = min;
+            var F = max;
+            var C = E._visiblePrev;
+            var D = E._prev;
+            var G = F._next;
+            var H = F._visibleNext;
+            var I = H._next;
+            var J = H._visibleNext;
+            D._next = G;
+            G._prev = D;
+            C._visibleNext = H;
+            H._visiblePrev = C;
+            H._next = E;
+            E._prev = H;
+            H._visibleNext = E;
+            E._visiblePrev = H;
+            F._next = I;
+            I._prev = F;
+            F._visibleNext = J;
+            J._visiblePrev = F;
+            grid._reIndex(D, sentinel);
+        }
+        grid._dataComponent._data = grid._rows._enumerate().map(function (row) { return row._object; });
+        grid._cols._enumerate().forEach(function (col) { col._calculated = false; });
+        grid._calculate();
+        grid._draw();
+        grid._dataComponent._runAfterChange();
+        grid._dataComponent._markDirty();
+        // cursor and anchor can stay the same
+    };
+    Grid.prototype._moveCols = function (k) {
+        var grid = this;
+        var sel = grid._selected;
+        var min = sel._minCol;
+        var max = sel._maxCol;
+        var sentinel = grid._cols;
+        // check for underflow and overflow
+        if (k < 0 && min._visiblePrev == sentinel) {
+            return;
+        }
+        if (k > 0 && max._visibleNext == sentinel) {
+            return;
+        }
+        if (k < 0) {
+            // move up/left: min = E, max = F
+            // hidden:    B   D     G  
+            // visible: A   C   E F   H
+            // ------------------------
+            // hidden:    B       D G  
+            // visible: A   E F C     H
+            var E = min;
+            var F = max;
+            var C = E._visiblePrev;
+            var D = E._prev;
+            var A = C._visiblePrev;
+            var B = C._prev;
+            var G = F._next;
+            var H = F._visibleNext;
+            E._prev = B;
+            B._next = E;
+            E._visiblePrev = A;
+            A._visibleNext = E;
+            F._next = C;
+            C._prev = F;
+            F._visibleNext = C;
+            C._visiblePrev = F;
+            C._visibleNext = H;
+            H._visiblePrev = C;
+            D._next = G;
+            G._prev = D;
+            grid._reIndex(B, sentinel);
+        }
+        else {
+            // move down/right: min = E, max = F
+            // hidden:    D     G   I  
+            // visible: C   E F   H   J
+            // ------------------------
+            // hidden:    D G       I  
+            // visible: C     H E F   J
+            var E = min;
+            var F = max;
+            var C = E._visiblePrev;
+            var D = E._prev;
+            var G = F._next;
+            var H = F._visibleNext;
+            var I = H._next;
+            var J = H._visibleNext;
+            D._next = G;
+            G._prev = D;
+            C._visibleNext = H;
+            H._visiblePrev = C;
+            H._next = E;
+            E._prev = H;
+            H._visibleNext = E;
+            E._visiblePrev = H;
+            F._next = I;
+            I._prev = F;
+            F._visibleNext = J;
+            J._visiblePrev = F;
+            grid._reIndex(D, sentinel);
+        }
+        grid._draw();
+        grid._dataComponent._headers = grid._cols._enumerate().map(function (col) { return col._header; });
+        grid._dataComponent._markDirty();
+        // cursor and anchor can stay the same
+    };
+    Grid.prototype._hideRows = function () {
+        // this is pretty similar to delete
+        var grid = this;
+        var sel = grid._selected;
+        if (sel._minRow._visiblePrev == grid._rows && sel._maxRow._visibleNext == grid._rows) {
+            return;
+        }
+        sel._minRow._visiblePrev._visibleNext = sel._maxRow._visibleNext;
+        sel._maxRow._visibleNext._visiblePrev = sel._minRow._visiblePrev;
+        var remaining = sel._minRow._visiblePrev;
+        if (remaining == grid._rows) {
+            remaining = remaining._visibleNext;
+        }
+        sel._minRow = remaining;
+        sel._maxRow = remaining;
+        grid._calcMaxRowFromMinRow();
+        grid._anchor._row = remaining;
+        grid._cursor._row = remaining;
+        grid._selectRange();
+    };
+    Grid.prototype._hideCols = function () {
+        // this is pretty similar to delete
+        var grid = this;
+        var sel = grid._selected;
+        if (sel._minCol._visiblePrev == grid._cols && sel._maxCol._visibleNext == grid._cols) {
+            return;
+        }
+        var elt = sel._minCol;
+        elt._data._visible = false;
+        while (elt != sel._maxCol) {
+            elt._data._visible = false;
+            elt = elt._next;
+        }
+        sel._minCol._visiblePrev._visibleNext = sel._maxCol._visibleNext;
+        sel._maxCol._visibleNext._visiblePrev = sel._minCol._visiblePrev;
+        var remaining = sel._minCol._visiblePrev;
+        if (remaining == grid._cols) {
+            remaining = remaining._visibleNext;
+        }
+        sel._minCol = remaining;
+        sel._maxCol = remaining;
+        grid._calcMaxColFromMinCol();
+        grid._anchor._col = remaining;
+        grid._cursor._col = remaining;
+        grid._selectRange();
+    };
+    Grid.prototype._showRows = function () {
+        var grid = this;
+        var sel = grid._selected;
+        var min = sel._minRow;
+        var max = sel._maxRow;
+        // normally we assume some range is selected and show the ranks interior to that range (and not the ranks on the edges)
+        // to show ranks at either edge of the grid, make sure only the edge cell is selected
+        if (min == max) {
+            if (min._visiblePrev == grid._rows) {
+                min = grid._rows._next;
+            }
+            if (max._visibleNext == grid._rows) {
+                max = grid._rows._prev;
+            }
+        }
+        var elt = min;
+        while (elt != max) {
+            elt._visibleNext = elt._next;
+            elt._next._visiblePrev = elt;
+            elt = elt._next;
+        }
+        // if it was an edge show, extend the selection
+        sel._minRow = min;
+        sel._maxRow = max;
+        grid._calcMaxRowFromMinRow();
+        grid._draw();
+    };
+    Grid.prototype._showCols = function () {
+        var grid = this;
+        var sel = grid._selected;
+        var min = sel._minCol;
+        var max = sel._maxCol;
+        // normally we assume some range is selected and show the ranks interior to that range (and not the ranks on the edges)
+        // to show ranks at either edge of the grid, make sure only the edge cell is selected
+        // if there is only one col visible, both edges get selected
+        if (min == max) {
+            if (min._visiblePrev == grid._cols) {
+                min = grid._cols._next;
+            }
+            if (max._visibleNext == grid._cols) {
+                max = grid._cols._prev;
+            }
+        }
+        var elt = min;
+        while (elt != max) {
+            elt._data._visible = true;
+            elt._visibleNext = elt._next;
+            elt._next._visiblePrev = elt;
+            elt = elt._next;
+        }
+        elt._data._visible = true; // take care of the max
+        grid._calcMaxColFromMinCol();
+        // if it was an edge show, extend the selection - these lines only have an effect if min/max was on an edge
+        sel._minCol = min;
+        sel._maxCol = max;
+        grid._draw();
+    };
+    Grid.prototype._reIndex = function (elt, sentinel) {
+        var grid = this;
+        if (elt == sentinel) {
+            elt = elt._next;
+        }
+        if (elt._prev == sentinel) {
+            elt._data._index = 0;
+            elt = elt._next;
+        }
+        while (elt != sentinel) {
+            elt._data._index = elt._prev._data._index + 1;
+            elt = elt._next;
+        }
+    };
+    Grid.prototype._setMultisort = function () {
+        var grid = this;
+        var str = '';
+        var sortParams = grid._multisort._enumerate();
+        grid._multisortIndicatorDict = {};
+        for (var i = 0; i < sortParams.length; i++) {
+            var sorter = sortParams[i];
+            grid._multisortIndicatorDict[sorter._header] = (sorter._ascending ? -1 : 1) * (i + 1);
+            var part = (sorter._ascending ? 'a' : 'b') + '.' + sorter._header + ' - ' + (sorter._ascending ? 'b' : 'a') + '.' + sorter._header;
+            str += 'if (' + part + ' != 0) { return ' + part + '; } else { ';
+        }
+        str += 'return 0;';
+        for (var i = 0; i < sortParams.length; i++) {
+            str += ' }';
+        }
+        grid._sortFn = new Function('a,b', str);
+        grid._applySort();
+    };
+    Grid.prototype._setSort = function (sorter) {
+        var grid = this;
+        // this is valid for numbers only, if we want to compare strings it will have to use localeCompare() or something
+        var str = (sorter._ascending ? 'a' : 'b') + '.' + sorter._header + ' - ' + (sorter._ascending ? 'b' : 'a') + '.' + sorter._header;
+        grid._sortFn = new Function('a,b', 'return ' + str);
+        grid._applySort();
+    };
+    Grid.prototype._applySort = function () {
+        var grid = this;
+        var rows = grid._rows._enumerate();
+        var objects = [];
+        for (var i = 0; i < rows.length; i++) {
+            objects.push(rows[i]._object);
+        }
+        grid._dataComponent._data = objects.sort(grid._sortFn);
+        grid._rows = new HiddenList();
+        for (var i = 0; i < grid._dataComponent._data.length; i++) {
+            grid._rows._add(new Row(i, grid._dataComponent._data[i]), true);
+        }
+        grid._applyFilter();
+        grid._dataComponent._markDirty();
+        grid._draw();
+    };
+    Grid.prototype._setFilter = function (fnstr) {
+        var grid = this;
+        grid._filter = fnstr;
+        if (fnstr == null || fnstr == '') {
+            fnstr = 'true';
+        }
+        try {
+            grid._filterFn = new Function('return ' + fnstr);
+        }
+        catch (e) {
+            grid._filterFn = function () { return true; };
+        }
+        grid._applyFilter();
+        grid._dataComponent._markDirty();
+        grid._clearSelection(); // this also calls draw()
+    };
+    Grid.prototype._applyFilter = function () {
+        var grid = this;
+        var elt = grid._rows._next;
+        var lastVisible = grid._rows;
+        while (elt != grid._rows) {
+            var include = grid._filterFn.apply(elt._data._object);
+            if (include) {
+                elt._visiblePrev = lastVisible;
+                lastVisible._visibleNext = elt;
+                lastVisible = elt;
+            }
+            else {
+                elt._visiblePrev = null;
+                elt._visibleNext = null;
+            }
+            elt = elt._next;
+        }
+        lastVisible._visibleNext = grid._rows;
+        grid._rows._visiblePrev = lastVisible;
+        // if there are zero visible rows, what do we do?  for now, unhide everything
+        if (grid._rows._visibleNext == grid._rows) {
+            console.log('Error: filter "' + grid._filter + '" returns zero visible rows');
+            var elt = grid._rows._next;
+            var lastVisible = grid._rows;
+            while (elt != grid._rows) {
+                elt._visiblePrev = lastVisible;
+                lastVisible._visibleNext = elt;
+                lastVisible = elt;
+            }
+            elt = elt._next;
+        }
+        grid._scroll._minRow = grid._rows._visibleNext;
+        grid._calcMaxRowFromMinRow();
+    };
+    return Grid;
+}());
+exports.Grid = Grid;
 function Format(value, formatObject) {
-	
-	var datatype = typeof(value);
-	var string = null;
-	
-	if (value == null)
-	{
-		string = "";
-	}
-	else if (datatype == "number")
-	{
-		//var n = formatString;
-		//if (n < 0) { n = 0; }
-		//if (n > 20) { n = 20; }
-		//string = value.toFixed(n);
-		string = value.toString();
-	}
-	else if (datatype == "string")
-	{
-		string = value; // apply formatting here - note that when you want to edit, use the raw toString()
-	}
-	else if (datatype == "boolean")
-	{
-		string = value.toString();
-	}
-	else if (datatype == "object")
-	{
-		if (value.forEach)
-		{
-			string = "[Array]";
-		}
-		else
-		{
-			//string = cell.slot.formula;
-			string = value.toString(); // apply formatting here - note that when you want to edit, use the raw toString()
-		}
-	}
-	else if (datatype == "function")
-	{
-		string = value.name;
-	}
-	else // undefined, presumably
-	{
-		string = "";
-	}
-	
-	return string;
+    var datatype = typeof (value);
+    var string = null;
+    if (value == null) {
+        string = '';
+    }
+    else if (datatype == "number") {
+        if (formatObject === null) {
+            string = value.toString();
+        }
+        else {
+            string = sprintf(formatObject, value);
+        }
+    }
+    else if (datatype == "string") {
+        string = value; // apply formatting here - note that when you want to edit, use the raw toString()
+    }
+    else if (datatype == "boolean") {
+        string = value.toString();
+    }
+    else if (datatype == "object") {
+        if (value.forEach) {
+            string = "[Array]";
+        }
+        else {
+            //string = cell.slot.formula;
+            string = value.toString(); // apply formatting here - note that when you want to edit, use the raw toString()
+        }
+    }
+    else if (datatype == "function") {
+        string = value.name;
+    }
+    else {
+        string = '';
+    }
+    return string;
 }
-
-var Menu = function() {
-	
-	this.parent = null;
-	this.fns = [];
-	this.labels = [];
-	
-	this.width = 100;
-	this.rowHeight = 30;
-	this.textMargin = 4;
-	this.font = '11pt Calibri';
-	
-	this.box = new Box(this, false);
-	
-	this.basicFillColor = 'rgb(255,255,255)';
-	this.basicTextColor = 'rgb(0,0,0)';
-	this.hoverFillColor = 'rgb(0,0,255)';
-	this.hoverTextColor = 'rgb(255,255,255)';
-	this.hoverIndex = null;
-};
-Menu.prototype.setDimensions = function() {
-	
-	var wd = this.width;
-	var hg = this.rowHeight * this.fns.length;
-	this.box.reconcile({lf:this.box.lf,tp:this.box.tp,wd:wd,hg:hg});
-};
-Menu.prototype.draw = function() {
-	
-	var ctx = this.parent.ctx;
-	
-	ctx.fillStyle = this.basicFillColor;
-	ctx.fillRect(this.box.lf, this.box.tp, this.box.wd, this.box.hg);
-	
-	ctx.font = this.font;
-	ctx.textAlign = 'left';
-	ctx.textBaseline = 'middle';
-	
-	for (var i = 0; i < this.fns.length; i++)
-	{
-		if (this.hoverIndex == i)
-		{
-			ctx.fillStyle = this.hoverFillColor;
-			ctx.fillRect(this.box.lf, this.box.tp + this.rowHeight * i, this.box.wd, this.rowHeight);
-			ctx.fillStyle = this.hoverTextColor;
-		}
-		else
-		{
-			ctx.fillStyle = this.basicTextColor;
-		}
-		
-		ctx.fillText(this.labels[i], this.box.lf + this.textMargin, this.box.tp + this.rowHeight * (i + 0.5));
-		
-		ctx.strokeStyle = 'rgb(200,200,200)';
-		ctx.drawLine(this.box.lf, this.box.tp + this.rowHeight * (i + 1)+0.5, this.box.lf + this.box.wd, this.box.tp + this.rowHeight * (i + 1)+0.5);
-	}
-	
-	ctx.strokeStyle = 'rgb(0,0,0)';
-	ctx.strokeRect(this.box.lf-0.5, this.box.tp-0.5, this.box.wd+1, this.rowHeight * this.fns.length+1);
-};
-Menu.prototype.clear = function() {
-	this.parent.section.draw();
-};
-Menu.prototype.onhover = function() {
-	var menu = this;
-	this.parent.ctx.canvas.style.cursor = 'default';
-	this.parent.ctx.canvas.onmousemove = function(mouseMoveEvent) { menu.onmousemove(mouseMoveEvent); };
-};
-Menu.prototype.dehover = function() {
-	
-	// 'dehover' is actually caused by a click outside the menu, not just a mousemove outside of the box - Menu.clear() can be called by the parent, in fact
-	
-	this.parent.ctx.canvas.onmousemove = null;
-	this.parent.ctx.canvas.onmousedown = null;
-	this.parent.ctx.canvas.onmouseup = null;
-	this.parent.onhover();
-};
-Menu.prototype.onmousemove = function(e) {
-	
-	var menu = this;
-	
-	var mult = this.parent.ctx.cubitsPerPixel ? this.parent.ctx.cubitsPerPixel : 1;
-	var x = e.offsetX * mult;
-	var y = e.offsetY * mult;
-	var m = {x:x,y:y};
-	
-	this.hoverIndex = null;
-	
-	for (var i = 0; i < this.fns.length; i++)
-	{
-		var tp = this.box.tp + this.rowHeight * (i + 0);
-		var bt = this.box.tp + this.rowHeight * (i + 1);
-		
-		if (this.box.lf <= m.x && m.x <= this.box.rt && tp <= m.y && m.y <= bt)
-		{
-			this.hoverIndex = i;
-			this.draw();
-			
-			this.parent.ctx.canvas.onmousedown = function() {
-				menu.fns[menu.hoverIndex].apply(menu.parent);
-			};
-			
-			return;
-		}
-	}
-	
-	this.draw();
-	
-	this.parent.ctx.canvas.onmousedown = function(e) { menu.dehover(); };
-};
-
-var Scrollbar = function() {
-	
-	this.ctx = null;
-	this.parent = null;
-	this.orientation = null;
-	
-	this.box = new Box();
-	this.handle = new Box();
-};
-Scrollbar.prototype.draw = function() {
-	
-	this.ctx.strokeStyle = 'rgb(158,182,206)';
-	this.ctx.fillStyle = 'rgb(128,128,128)';
-	this.ctx.strokeRect(this.box.lf, this.box.tp, this.box.wd, this.box.hg);
-	this.ctx.fillRect(this.handle.lf, this.handle.tp, this.handle.wd, this.handle.hg);
-};
-Scrollbar.prototype.onhover = function() {
-	
-};
-
-var Cell = function() {
-	
-	this.grid = null;
-	this.row = null; // int
-	this.col = null; // int
-	
-	this.formula = null
-	this.value = null
-	this.string = null; // the cached result of applying the formatObject to the value
-	
-	this.formatString = null; // we need a format string parser - use Excel syntax?
-	this.formatObject = null; // the cached result of parsing the formatString
-	
-	this.fn = null; // the Function object that is the result of parsing the formula
-	
-	this.unitType = null; // time, length, mass - force, energy, power, etc.
-	this.unitBase = null; // seconds, meters, feet, pounds, kilograms, joules, watts, etc.
-	
-	this.selected = false;
-	this.calculated = false;
-	
-	// cached dependencies
-	this.srcs = null;
-	this.dsts = null;
-	
-	this.style = null;
-	this.font = '11pt Calibri';
-	this.textColor = 'rgb(0,0,0)';
-	this.hAlign = 'center';
-	this.vAlign = 'center';
-	this.backgroundColor = null;
-	this.border = null;
-	
-	this.hMargin = 5; // this is the margin between cell border and cell text
-	this.vMargin = 4;
-	
-	// border: we need syntax to deal with TLRB, color, lineWidth, type (solid, dotted, dashed, etc)
-	// either syntax or more tables, which i'm reluctant to do b/c it would be a lot of tables
-	// maybe CSS is the best inspiration for syntax here, since CSS itself uses syntax
-	// border-top: 1px solid gray
-	
-	// this.dataObj = null;
-	// this.dataField = null;
-	// this.dataType = null;
-};
-Cell.prototype.getValue = function() {
-	
-	if (!this.calculated) { this.calculate(); }
-	return this.value;
-};
-Cell.prototype.calculate = function() {
-	
-	this.fn.apply(this.grid, [this.row, this.col]);
-};
-
-
+function KeyToChar(key, shift) {
+    var from48To57 = [')', '!', '@', '#', '$', '%', '^', '&', '*', '('];
+    var from186To192 = [[';', ':'], ['=', '+'], [',', '<'], ['-', '_'], ['.', '>'], ['/', '?'], ['`', '~']];
+    var from219To222 = [['[', '{'], ['\\', '|'], [']', '}'], ['\'', '"']];
+    var c = null;
+    if (48 <= key && key <= 57) {
+        c = (shift ? from48To57[key - 48] : String.fromCharCode(key));
+    }
+    else if (65 <= key && key <= 90) {
+        c = (shift ? String.fromCharCode(key) : String.fromCharCode(key + 32));
+    }
+    else if (186 <= key && key <= 192) {
+        c = from186To192[key - 186][shift ? 1 : 0];
+    }
+    else if (219 <= key && key <= 222) {
+        c = from219To222[key - 219][shift ? 1 : 0];
+    }
+    return c;
+}
+function Count(a, b) {
+    var n = 1;
+    var elt = a;
+    while (elt != b) {
+        elt = elt._next;
+        n++;
+    }
+    return n;
+}
+function CountVisible(a, b) {
+    var n = 1;
+    var elt = a;
+    while (elt != b) {
+        elt = elt._visibleNext;
+        n++;
+    }
+    return n;
+}
+function Enumerate(a, b) {
+    var result = [];
+    var elt = a;
+    while (true) {
+        result.push(elt._data);
+        if (elt == b) {
+            break;
+        }
+        elt = elt._next;
+    }
+    return result;
+}
+function EnumerateVisible(a, b) {
+    var result = [];
+    var elt = a;
+    while (true) {
+        result.push(elt._data);
+        if (elt == b) {
+            break;
+        }
+        elt = elt._visibleNext;
+    }
+    return result;
+}
 // this is copied from data.js, which is not ideal
 var numberRegex = new RegExp('^\\s*[+-]?([0-9]{1,3}((,[0-9]{3})*|([0-9]{3})*))?(\\.[0-9]+)?%?\\s*$');
 var digitRegex = new RegExp('[0-9]');
 var trueRegex = new RegExp('^true$', 'i');
 var falseRegex = new RegExp('^false$', 'i');
-
 // require ISO 8601 dates - this regex reads yyyy-mm-ddThh:mm:ss.fffZ, with each component after yyyy-mm being optional
 // note this means that yyyy alone will be interpreted as an int, not a date
 var dateRegex = new RegExp('[0-9]{4}-[0-9]{2}(-[0-9]{2}(T[0-9]{2}(:[0-9]{2}(:[0-9]{2}(.[0-9]+)?)?)?(Z|([+-][0-9]{1-2}:[0-9]{2})))?)?');
-
-var WriteObjToString = function(obj) {
-	
-	// this is currently called only when writing to json/yaml, which requires that we return 'null'
-	// but if we start calling this function from the csv/tsv writer, we'll need to return ''
-	if (obj === null) { return 'null'; }
-	
-	var type = Object.prototype.toString.call(obj);
-	
-	if (type == '[object String]' || type == '[object Date]')
-	{
-		return '"' + obj.toString() + '"';
-	}
-	//else if (type == '[object Function]')
-	//{
-	//	return WriteFunction(obj);
-	//}
-	else
-	{
-		return obj.toString();
-	}
+var WriteObjToString = function (obj) {
+    // this is currently called only when writing to json/yaml, which requires that we return 'null'
+    // but if we start calling this function from the csv/tsv writer, we'll need to return ''
+    if (obj === null) {
+        return 'null';
+    }
+    var type = Object.prototype.toString.call(obj);
+    if (type == '[object String]' || type == '[object Date]') {
+        return '"' + obj.toString() + '"';
+    }
+    else {
+        return obj.toString();
+    }
 };
-var ParseStringToObj = function(str) {
-	
-	if (str === null || str === undefined) { return null; }
-	if (str.length == 0) { return ''; } // the numberRegex accepts the empty string because all the parts are optional
-	
-	var val = null;
-	
-	if (numberRegex.test(str) && digitRegex.test(str)) // since all parts of numberRegex are optional, "+.%" is a valid number.  so we test digitRegex too
-	{
-		var divisor = 1;
-		str = str.trim();
-		if (str.indexOf('%') >= 0) { divisor = 100; str = str.replace('%', ''); }
-		str = str.replace(',', '');
-		
-		if (str.indexOf('.') >= 0)
-		{
-			val = parseFloat(str);
-		}
-		else
-		{
-			val = parseInt(str);
-		}
-		
-		val /= divisor;
-	}
-	else if (dateRegex.test(str))
-	{
-		val = new Date(str);
-		if (val.toJSON() == null) { val = str; } // revert if the date is invalid
-	}
-	else if (trueRegex.test(str))
-	{
-		val = true;
-	}
-	else if (falseRegex.test(str))
-	{
-		val = false;
-	}
-	//else if (str.startsWith('function'))
-	//{
-	//	val = ParseFunction(str);
-	//}
-	else
-	{
-		val = str;
-	}
-	
-	return val;
+var ParseStringToObj = function (str) {
+    if (str === null || str === undefined) {
+        return null;
+    }
+    if (str.length == 0) {
+        return '';
+    } // the numberRegex accepts the empty string because all the parts are optional
+    var val = null;
+    if (numberRegex.test(str) && digitRegex.test(str)) {
+        var divisor = 1;
+        str = str.trim();
+        if (str.indexOf('%') >= 0) {
+            divisor = 100;
+            str = str.replace('%', '');
+        }
+        str = str.replace(',', '');
+        if (str.indexOf('.') >= 0) {
+            val = parseFloat(str);
+        }
+        else {
+            val = parseInt(str);
+        }
+        val /= divisor;
+    }
+    else if (dateRegex.test(str)) {
+        val = new Date(str);
+        if (val.toJSON() == null) {
+            val = str;
+        } // revert if the date is invalid
+    }
+    else if (trueRegex.test(str)) {
+        val = true;
+    }
+    else if (falseRegex.test(str)) {
+        val = false;
+    }
+    else {
+        val = str;
+    }
+    return val;
 };
-
-// note that this could be the basis of a built-in unit system - detect unit notation like "km" or "J" and convert
-// calculations could display the correct units by default
-// 1 J / 1 s = 1 W
-// the unit type of a cell would be detemined by the calculation and thus not settable by the user
-// but the reference unit would be settable
-// so you could type in 1 J and then convert the cell to calories and it would convert
-
-var numberRegex = new RegExp('^\\s*[+-]?([0-9]{1,3}((,[0-9]{3})*|([0-9]{3})*))?(\\.[0-9]+)?%?\\s*$');
-var digitRegex = new RegExp('[0-9]');
-
-var ParseStringToObj = function(str) {
-	
-	if (str === null || str === undefined) { return null; }
-	if (str.length == 0) { return ''; } // the numberRegex accepts the empty string because all the parts are optional
-	
-	var val = null;
-	
-	if (numberRegex.test(str) && digitRegex.test(str)) // since all parts of numberRegex are optional, "+.%" is a valid number.  so we test digitRegex too
-	{
-		var divisor = 1;
-		str = str.trim();
-		if (str.indexOf('%') >= 0) { divisor = 100; str = str.replace('%', ''); }
-		str = str.replace(',', '');
-		
-		if (str.indexOf('.') >= 0)
-		{
-			val = parseFloat(str);
-		}
-		else
-		{
-			val = parseInt(str);
-		}
-		
-		val /= divisor;
-	}
-	else
-	{
-		val = str;
-	}
-	
-	return val;
-};
-
-function NumberToLetter(n) {
-	
-	// 0 => "A"
-	// 1 => "B"
-	// 25 => "Z"
-	// 26 => "AA"
-	
-	if (n < 0) { return ""; }
-	
-	var k = 1;
-	var m = n+1;
-	
-	while (true)
-	{
-		var pow = 1;
-		for (var i = 0; i < k; i++) { pow *= 26; }
-		if (m <= pow) { break; }
-		m -= pow;
-		k++;
-	}
-	
-	var reversed = "";
-	
-	for (var i = 0; i < k; i++)
-	{
-		var c = n+1;
-		var shifter = 1;
-		for (var j = 0; j < k; j++) { c -= shifter; shifter *= 26; }
-		var divisor = 1;
-		for (var j = 0; j < i; j++) { divisor *= 26; }
-		c /= divisor;
-		c %= 26;
-		reversed += String.fromCharCode(65 + c)
-	}
-	
-	var result = "";
-	for (var i = reversed.length - 1; i >= 0; i--) { result += reversed[i]; }
-	
-	return result;
-}
-function LetterToNumber(s) {
-	
-	// "A" => 0
-	// "B" => 1
-	// "Z" => 25
-	// "AA" => 26
-	
-	var result = 0;
-	var multiplier = 1;
-	
-	for (var i = s.length - 1; i >= 0; i--)
-	{
-		var c = s.charCodeAt(i);
-		result += multiplier * (c - 64);
-		multiplier *= 26;
-	}
-	
-	return result-1; // -1 makes it 0-indexed
-}
-
-
-var scale = 1; // cubits->pixels transform
-
-CanvasRenderingContext2D.prototype.drawHori = function(y, x1, x2) {
-	
-	var ty = Math.floor(y * scale, 1)+0.5;
-	var tx1 = Math.floor(x1 * scale, 1);
-	var tx2 = Math.floor(x2 * scale, 1);
-	this.drawLine(tx1, ty, tx2, ty);
-};
-CanvasRenderingContext2D.prototype.drawVert = function(x, y1, y2) {
-	
-	var tx = Math.floor(x * scale, 1)+0.5;
-	var ty1 = Math.floor(y1 * scale, 1);
-	var ty2 = Math.floor(y2 * scale, 1);
-	this.drawLine(tx, ty1, tx, ty2);
-};
-CanvasRenderingContext2D.prototype.fillSharpRect = function(left, top, width, height) {
-	
-	var lf = Math.floor(left * scale, 1)+0.5;
-	var tp = Math.floor(top * scale, 1)+0.5;
-	var wd = Math.floor(width * scale, 1);
-	var hg = Math.floor(height * scale, 1);
-	this.fillRect(lf, tp, wd, hg);
-};
-CanvasRenderingContext2D.prototype.drawText = function(text, x, y) {
-	
-	var tx = x * scale;
-	var ty = y * scale;
-	this.fillText(text, tx, ty);
-};
-
-CanvasRenderingContext2D.prototype.drawLine = function(x1, y1, x2, y2) {
-	this.beginPath();
-	this.moveTo(x1, y1);
-	this.lineTo(x2, y2);
-	this.stroke();
-};
-
-module.Grid = Grid;
-
-})(Hyperdeck || window);
-
-
-
+Hyperdeck.Grid = Grid;
+// TO DO:
+// get beginEditArray working
+// sort on strings - if either a.foo or b.foo is a string, compare as string.  if both are numbers, compare as number.  unsure what to do about booleans
+// grid._shift, grid._ctrl, and grid._alt are getting stuck on true - possibly while editing inputs
+// test scroll adjustments in reaction to structural changes
+// use data.js's code for parsing
+// visible scrollbars - also, how to scroll horizontally?  shift is already used to modulate magnitude
+// div resizing - resize the canvas in response - also, how do we pick the initial canvas dimensions?
+// select range while scrolled - sometimes it scrolls when it shouldn't
+// a sort failed - the thing that ended up on the bottom wasn't supposed to be there
+// add support for thousands separators and comma/separator style preferences to sprintf.js
+// replace structural adjustment code with ABCDEFGH stuff
+// remove canvas focus border with CSS in griddl.css or custom.css

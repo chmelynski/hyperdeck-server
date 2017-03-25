@@ -43,7 +43,7 @@ var Data = function(json, type, name) {
 	this._headers = json.params.headers; // this is needed to specify which columns to display and in what order - handsontable gives the user the ability to reorder columns, and we want to save that configuration
 	this._afterChange = json.params.afterChange ? json.params.afterChange : '';
 	
-	this._gridParams = null;
+	this._gridParams = json.grid;
 	
 	this._data = ParseFormat.apply(this, [json.data]);
 	
@@ -89,6 +89,12 @@ Data.prototype._add = function() {
 	
 	comp._refreshDatgui();
 	
+	if (comp._grid && comp._display != 'grid')
+	{
+		comp._gridParams = comp._grid._write();
+		comp._grid = null;
+	}
+	
 	var initText = '';
 	
 	if (comp._display == 'json' || comp._display == 'yaml' || comp._display == 'csv' || comp._display == 'tsv')
@@ -122,20 +128,7 @@ Data.prototype._add = function() {
 	}
 	else if (comp._display == 'grid')
 	{
-		var ctx = $('<canvas width="500" height="500" tabIndex="0" style="margin:1em;border:0px"></canvas>').appendTo(comp._contentDiv)[0].getContext('2d');
-		comp._grid = new Hyperdeck.Grid(ctx, comp);
-		
-		comp._grid.section = {
-			draw : function() { comp._grid.ctx.clearRect(0, 0, comp._grid.ctx.canvas.width, comp._grid.ctx.canvas.height); comp._grid.draw(); }
-		};
-		
-		comp._grid.ctx.canvas.onmousemove = function(e) { comp._grid.onmousemove(e); };
-		comp._grid.ctx.canvas.onmousedown = function(e) { comp._grid.clearSelection(); };
-		
-		comp._grid.ctx.canvas.parentElement.appendChild(comp._grid.input);
-		
-		comp._grid.draw();
-		ctx.canvas.focus();
+		comp._grid = new Hyperdeck.Grid(comp, comp._contentDiv);
 	}
 	else if (comp._display == 'pre' || comp._display == 'readonly')
 	{
@@ -212,6 +205,7 @@ Data.prototype._write = function() {
 	json.params.form = comp._form;
 	json.params.headers = comp._headers;
 	json.params.afterChange = comp._afterChange;
+	if (comp._grid) { json.grid = comp._grid._write(); }
 	return json;
 };
 
@@ -222,44 +216,14 @@ Data.prototype._refreshDatgui = function() {
 	
 	var displayOptionDict = {};
 	displayOptionDict.other = ['json','yaml','readonly','summary'];
-	displayOptionDict.listOfObjects = ['json','yaml','csv','tsv','readonly','summary'];
+	displayOptionDict.listOfObjects = ['json','yaml','grid','csv','tsv','readonly','summary'];
 	displayOptionDict.listOfLists = ['json','yaml','csv','tsv','readonly','summary'];
 	displayOptionDict.list = ['json','yaml','csv','tsv','readonly','summary'];
 	displayOptionDict.object = ['json','yaml','gui','readonly','summary'];
 	
 	var displayOptions = displayOptionDict[comp._form];
-	if (Hyperdeck.Preferences.Experimental && Hyperdeck.Preferences.Experimental.enableGrid)
-	{
-		if (displayOptions.indexOf('tsv') > -1)
-		{
-			displayOptions.push('grid');
-			//displayOptions.push('tabulator');
-		}
-	}
 	
 	if (displayOptions.indexOf(comp._display) == -1) { comp._display = 'json'; }
-	
-	/* var gui = new dat.GUI({autoPlace:false, width:"100%"});
-	var displayControl = gui.add(comp, 'display', displayOptions);
-	displayControl.onChange(function(value) { comp._markDirty(); comp._undo.pushOnAdd = false; comp._add(); comp._undo.pushOnAdd = true; });
-	var uploadFolder = gui.addFolder('upload');
-	uploadFolder.add(comp, 'uploadJSON');
-	uploadFolder.add(comp, 'uploadYAML');
-	uploadFolder.add(comp, 'uploadCSV');
-	uploadFolder.add(comp, 'uploadTSV');
-	//uploadFolder.add(comp, 'uploadXLSX');
-	var downloadFolder = gui.addFolder('download');
-	downloadFolder.add(comp, 'downloadJSON');
-	downloadFolder.add(comp, 'downloadYAML');
-	if (displayOptions.indexOf('csv') >= 0) { downloadFolder.add(comp, 'downloadCSV'); }
-	if (displayOptions.indexOf('tsv') >= 0) { downloadFolder.add(comp, 'downloadTSV'); }
-	//downloadFolder.add(comp, 'downloadXLSX');
-	var hooksFolder = gui.addFolder('hooks');
-	hooksFolder.add(comp, 'afterChange');
-	//var tools = gui.addFolder('tools');
-	//tools.add(comp, 'Undo');
-	//tools.add(comp, 'Redo');
-	comp._datguiDiv.append($(gui.domElement)); */
 	
 	function Option(str) {
 		return '<option' + ((comp._display == str) ? ' selected' : '') + '>' + str + '</option>';
