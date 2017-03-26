@@ -437,8 +437,6 @@ var Grid = (function () {
             grid._setFilter(grid._filter);
         }
         grid._setMouseHandles();
-        grid._setKeyHandles();
-        grid._ctx.canvas.focus();
         grid._draw();
     };
     Grid.prototype._write = function () {
@@ -1002,6 +1000,9 @@ var Grid = (function () {
                     grid._selected = { _minCol: null, _maxCol: null, _minRow: null, _maxRow: null };
                     grid._selectCell();
                     grid._setKeyHandles();
+                    var savedScrollTop = document.getElementById('cells-container').scrollTop;
+                    grid._ctx.canvas.focus();
+                    document.getElementById('cells-container').scrollTop = savedScrollTop;
                     if (mouseDownEvent.button == 0) {
                         canvas.onmousemove = function (mouseDragEvent) {
                             var d = { x: mouseDragEvent.offsetX, y: mouseDragEvent.offsetY };
@@ -1450,35 +1451,49 @@ var Grid = (function () {
     Grid.prototype._scrollBy = function (offset, rows) {
         var grid = this;
         if (rows) {
-            var singular = '_minRow';
-            var plural = '_rows';
+            if (offset < 0) {
+                while (offset < 0) {
+                    grid._scroll._minRow = grid._scroll._minRow._visibleNext;
+                    if (grid._scroll._minRow == grid._rows) {
+                        grid._scroll._minRow = grid._rows._visiblePrev;
+                        break;
+                    }
+                    offset++;
+                }
+            }
+            else if (offset > 0) {
+                while (offset > 0) {
+                    grid._scroll._minRow = grid._scroll._minRow._visiblePrev;
+                    if (grid._scroll._minRow == grid._rows) {
+                        grid._scroll._minRow = grid._rows._visibleNext;
+                        break;
+                    }
+                    offset--;
+                }
+            }
         }
         else {
-            var singular = '_minCol';
-            var plural = '_cols';
-        }
-        if (offset < 0) {
-            while (offset < 0) {
-                grid._scroll[singular] = grid._scroll[singular]._visibleNext;
-                if (grid._scroll[singular] == grid[plural]) {
-                    grid._scroll[singular] = grid[plural]._visiblePrev;
-                    break;
+            if (offset < 0) {
+                while (offset < 0) {
+                    grid._scroll._minCol = grid._scroll._minCol._visibleNext;
+                    if (grid._scroll._minCol == grid._cols) {
+                        grid._scroll._minCol = grid._cols._visiblePrev;
+                        break;
+                    }
+                    offset++;
                 }
-                offset++;
+            }
+            else if (offset > 0) {
+                while (offset > 0) {
+                    grid._scroll._minCol = grid._scroll._minCol._visiblePrev;
+                    if (grid._scroll._minCol == grid._cols) {
+                        grid._scroll._minCol = grid._cols._visibleNext;
+                        break;
+                    }
+                    offset--;
+                }
             }
         }
-        else if (offset > 0) {
-            while (offset > 0) {
-                grid._scroll[singular] = grid._scroll[singular]._visiblePrev;
-                if (grid._scroll[singular] == grid[plural]) {
-                    grid._scroll[singular] = grid[plural]._visibleNext;
-                    break;
-                }
-                offset--;
-            }
-        }
-        ////var handleRange = grid._vScrollbar.box.hg - grid._vScrollbar.handle.hg;
-        ////var handleOffset = Math.floor(handleRange * (this.value / 100));
         grid._draw();
     };
     Grid.prototype._resizeRow = function (oldsize, newsize) {
@@ -1501,7 +1516,8 @@ var Grid = (function () {
                 current = col._data._header;
             }
             else {
-                current = grid._dataComponent._data[row._data._index][col._data._header].toString();
+                var value = grid._dataComponent._data[row._data._index][col._data._header];
+                current = ((value === null) ? '' : value.toString());
             }
         }
         else if (grid._editMode == 'formula') {
@@ -1569,7 +1585,9 @@ var Grid = (function () {
         function ClearEdit() {
             grid._textarea.value = '';
             grid._textarea.style.display = 'none';
-            grid._setKeyHandles(); // or just focus the canvas?
+            var savedScrollTop = document.getElementById('cells-container').scrollTop;
+            grid._ctx.canvas.focus();
+            document.getElementById('cells-container').scrollTop = savedScrollTop;
         }
         
         grid._textarea.onkeydown = function(e: KeyboardEvent) {
@@ -1728,8 +1746,9 @@ var Grid = (function () {
         var grid = this;
         grid._input.value = '';
         grid._input.style.display = 'none';
+        var savedScrollTop = document.getElementById('cells-container').scrollTop;
         grid._ctx.canvas.focus();
-        //grid._setKeyHandles();
+        document.getElementById('cells-container').scrollTop = savedScrollTop;
     };
     Grid.prototype._getSelectionData = function () {
         var grid = this;
@@ -2672,4 +2691,5 @@ Hyperdeck.Grid = Grid;
 // a sort failed - the thing that ended up on the bottom wasn't supposed to be there
 // add support for thousands separators and comma/separator style preferences to sprintf.js
 // replace structural adjustment code with ABCDEFGH stuff
-// remove canvas focus border with CSS in griddl.css or custom.css
+// scroll to bottom should not leave only one row visible - there needs to be a floor - the mechanism we put in place isn't working
+// need to prevent scroll on canvas focus, or perhaps just save the scroll position, then focus, then reset scroll position to saved
