@@ -90,7 +90,7 @@
     <script type='text/javascript' src="{% static 'griddl/js/components/arrow.js' %}"></script>
   {% endcomment %}
   
-  <script src='https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML'></script>
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS_HTML'></script>
 
 <script type="text/x-mathjax-config">
 // http://docs.mathjax.org/en/latest/options/hub.html
@@ -221,37 +221,34 @@ MathJax.Hub.Config({tex2jax:{inlineMath:[['$','$'],['\\(','\\)']]},jax:['input/T
                 </a>
               </li>
               <li>
+                <a onclick="Hyperdeck.Import()">
+                  Import workbook
+                </a>
+              </li>
+              <li>
                 <a onclick="Hyperdeck.ExportHtml()">
                   Export document as HTML
                 </a>
               </li>
-              {% comment %}or user.account.plan.pk == 4 - but then we need to limit the licence to 1 user per account{% endcomment %}
-              {% if user.is_superuser %}
-              <li>
-                <a onclick="Hyperdeck.Import()">
-                  Import
-                </a>
-              </li>
-              {% endif %}
               <li>
                 <a onclick="Hyperdeck.ShowPasswordInput()">
-                  Encrypt
+                  Encrypt workbook
                 </a>
               </li>
               <li>
                 <a onclick="Hyperdeck.ShowAll()">
-                  Show all
+                  Show all components
                 </a>
               </li>
               <li>
                 <a onclick="Hyperdeck.HideAll()">
-                  Hide all
+                  Hide all components
                 </a>
               </li>
               {% if user.is_superuser %}
               <li>
                 <a onclick="Hyperdeck.RestoreObj()">
-                  Restore deleted
+                  Restore deleted component
                 </a>
               </li>
               {% endif %}
