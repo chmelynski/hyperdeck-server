@@ -241,6 +241,9 @@ Data.prototype._refreshDatgui = function() {
 		.appendTo(comp._datguiDiv).on('click', function() { comp._download(); }).tooltip();
 	$('<button type="button" data-toggle="tooltip" data-placement="bottom" title="Upload" data-original-title="Upload" class="btn btn-default btn-sm"><i class="fa fa-upload"></i></button>')
 		.appendTo(comp._datguiDiv).on('click', function() { comp._upload(); }).tooltip();
+	
+	$('<button type="button" data-toggle="tooltip" data-placement="bottom" title="Clear" data-original-title="Clear" class="btn btn-default btn-sm"><i class="fa fa-ban"></i></button>')
+		.appendTo(comp._datguiDiv).on('click', function() { comp._set([{A:1,B:2,C:3},{A:4,B:5,C:6},{A:7,B:8,C:9}]); }).tooltip();
 };
 
 Data.prototype._showError = function(e) {
