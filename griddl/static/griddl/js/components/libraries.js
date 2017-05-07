@@ -37,68 +37,80 @@ Libraries.prototype._afterLoad = function(callback) {
 	
 	comp._outputDiv = $('<div id="' + comp._name + '"></div>').appendTo($('#output'));
 	
-	var numberToLoad = comp._data.urls.length;
-	var numberLoaded = 0;
-	
-	// it is difficult to keep the url, script, icon, and row all together
-	// we've managed to do it purely with closures, but we needed to implement a sentinel-based doubly-linked list to hold the urls
-	// the key thing is the ability to call LinkedList.remove() - javascript arrays require an index, and tracking the index through deletions is too hard
-	comp._sentinel = new LinkedList();
+	comp._sentinel = new LinkedList(); // holds row objects: { div, url, icon }
 	
 	var rows = $('<div></div>').appendTo(comp._div);
-	
+
 	function AppendRow(url) {
 		
 		comp._markDirty();
 		
-		var listElement = comp._sentinel._add(url);
+		var row = { div: null, url: url, icon: null };
+		var rowElt = comp._sentinel._add(row);
 		
-		var row = $('<div style="margin:0.2em"></div>').appendTo(rows);
+		var rowDiv = $('<div style="margin:0.2em"></div>').appendTo(rows);
 		
-		$('<button class="btn btn-default btn-sm"><i class="fa fa-lg fa-trash-o"></i></button>').appendTo(row).on('click', function() {
+		$('<button class="btn btn-default btn-sm"><i class="fa fa-lg fa-trash-o"></i></button>').appendTo(rowDiv).on('click', function() {
 			comp._markDirty();
-			listElement._remove();
-			row.remove();
+			rowElt._remove();
+			rowDiv.remove();
 		});
 		
-		$('<input class="input-sm" style="width:80%;margin:0.2em" value="'+url+'"></input>').appendTo(row).on('change', function() {
+		$('<input class="input-sm" style="width:80%;margin:0.2em" value="'+url+'"></input>').appendTo(rowDiv).on('change', function() {
 			comp._markDirty();
 			icon.removeClass('fa-check').removeClass('fa-times').addClass('fa-hourglass').css('color', 'orange');
 			//script.attr('src', url); // this triggers on load
-			listElement._data = this.value;
-			LoadScript(this.value);
+			row.url = this.value;
+
+			$.getScript(url).done(function(script, textStatus) {
+				icon.removeClass('fa-hourglass').addClass('fa-check').css('color', 'green');
+			}).fail(function(jqxhr, settings, exception) {
+				icon.removeClass('fa-hourglass').addClass('fa-times').css('color', 'red');
+				console.log('Error: "' + url + '" failed to load');
+			})
 		});
 		
-		var icon = $('<span class="fa fa-hourglass" style="color:orange"></span>').appendTo(row);
+		var icon = $('<span class="fa fa-hourglass" style="color:orange"></span>').appendTo(rowDiv);
 		
-		function LoadScript(url) {
-			
-			if (url.length == 0)
-			{
-				numberLoaded++;
-				if (numberLoaded == numberToLoad) { numberToLoad = 0; callback(comp); }
-				return;
-			}
-			
+		row.div = rowDiv;
+		row.icon = icon;
+	}
+	
+	function LoadScript(rowElt) {
+		
+		if (rowElt == comp._sentinel) { callback(comp); return; }
+		
+		var row = rowElt._data;
+		var url = row.url;
+		var icon = row.icon;
+		
+		if (url.length == 0)
+		{
+			LoadScript(rowElt._next);
+		}
+		else
+		{
 			$.getScript(url).done(function(script, textStatus) {
 				icon.removeClass('fa-hourglass').addClass('fa-check').css('color', 'green');
 			}).fail(function(jqxhr, settings, exception) {
 				icon.removeClass('fa-hourglass').addClass('fa-times').css('color', 'red');
 				console.log('Error: "' + url + '" failed to load');
 			}).always(function() {
-				numberLoaded++;
-				if (numberLoaded == numberToLoad) { numberToLoad = 0; callback(comp); }
+				LoadScript(rowElt._next);
 			});
 		}
-		
-		LoadScript(url);
 	}
 	
-	comp._data.urls.forEach(function(url) { AppendRow(url); });
+	for (var i = 0; i < comp._data.urls.length; i++)
+	{
+		AppendRow(comp._data.urls[i]);
+	}
 	
 	var plusButtonDiv = $('<div style="margin:0.2em"></div>').appendTo(comp._div);
-	$('<button class="btn btn-default btn-sm"><i class="fa fa-plus"></i></button>')
-		.appendTo(plusButtonDiv).on('click', function() { AppendRow(''); });
+	$('<button class="btn btn-default btn-sm"><i class="fa fa-plus"></i></button>').appendTo(plusButtonDiv)
+		.on('click', function() { AppendRow(''); });
+	
+	LoadScript(comp._sentinel._next);
 	
 	//for (var key in comp._data.files) { comp._doAddFile(comp._data.files[key], key); }
 	//for (var key in comp._data.files) { comp._outputDiv.append($('<script></script>').text(comp._data.files[key])); }
@@ -112,7 +124,7 @@ Libraries.prototype._write = function() {
 	json.name = comp._name;
 	json.visible = comp._visible;
 	json.data = {};
-	json.data.urls = comp._sentinel._enumerate();
+	json.data.urls = comp._sentinel._enumerate().map(function(row) { return row.url; });
 	return json;
 };
 
