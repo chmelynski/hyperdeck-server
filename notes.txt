@@ -1,0 +1,306 @@
+workbook.js
+    defines sandbox="	//griddl.hyperdeck.io" - this is passed to the sandbox in messages
+    onready, send workbook text to 	 #results.contentWindow.postMessage({	$("#frce").text(),	"load"}, sandbox);
+    function receiveMessage(event)
+        dispatch on event.data.
+            save -> save_passthru(event.data)
+            save_as -> save_as_passthru(event.data)
+            nav -> window.location.pathname = data.uri
+            markDirty
+            markClean
+    function save_passthru(payload) and function save_as_passthru(payload)
+        posts to /save or /save_as
+        if there is no redirect, sends "resolve" message back to the sandbox (unclear what is going on here)
+        on error, sends "modal_close" message to sandbox
+results.js
+    defines playground = "	//hyperdeck.io"
+    onready, defines button and form handlers
+    function saveAsSubmit()
+        calls save_as, handles the returned promise
+        i think the playground reloads, but the sandbox does not
+        this means that the url will be changed by the reload
+        but the workbook name (which is in the sandbox) has to be changed here
+        also calls history.replaceState - what does this do and why?
+    function receiveMessage(event)
+        switch event.data.action
+            load -> Hyperdeck.Components.Main(event.data.text)
+            resolve -> window[event.data.deferred].resolve(event.data.success) - playground sends a "resolve" message when a save/save_as completes
+            modal_close
+    function save() and function save_as(newname)
+        text = Hyperdeck.Components.SaveToText()
+        window.saveAsResult = $.Deferred() - this is ultimately read the resolve handler in receiveMessage
+        parent(the playground).postMessage({	"save_as",	text,	newname(save_as only),	"saveAsResult"}, playground)
+        return saveAsResult.promise() - saveAsSubmit or the save submit handler will call .done(success) on this
+directory.js
+    onready, defines button and form handlers
+utils.js
+    a bunch of ajax csrf stuff
+    function getCookie(name) - impt for ajax csrf
+    function jslog(str, file) - posts to /jslog
+    function find_dataset(el, attr) - find data attributes or datasets by walking dom ancestors
+    function validateName(name) - called by results.js/saveAsSubmit() - disallows forward slashes
+management.py
+    def workbook_locks(account)
+        this is where we determine which workbooks to lock/unlock when account size thresholds are crossed (in either direction)
+        who calls this?
+signals.py
+    presumably the models trigger these signals on pre/post save?
+    def account_setup(sender, created, instance, **kwargs) - @receiver(post_save, sender=User) - creates default workbook
+    def check_size(sender, instance, **kwargs) - @receiver(pre_save, sender=Workbook) - if wb size has changed, calls management.py/workbook_locks()
+    def account_size(sender, created, instance, **kwargs) - @receiver(post_save, sender=Account) - run lock manager when account is changed
+utils.py
+    def resolve_ancestry(userid, path) => converts path to [wb,parent,grandparent], called by views.workbook and views.results
+    def reflow(wb) => invalidate all cached paths of wb descendents deleting path_to_file - is this obsolete?
+
+Workbook	owner	models.ForeignKey("Account")
+Workbook	name	models.CharField(max_length=200)
+Workbook	text	models.TextField(blank=True, default=MY_FIRST_WORKBOOK)
+Workbook	public	models.BooleanField(default=False)
+Workbook	parent	models.ForeignKey("self", null=True, blank=True, on_delete=models.SET_NULL)
+Workbook	filetype	models.CharField(max_length=1, choices=FILE_TYPES, default="F")
+Workbook	deleted	models.BooleanField(default=False)
+Workbook	locked	models.BooleanField(default=False)
+Workbook	slug	models.SlugField()
+DefaultWorkbook	name	models.CharField(max_length=255)
+DefaultWorkbook	type	models.CharField(max_length=255)
+DefaultWorkbook	text	models.TextField(blank=True)
+User	username	models.CharField(max_length=30) - [A-Za-z0-9_@+.-]
+User	password	<algorithm>$<iterations>$<salt>$<hash>
+User	email	models.EmailField()
+User	first_name	models.CharField(max_length=30)
+User	last_name	models.CharField(max_length=30)
+User	groups	Many-to-many relationship to Group
+User	user_permissions	Many-to-many relationship to Permission
+User	is_staff	Boolean
+User	is_active	Boolean
+User	is_superuser	Boolean
+User	last_login	DateTime
+User	date_joined	DateTime
+Account	user	models.OneToOneField(settings.AUTH_USER_MODEL)
+Account	plan	models.ForeignKey(Plan, default=Plan.FREE)
+Account	subscription	models.ForeignKey("billing.Subscription", null=True, on_delete=models.SET_NULL, blank=True)
+Plan	name	models.IntegerField(choices=NAMES, default=FREE, unique=True) - FREE,SMALL,MEDIUM,LARGE
+Subscription	reference_id	models.CharField(max_length=255, help_text="FastSpring reference ID", default="")
+Subscription	status	models.IntegerField(choices=SUBSCRIPTION_STATUSES, default=1) - Inactive, Active, Downgrade pending
+Subscription	status_detail	models.CharField(max_length=255, null=True)
+Subscription	details_url	models.CharField(max_length=255, help_text="FastSpring details link", default="")
+Subscription	description	models.CharField(max_length=255, help_text="FS plan description, e.g. \'$10 monthly\'")
+Subscription	created	models.DateField(default=timezone.now)
+Subscription	period_end	models.DateField(default=None, null=True, db_column="period_end")
+Subscription	plan	models.ForeignKey("griddl.Plan", to_field="name", related_name="plan")
+BillingRedirect	created	models.DateTimeField()
+BillingRedirect	account	models.ForeignKey("griddl.Account")
+BillingRedirect	plan	models.ForeignKey("griddl.Plan")
+BillingRedirect	referrer	models.CharField(max_length=32) - md5<accountId.planId.createdDate>
+BillingRedirect	updated	models.DateTimeField(auto_now=True)
+BillingRedirect	status	models.IntegerField(choices=STATES, default=0)
+
+Subscription	period_end()
+Subscription	next_period()
+BillingRedirect	create(cls, accountid, planid, created)
+BillingRedirect	_get_url()
+
+/f/<userid>/<path>/<slug>	workbook() => workbook.htm	{workbook,path,userid,sandbox}
+/results/f/<userid>/<path>/<slug>	results() => results.htm	{workbook,parentdir}
+/raw/f/<userid>/<path>/<slug>	raw() => workbook json
+&nbsp;
+/d/<userid>/<path>	directory(userid, path=None) => directory.htm	{workbooks,acctdirs,path,parentdir}
+/create POST{path,name}	create() => redirect to newly-created workbook uri
+/createDir POST{path,name}	createDir() => json redirect
+/rename POST{id,newname}	rename() => json
+/delete POST{id}	delete() => json
+/move POST{id,parent(id)}	move() => json
+/togglepublic POST{pk}	togglepublic() => json
+&nbsp;
+/save POST{id,text}	save() => json
+/saveas POST{id,newname,text}	saveas() => json
+/saveasForm	saveasForm() => griddl/saveasForm.htm
+&nbsp;
+/	index() => griddl/index.htm
+/<userid>/account	account(userid) => account.htm	{acct, action="billing"|"sub_change"|False, sub_end=Date|"Never"
+/subscriptions	subscriptions() => billing/subscribe.htm	{upgrades=Plan.details(),link,direction,current_plan,btn_class}
+/signup&amp;next=<next>	signup() => griddl/signup.htm	uses SignupForm
+/register POST{username,password,email}	register() => redirect to root directory
+/export	export() => downloads [datetime].tar.gz
+&nbsp;
+/logs	logs() => griddl/logs.htm	sets viewed=True on each viewed log
+/clearViewedLogs	clearViewedLogs() => summary	deletes all logs for which viewed=true
+/lockAccounts	lockAccounts() => summary	locks accounts that have been noncompliant for over 2 weeks
+/stats	stats() => griddl/stats.htm
+&nbsp;
+/billing/<planid>/<userid>	billing_redirect() => creates new BillingRedirect, redirects to redirect.url
+/sub_change/<planid>/<userid>	subscription_change() => FS API, redirect to account page
+&nbsp;
+POST /notify/sub_create	Create.process(self, data)
+POST /notify/sub_change	Change.process(self, data)
+POST /notify/sub_deactivate	Deactivate.process(self, data)
+POST /notify/sub_payfail	PayFail.process(self, data)
+&nbsp;
+/ajaxregister POST{username,password}	ajaxregister()
+/ajaxlogin POST{username,password}	ajaxlogin() => redirects to /newcsrftoken
+/newcsrftoken	newcsrftoken() => griddl/newcsrftoken.htm
+	password_change_redirect()
+	directoryRedirect()
+	login_redirect() => redirect to reverse(directory)
+/login	uses built-in login view and template, returns result of user-provided login_redirect()
+/logout	logoutView() => redirect to /
+
+don\'t we need to create a new Workbook object in saveas(), instead of just setting fields?
+
+we override Workbook.save() to deal with the hard nopes - MaxWorkbookSizeEx and an AccountSizeEx triggered by a wb that by itself is above the account limit
+
+for standard overflows, we do a pre-signal - the save fails and we notify the user, prompting them to upgrade
+ problem with the pre-	 does the user then have to navigate away from the wb to upgrade?  if so, is that not a way to lose data?
+ also, the pre-signal seems to be implemented in the save() controller only, and not the saveas() - so what happens with overflows during a saveas?
+
+[SaveAs] -> POST /saveas {workbookId,newName,workbookText} -> saveas()
+[Save] -> POST /save -> save()
+
+x.notes = 'Usage paths';
+^f/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ %]*)/(?P<slug>[A-Za-z0-9-/ %]*)$
+=>
+    //hyperdeck.io/f/123/foo/bar/baz
+=>
+views.workbook(request, userid="123", path="foo/bar", slug="baz")
+=>
+utils.py/resolve_ancestry(userid="123", path="foo/bar/baz") - this splits the path, starts at root, and traverses the directory tree to locate the workbook
+<=
+[workbook, parent, grandparent, ...]
+=>
+workbook.htm with context {	Workbook,path="foo/bar",userid="123",sandbox=SUBDOMAINS["sandbox"]=}
+
+
+^results/f/(?P<userid>[0-9]+)/?(?P<path>[A-Za-z0-9-/ %]*)/(?P<slug>[A-Za-z0-9-/ %]*)$
+=>
+    //griddl.hyperdeck.io/results/f/123/foo/bar/baz
+=>
+views.results(request, userid="123", path="foo/bar", slug="baz") - calls resolve_ancestry to get workbook
+=>
+results.htm with context {workbook,parentdir}
+
+seems like we shouldn\'t have to resolve path=>Workbook twice, but who knows
+
+// this is not actually how it works
+// these notes envision billing-gated saves with redirects
+// but we actually decouple billing from the locking mechanism
+// saving will lock workbooks, and upgrading will remove the locks
+
+in	domestic	save	gate, overwrite wb
+in	domestic	saveas	gate, copy wb
+in	foreign	save	X - save button is disabled for foreign wbs
+in	foreign	saveas	gate, copy wb
+out	domestic	save	X - if the user is logged out, we have to assume the wb is foreign
+out	domestic	saveas	X - if the user is logged out, we have to assume the wb is foreign
+out	foreign	save	X - save button is disabled for foreign wbs
+out	foreign	saveas	login/signup, gate, copy wb
+
+Subscription.next_period()
+ calls FastSpring API, parses html, sets Subscription.period_end
+
+ Subscription.period_end()
+ this handles subscription downgrades at period end
+ self.status_detail is a Plan, and then int(self.status_detail) is an int?
+ so if we\'re past the period end date, and if there is a downgrade pending, then we set the new plan
+ if the new plan is the free plan, we delete the subscription
+ Subscription.account_set.get() apparently looks up the Account associated with this Subscription?
+ lines 78 and 83 have a bare double equals - is this supposed to be an assignment?
+
+def billing_redirect(request, planid, userid):
+ this is the "billing" endpoint from subscriptions() - sends user to FastSpring on initial signup
+ creates a new BillingRedirect and does HttpResponseRedirect(redirect.url)
+
+def subscription_change(request, planid, userid):
+ this is the "sub_change" endpoint from subscriptions() - handles changes via API call in the background
+ this does not actually send the user to FastSpring
+ calls the FastSpring API and either immediately upgrades subscription or schedules a downgrade for the end of the period
+ so then should we display plan prices, i guess?  i suppose Plan.details() has to be worked on anyway to display the correct sizes/costs
+
+def subscriptions(request):
+ renders to billing/subscribe.htm, displaying Plan choices, tailored to the user\'s current status
+ this function uses Plan.pk throughout, meaning that the Plans have to be in the correct order
+ probably not a big deal, but it makes me nervous
+ initial signups eventually go to billing_redirect and subsequent changes eventually go to subscription_change
+ see billing/urls.py for the urls you go through to get to those views
+
+Create.process(data):
+ creates a new Subscription from the data returned by FastSpring and a BillingRedirect referrer
+ data.referrer = a BillingRedirect.referrer - we use this as a key to lookup a BillingRedirect object
+  so the question is, why do we need a hash as a key rather than an id or something?
+  where does the data passed to Create.process come from?
+ data.id = set Subscription.reference_id to this
+ data.fs_url = set Subscription.details_url to this
+ data.next_period = set Subscription._period_end after some parsing and processing
+ referrer.account.plan/subscription set to BillingRedirect plan and the newly-created Subscription
+
+Change.process(data):
+ data.id - a Subscription id that we use to get the Subscription object
+ data.plan - a Plan name that we use to lookup the new Plan
+ data.end_date - if this is set, we set sub.status to 2 = downgrade pending
+ change the Account plan as well, and notify the user about the plan change
+
+Activate.process(data):
+ this is an endpoint provided by fastspring, but we currently have no use for it
+
+Deactivate.process(data):
+ data.id = subscription id
+ delete Subscription, change Account.plan to FREE
+ how do we get here?  who calls this?
+
+PayFail.process(data):
+ data.id = subscription id
+ does data have other fields?
+ all we do here is notify the user that payment failed - presumably Account/Subscription can just remain unchanged
+
+__base.htm includes topnav.htm, which contains links to Home/Account/Logout or Login
+directory.htm <- def directory(request, userid, path=None)
+results.htm <- def results(request, userid, path, slug)
+workbook.htm <- def workbook(request, userid, path, slug)
+account.htm <- def account(request, userid)
+index.htm <- def index(request)
+login.htm <- ??
+signup.htm <- def register(request), def signup(request)
+saveasForm.htm <- def saveasForm(request)
+newcsrftoken.htm <- def newcsrftoken(request)
+password_change.htm
+
+base.html - extends griddl/__base.htm, has empty blocks "body" and "content"
+1 recovery_form.html - does that input value need single quotes?
+2 reset_sent.html - 
+3 reset.html - presents the form with an input for the new password
+4 recovery_done.html - extends "password_reset/base.html", redirects to login
+recovery_email.txt - template
+recovery_email_subject.txt - template
+
+x.notes = 'Hyperdeck client API';
+Hyperdeck.Get(name, options) => text or data
+Hyperdeck.Set(name, data, options)
+Hyperdeck.Run(name)
+
+free - 2 MB
+small - 50 MB - $10/month
+medium - 200 MB - $20/month
+large - 500 MB - $50/month
+
+Subscription.status
+0 = Inactive
+1 = Active
+2 = Downgrade Pending
+
+Plan.NAMES
+0 = "Placeholder"
+1 = "Free"
+2 = "Small"
+3 = "Medium"
+4 = "Large"
+
+Plan.SIZES
+0 = 0
+1 = 512
+2 = 1024
+3 = 4096
+4 = 10240
+
+BillingRedirect.status
+0 = Sent
+1 = Completed
+
